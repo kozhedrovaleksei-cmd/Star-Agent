@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STARK AI AGENT v2</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@300;400;500;700&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+:root {
+  --black: #050505;
+  --dark: #090909;
+  --panel: #0d0d0d;
+  --border: #161616;
+  --border2: #1e1e1e;
+  --gold: #c9a84c;
+  --gold2: #e8c96b;
+  --red: #e05252;
+  --green: #4caf7d;
+  --blue: #4a90d9;
+  --purple: #9b59b6;
+  --orange: #e07d52;
+  --gray: #2a2a2a;
+  --light: #555;
+  --mid: #777;
+  --white: #d0d0d0;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--black); color:var(--white); font-family:'Rajdhani',sans-serif; min-height:100vh; }
+
+/* HEADER */
+.hdr {
+  padding:16px 32px;
+  background:var(--dark);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:200;
+}
+.hdr-logo { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:8px; color:var(--gold); }
+.hdr-sub { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--light); letter-spacing:3px; }
+.hdr-status { display:flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--green); letter-spacing:2px; }
+.status-dot { width:8px; height:8px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;box-shadow:0 0 6px var(--green)} 50%{opacity:.4;box-shadow:none} }
+
+/* INPUT */
+.input-section { padding:32px; background:var(--dark); border-bottom:1px solid var(--border); }
+.input-title { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--gold); letter-spacing:4px; margin-bottom:16px; }
+.key-row { display:flex; gap:8px; align-items:center; margin-bottom:20px; }
+.key-input {
+  font-family:'JetBrains Mono',monospace; font-size:12px;
+  background:var(--panel); border:1px solid var(--border2);
+  color:var(--white); padding:10px 14px; outline:none; width:380px;
+  transition:border-color .2s;
+}
+.key-input:focus { border-color:var(--gold); }
+.save-btn {
+  font-family:'Bebas Neue',sans-serif; font-size:14px; letter-spacing:2px;
+  padding:10px 20px; background:var(--green); color:#000; border:none; cursor:pointer;
+}
+.key-status { font-family:'JetBrains Mono',monospace; font-size:10px; }
+.input-row { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
+.input-group { display:flex; flex-direction:column; gap:5px; }
+.input-label { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--light); letter-spacing:3px; }
+.ticker-input {
+  font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:6px;
+  background:var(--panel); border:1px solid var(--border2); color:var(--gold);
+  padding:12px 20px; outline:none; width:200px; text-transform:uppercase;
+  transition:border-color .2s;
+}
+.ticker-input:focus { border-color:var(--gold); }
+.context-input {
+  font-family:'Rajdhani',sans-serif; font-size:14px; font-weight:500;
+  background:var(--panel); border:1px solid var(--border2); color:var(--white);
+  padding:12px 16px; outline:none; width:360px; resize:none; height:58px;
+  transition:border-color .2s;
+}
+.context-input:focus { border-color:var(--gold); }
+.analyze-btn {
+  font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:4px;
+  padding:14px 36px; background:var(--gold); color:#000; border:none; cursor:pointer;
+  transition:all .2s; height:58px;
+}
+.analyze-btn:hover { background:var(--gold2); transform:translateY(-1px); box-shadow:0 8px 24px rgba(201,168,76,.3); }
+.analyze-btn:disabled { background:var(--gray); color:var(--light); cursor:not-allowed; transform:none; box-shadow:none; }
+.quick-tickers { display:flex; gap:6px; flex-wrap:wrap; margin-top:14px; align-items:center; }
+.qt {
+  font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+  padding:4px 12px; border:1px solid var(--border2); background:transparent;
+  color:var(--light); cursor:pointer; letter-spacing:1px; transition:all .15s;
+}
+.qt:hover { border-color:var(--gold); color:var(--gold); background:rgba(201,168,76,.06); }
+
+/* LOADING */
+.loading { display:none; padding:60px; text-align:center; }
+.loading.show { display:block; }
+.loading-logo { font-family:'Bebas Neue',sans-serif; font-size:48px; letter-spacing:12px; color:var(--gold); animation:flicker 1.5s infinite; }
+@keyframes flicker { 0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:.4} 94%{opacity:1} 96%{opacity:.6} 97%{opacity:1} }
+.loading-bar { width:300px; height:2px; background:var(--border2); margin:20px auto; overflow:hidden; }
+.loading-fill { height:100%; background:var(--gold); width:0%; transition:width .5s ease; }
+.loading-steps { margin-top:16px; display:flex; flex-direction:column; gap:6px; align-items:center; }
+.loading-step { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--light); letter-spacing:2px; opacity:0; transition:opacity .4s,color .4s; }
+.loading-step.active { opacity:1; color:var(--gold); }
+.loading-step.done { opacity:.5; color:var(--green); }
+
+/* ERROR */
+.error-box { display:none; padding:16px 32px; background:rgba(224,82,82,.06); border-left:3px solid var(--red); margin:16px 32px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--red); }
+.error-box.show { display:block; }
+
+/* RESULT */
+.result { display:none; }
+.result.show { display:block; }
+
+/* TABS */
+.tabs-bar {
+  display:flex; background:var(--dark); border-bottom:1px solid var(--border);
+  position:sticky; top:57px; z-index:150;
+}
+.tab-btn {
+  font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+  letter-spacing:2px; padding:14px 24px; border:none; background:transparent;
+  color:var(--light); cursor:pointer; border-bottom:2px solid transparent;
+  transition:all .15s;
+}
+.tab-btn:hover { color:var(--white); }
+.tab-btn.active { color:var(--gold); border-bottom-color:var(--gold); }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+
+/* HERO */
+.ticker-hero {
+  padding:28px 32px; background:var(--dark); border-bottom:1px solid var(--border);
+  display:grid; grid-template-columns:auto 1fr auto; gap:28px; align-items:center;
+}
+.th-ticker { font-family:'Bebas Neue',sans-serif; font-size:60px; letter-spacing:8px; line-height:1; }
+.th-name { font-size:14px; color:var(--mid); margin-top:3px; }
+.th-sector { font-family:'JetBrains Mono',monospace; font-size:8px; letter-spacing:3px; padding:3px 10px; margin-top:6px; display:inline-block; }
+.th-price { font-family:'Bebas Neue',sans-serif; font-size:52px; letter-spacing:2px; line-height:1; }
+.th-change { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; padding:3px 10px; margin-top:5px; display:inline-block; }
+.th-signal { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:4px; padding:10px 24px; display:inline-block; margin-bottom:6px; }
+.th-upside { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; display:block; }
+
+/* STATS ROW */
+.stats-row { display:flex; border-bottom:1px solid var(--border); }
+.stat { flex:1; padding:12px 16px; border-right:1px solid var(--border); text-align:center; }
+.stat:last-child { border-right:none; }
+.stat-label { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--light); letter-spacing:2px; display:block; margin-bottom:3px; }
+.stat-val { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:1px; }
+
+/* PANELS */
+.main-grid { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--border); }
+.full-width { grid-column:1/-1; }
+.panel { background:var(--dark); padding:22px; }
+.panel-title { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--gold); letter-spacing:3px; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+.panel-title::after { content:''; flex:1; height:1px; background:var(--border2); }
+
+/* LEVELS */
+.levels-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:14px; }
+.level-box { padding:10px 12px; background:var(--panel); border-left:3px solid transparent; }
+.lb-label { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--light); letter-spacing:1px; display:block; margin-bottom:3px; }
+.lb-val { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:1px; }
+.range-bar { margin-top:8px; }
+.rb-labels { display:flex; justify-content:space-between; font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--light); margin-bottom:5px; }
+.rb-track { height:5px; background:var(--border2); border-radius:3px; position:relative; }
+.rb-fill { height:100%; border-radius:3px; }
+.rb-dot { position:absolute; top:-5px; width:15px; height:15px; border-radius:50%; border:2px solid var(--dark); transform:translateX(-50%); }
+
+/* TARGETS */
+.targets-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.target-box { padding:12px; background:var(--panel); text-align:center; border-top:2px solid transparent; }
+.tb-label { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--light); letter-spacing:1px; display:block; margin-bottom:3px; }
+.tb-val { font-family:'Bebas Neue',sans-serif; font-size:20px; }
+.tb-pct { font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; }
+.tb-horizon { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--light); margin-top:2px; }
+
+/* INSIDERS */
+.insider-item { display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.04); }
+.ii-icon { font-size:14px; flex-shrink:0; }
+.ii-body { flex:1; }
+.ii-name { font-size:12px; font-weight:600; color:var(--white); }
+.ii-role { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--light); }
+.ii-amount { font-family:'Bebas Neue',sans-serif; font-size:18px; }
+.ii-date { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--light); }
+.ii-signal { font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; padding:2px 7px; border-radius:1px; }
+
+/* ALGO LEVELS */
+.algo-level { padding:10px 14px; margin-bottom:6px; border-left:3px solid transparent; background:var(--panel); }
+.al-num { font-family:'Bebas Neue',sans-serif; font-size:11px; letter-spacing:2px; }
+.al-title { font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; letter-spacing:2px; margin-bottom:4px; }
+.al-text { font-size:11px; color:var(--mid); line-height:1.5; }
+
+/* CORRELATION */
+.corr-text { font-size:13px; line-height:1.7; color:var(--mid); }
+.corr-text strong { color:var(--white); }
+.corr-chain { margin-top:12px; display:flex; flex-wrap:wrap; align-items:center; gap:5px; }
+.cc-node { font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; padding:3px 10px; border:1px solid var(--border2); color:var(--white); }
+.cc-arrow { color:var(--gold); font-size:14px; }
+
+/* EVENTS */
+.events-list { display:flex; flex-direction:column; }
+.ev-item { display:grid; grid-template-columns:76px 14px 1fr; gap:0 10px; }
+.ev-date { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--light); padding-top:11px; text-align:right; letter-spacing:.5px; }
+.ev-line-wrap { display:flex; flex-direction:column; align-items:center; }
+.ev-dot { width:10px; height:10px; border-radius:50%; margin-top:9px; flex-shrink:0; border:2px solid var(--dark); }
+.ev-connector { width:1px; flex:1; min-height:10px; background:var(--border2); }
+.ev-content { padding:6px 0 10px; }
+.ev-title-text { font-size:12px; font-weight:600; line-height:1.3; }
+.ev-desc { font-size:11px; color:var(--light); margin-top:2px; line-height:1.4; }
+.ev-driver { font-family:'JetBrains Mono',monospace; font-size:9px; padding:2px 7px; margin-top:4px; display:inline-block; }
+
+/* BULL/BEAR */
+.bb-grid { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--border); }
+.bb-side { background:var(--dark); padding:18px; }
+.bb-title { font-family:'Bebas Neue',sans-serif; font-size:14px; letter-spacing:3px; margin-bottom:10px; }
+.bb-item { display:flex; gap:7px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,.03); font-size:11px; color:var(--light); line-height:1.4; }
+
+/* CHART TAB */
+.chart-container { padding:20px 32px; background:var(--dark); }
+.chart-controls { display:flex; gap:8px; margin-bottom:16px; align-items:center; flex-wrap:wrap; }
+.chart-ctrl-btn { font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; letter-spacing:1px; padding:4px 12px; border:1px solid var(--border2); background:transparent; color:var(--light); cursor:pointer; transition:all .15s; }
+.chart-ctrl-btn.on { border-color:var(--gold); color:var(--gold); background:rgba(201,168,76,.06); }
+.chart-wrap { position:relative; height:420px; border:1px solid var(--border); background:var(--panel); }
+canvas { display:block; cursor:crosshair; }
+.chart-tip { position:absolute; background:#0e0e0edd; border:1px solid var(--border2); padding:10px 14px; font-family:'JetBrains Mono',monospace; font-size:10px; line-height:1.8; pointer-events:none; opacity:0; transition:opacity .1s; z-index:10; min-width:180px; }
+.chart-tip.show { opacity:1; }
+.chart-legend { display:flex; gap:16px; margin-top:12px; flex-wrap:wrap; }
+.cl-item { display:flex; align-items:center; gap:6px; font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--light); }
+.cl-dot { width:10px; height:3px; border-radius:1px; }
+
+/* EVENTS CHART LIST */
+.chart-events-list { margin-top:20px; }
+.cev-title { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--gold); letter-spacing:3px; margin-bottom:12px; }
+.cev-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:8px; }
+.cev-card { padding:12px 14px; background:var(--panel); border-left:3px solid transparent; }
+.cev-date { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--light); letter-spacing:1px; margin-bottom:4px; }
+.cev-event { font-size:12px; font-weight:600; margin-bottom:4px; }
+.cev-driver { font-size:11px; color:var(--mid); line-height:1.4; }
+.cev-impact { font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; margin-top:4px; padding:2px 7px; display:inline-block; }
+
+/* VERDICT */
+.verdict-bar { padding:22px 32px; background:var(--dark); border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:20px; }
+.vb-label { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--gold); letter-spacing:3px; margin-bottom:5px; }
+.vb-main { font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:2px; color:var(--white); line-height:1.3; margin-bottom:5px; }
+.vb-note { font-size:11px; color:var(--light); line-height:1.5; }
+.vb-right { display:flex; gap:16px; align-items:center; }
+.vb-metric { text-align:center; }
+.vbm-label { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--light); letter-spacing:2px; display:block; margin-bottom:3px; }
+.vbm-val { font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:1px; }
+.new-btn { font-family:'Bebas Neue',sans-serif; font-size:13px; letter-spacing:2px; padding:9px 20px; border:1px solid var(--border2); background:transparent; color:var(--light); cursor:pointer; transition:all .2s; }
+.new-btn:hover { border-color:var(--gold); color:var(--gold); }
+
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-thumb { background:var(--border2); }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div class="hdr-logo">STARK AI AGENT v2</div>
+    <div class="hdr-sub">8-УРОВНЕВЫЙ АЛГОРИТМ · ИНСАЙДЕРЫ · ГРАФИК С СОБЫТИЯМИ</div>
+  </div>
+  <div class="hdr-status"><div class="status-dot"></div>AGENT ONLINE</div>
+</div>
+
+<div class="input-section" id="inputSection">
+  <div class="input-title">▼ GROQ API KEY</div>
+  <div class="key-row">
+    <input type="password" id="apiKeyInput" class="key-input" placeholder="gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+    <button class="save-btn" onclick="saveKey()">СОХРАНИТЬ</button>
+    <span id="keyStatus" class="key-status"></span>
+  </div>
+  <div class="input-title">▼ АНАЛИЗ АКЦИИ — 8 УРОВНЕЙ STARK</div>
+  <div class="input-row">
+    <div class="input-group">
+      <span class="input-label">ТИКЕР</span>
+      <input type="text" class="ticker-input" id="tickerInput" placeholder="NKE" maxlength="6">
+    </div>
+    <div class="input-group">
+      <span class="input-label">ТВОЯ ГИПОТЕЗА (необязательно)</span>
+      <textarea class="context-input" id="contextInput" placeholder="Например: вижу корреляцию с нефтью, компания на дне цикла..."></textarea>
+    </div>
+    <button class="analyze-btn" id="analyzeBtn" onclick="analyze()">⚡ АНАЛИЗИРОВАТЬ</button>
+  </div>
+  <div class="quick-tickers">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--light);letter-spacing:2px">БЫСТРЫЙ ВЫБОР:</span>
+    <button class="qt" onclick="quickTicker('NKE')">NKE</button>
+    <button class="qt" onclick="quickTicker('CCJ')">CCJ</button>
+    <button class="qt" onclick="quickTicker('CEG')">CEG</button>
+    <button class="qt" onclick="quickTicker('PBR')">PBR</button>
+    <button class="qt" onclick="quickTicker('VST')">VST</button>
+    <button class="qt" onclick="quickTicker('OKLO')">OKLO</button>
+    <button class="qt" onclick="quickTicker('NOK')">NOK</button>
+    <button class="qt" onclick="quickTicker('FCX')">FCX</button>
+    <button class="qt" onclick="quickTicker('RKLB')">RKLB</button>
+    <button class="qt" onclick="quickTicker('SBER')">SBER</button>
+    <button class="qt" onclick="quickTicker('SVCB')">SVCB</button>
+    <button class="qt" onclick="quickTicker('FLNC')">FLNC</button>
+  </div>
+</div>
+
+<div class="error-box" id="errorBox"></div>
+
+<div class="loading" id="loading">
+  <div class="loading-logo" id="loadingTicker">—</div>
+  <div class="loading-bar"><div class="loading-fill" id="loadingFill"></div></div>
+  <div class="loading-steps">
+    <div class="loading-step" id="step1">📡 УРОВЕНЬ 1 — МАКРО КОНТЕКСТ</div>
+    <div class="loading-step" id="step2">🔗 УРОВЕНЬ 2 — СКРЫТАЯ КОРРЕЛЯЦИЯ</div>
+    <div class="loading-step" id="step3">👔 УРОВЕНЬ 3 — ИНСАЙДЕРЫ И УМНЫЕ ДЕНЬГИ</div>
+    <div class="loading-step" id="step4">📊 УРОВЕНЬ 4 — ФУНДАМЕНТАЛ</div>
+    <div class="loading-step" id="step5">📈 УРОВЕНЬ 5 — ТЕХНИКА PDH/PDL</div>
+    <div class="loading-step" id="step6">⚡ УРОВЕНЬ 6 — КАТАЛИЗАТОР</div>
+    <div class="loading-step" id="step7">🛡️ УРОВЕНЬ 7 — РИСК-МЕНЕДЖМЕНТ</div>
+    <div class="loading-step" id="step8">🎯 УРОВЕНЬ 8 — ВЕРДИКТ</div>
+  </div>
+</div>
+
+<div class="result" id="result"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// KEY MANAGEMENT
+// ═══════════════════════════════════════════
+function saveKey() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key.startsWith('gsk_')) {
+    setKeyStatus('❌ Ключ должен начинаться с gsk_', 'var(--red)');
+    return;
+  }
+  localStorage.setItem('groq_key', key);
+  setKeyStatus('✅ СОХРАНЁН', 'var(--green)');
+  document.getElementById('apiKeyInput').value = '•'.repeat(24);
+}
+
+function setKeyStatus(msg, color) {
+  const el = document.getElementById('keyStatus');
+  el.textContent = msg;
+  el.style.color = color;
+}
+
+function quickTicker(t) {
+  document.getElementById('tickerInput').value = t;
+  document.getElementById('tickerInput').focus();
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ═══════════════════════════════════════════
+// MAIN ANALYZE
+// ═══════════════════════════════════════════
+async function analyze() {
+  const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+  const context = document.getElementById('contextInput').value.trim();
+  const apiKey = localStorage.getItem('groq_key');
+
+  if (!ticker) { showError('Введи тикер'); return; }
+  if (!apiKey) { showError('Сначала сохрани Groq API ключ'); return; }
+
+  document.getElementById('errorBox').classList.remove('show');
+  document.getElementById('result').classList.remove('show');
+  document.getElementById('result').innerHTML = '';
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('loadingTicker').textContent = ticker;
+  document.getElementById('analyzeBtn').disabled = true;
+
+  const steps = ['step1','step2','step3','step4','step5','step6','step7','step8'];
+  const fill = document.getElementById('loadingFill');
+  steps.forEach(s => document.getElementById(s).className = 'loading-step');
+
+  for (let i = 0; i < steps.length; i++) {
+    await sleep(500);
+    if (i > 0) document.getElementById(steps[i-1]).className = 'loading-step done';
+    document.getElementById(steps[i]).className = 'loading-step active';
+    fill.style.width = ((i+1)/steps.length*100) + '%';
+  }
+
+  const prompt = `Ты — STARK AI, профессиональный агент для анализа акций по 8-уровневому алгоритму.
+
+Анализируй акцию: ${ticker}
+${context ? `Гипотеза инвестора: ${context}` : ''}
+
+АЛГОРИТМ АНАЛИЗА (обязательно все 8 уровней):
+1. МАКРО: ставки ЦБ/ФРС, DXY, геополитика, цикл экономики
+2. СКРЫТАЯ КОРРЕЛЯЦИЯ: нестандартные зависимости, лаговые связи, что рынок не видит
+3. ИНСАЙДЕРЫ: кто покупал (CEO/CFO/мажоритарии), суммы, даты — из SEC Form 4
+4. ФУНДАМЕНТАЛ: выручка, маржа, долг, P/E, P/B, дивиденды
+5. ТЕХНИКА: PDH/PDL, поддержка/сопротивление, 52W диапазон, объёмы
+6. КАТАЛИЗАТОР: конкретные даты событий — отчёты, решения регуляторов, сделки
+7. РИСК: стоп-уровень, R:R соотношение, размер позиции при депозите $10K
+8. ВЕРДИКТ: итоговая рекомендация
+
+Верни ТОЛЬКО валидный JSON без markdown. Начни сразу с {
+
+{
+  "ticker": "${ticker}",
+  "name": "полное название",
+  "sector": "СЕКТОР",
+  "exchange": "NYSE/NASDAQ/MOEX",
+  "price": "$XX.XX",
+  "priceNum": число,
+  "priceColor": "#4caf7d или #e05252",
+  "change": "описание изменения",
+  "changePositive": true/false,
+  "color": "#hex основной цвет",
+  "marketCap": "XXB",
+  "pe": "XX.X",
+  "dividend": "X.X%",
+  "revenue": "описание динамики выручки",
+  "margin": "описание маржи",
+  "low52": число,
+  "high52": число,
+  "ath": число,
+  "support": "уровень поддержки",
+  "resistance": "уровень сопротивления",
+  "pdh": "примерный PDH",
+  "pdl": "примерный PDL",
+  "entry": "точка входа",
+  "macro": "анализ макро контекста для этой акции",
+  "correlation": "скрытая корреляция которую рынок не видит",
+  "correlationChain": ["узел1","→","узел2","→","узел3"],
+  "insiders": [
+    {"name": "имя", "role": "CEO/CFO/Director", "action": "КУПИЛ/ПРОДАЛ", "amount": "$XXM", "date": "дата", "signal": "СИЛЬНЫЙ/УМЕРЕННЫЙ/СЛАБЫЙ", "signalColor": "#4caf7d или #e05252"}
+  ],
+  "targets": [
+    {"label": "ЦЕЛЬ 1", "val": "$XX", "pct": "+XX%", "color": "#4caf7d", "horizon": "6-12М"},
+    {"label": "ЦЕЛЬ 2", "val": "$XX", "pct": "+XX%", "color": "#e8c96b", "horizon": "12-24М"},
+    {"label": "ЦЕЛЬ 3", "val": "$XX", "pct": "+XX%", "color": "#9b59b6", "horizon": "2028"}
+  ],
+  "chartData": [
+    {"date": "Янв 2023", "price": число, "event": null},
+    {"date": "Мар 2023", "price": число, "event": {"label": "короткая подпись", "desc": "что случилось и почему акция двинулась", "driver": "ОТЧЁТ/ИНСАЙДЕР/МАКРО/AI/ГЕОПОЛИТИКА/M&A", "color": "#hex", "impact": "+XX% или -XX%"}},
+    ... (минимум 16 точек от 2023 до сегодня с ключевыми событиями)
+  ],
+  "events": [
+    {"date": "МАЙ 2026", "title": "название", "desc": "влияние", "driver": "ТИП ДРАЙВЕРА", "color": "#hex"},
+    {"date": "2027", "title": "...", "desc": "...", "driver": "...", "color": "..."},
+    {"date": "2028", "title": "...", "desc": "...", "driver": "...", "color": "..."}
+  ],
+  "riskLevel": "СТОП НА XX — при депозите $10K риск $100 (1%), объём XX акций",
+  "rr": "X:1",
+  "stopLevel": "цена стопа",
+  "bullCase": ["аргумент 1", "аргумент 2", "аргумент 3"],
+  "bearCase": ["риск 1", "риск 2", "риск 3"],
+  "verdict": "ПОКУПАТЬ/ДЕРЖАТЬ/ЖДАТЬ/ПРОДАВАТЬ",
+  "verdictColor": "#hex",
+  "verdictMain": "КРАТКОЕ РЕЗЮМЕ",
+  "verdictNote": "детальная рекомендация",
+  "upside": "+XX%",
+  "confidence": "ВЫСОКАЯ/СРЕДНЯЯ/НИЗКАЯ"
+}`;
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 3000,
+        temperature: 0.2,
+        messages: [
+          { role: 'system', content: 'Ты профессиональный финансовый аналитик. Отвечай ТОЛЬКО валидным JSON без markdown, без комментариев.' },
+          { role: 'user', content: prompt }
+        ]
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+
+    let text = data.choices?.[0]?.message?.content || '';
+    let stock;
+    try {
+      const m = text.match(/\{[\s\S]*\}/);
+      if (m) stock = JSON.parse(m[0]);
+      else throw new Error('JSON не найден');
+    } catch(e) {
+      throw new Error('Ошибка парсинга ответа. Попробуй ещё раз.');
+    }
+
+    renderResult(stock);
+
+  } catch(err) {
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('analyzeBtn').disabled = false;
+    showError(err.message || 'Ошибка агента');
+  }
+}
+
+// ═══════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════
+function renderResult(s) {
+  document.getElementById('loading').classList.remove('show');
+  document.getElementById('analyzeBtn').disabled = false;
+
+  const pct52 = Math.min(100, Math.max(0, ((s.priceNum - s.low52) / (s.high52 - s.low52)) * 100));
+
+  // Insiders HTML
+  const insidersHtml = (s.insiders || []).length > 0
+    ? (s.insiders || []).map(ins => `
+      <div class="insider-item">
+        <span class="ii-icon">${ins.action === 'КУПИЛ' ? '📈' : '📉'}</span>
+        <div class="ii-body">
+          <div class="ii-name">${ins.name}</div>
+          <div class="ii-role">${ins.role}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="ii-amount" style="color:${ins.action === 'КУПИЛ' ? 'var(--green)' : 'var(--red)'}">${ins.amount}</div>
+          <div class="ii-date">${ins.date}</div>
+          <div class="ii-signal" style="color:${ins.signalColor};background:${ins.signalColor}18">${ins.signal}</div>
+        </div>
+      </div>`).join('')
+    : '<div style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--light);padding:8px 0">Данных по инсайдерам нет — проверь OpenInsider.com</div>';
+
+  // Targets HTML
+  const targetsHtml = (s.targets || []).map(t => `
+    <div class="target-box" style="border-top-color:${t.color}">
+      <span class="tb-label">${t.label}</span>
+      <div class="tb-val" style="color:${t.color}">${t.val}</div>
+      <div class="tb-pct" style="color:${t.color}">${t.pct}</div>
+      <div class="tb-horizon">${t.horizon}</div>
+    </div>`).join('');
+
+  // Correlation chain
+  const chainHtml = (s.correlationChain || []).map(n =>
+    n === '→' ? `<span class="cc-arrow">→</span>` : `<div class="cc-node">${n}</div>`
+  ).join('');
+
+  // Events HTML
+  const eventsHtml = (s.events || []).map((ev, i) => `
+    <div class="ev-item">
+      <div class="ev-date">${ev.date}</div>
+      <div class="ev-line-wrap">
+        <div class="ev-dot" style="background:${ev.color}"></div>
+        ${i < (s.events.length-1) ? '<div class="ev-connector"></div>' : ''}
+      </div>
+      <div class="ev-content">
+        <div class="ev-title-text" style="color:${ev.color}">${ev.title}</div>
+        <div class="ev-desc">${ev.desc}</div>
+        <div class="ev-driver" style="color:${ev.color};background:${ev.color}18">${ev.driver || ''}</div>
+      </div>
+    </div>`).join('');
+
+  // Chart events cards
+  const chartEventsHtml = (s.chartData || []).filter(d => d.event).map(d => `
+    <div class="cev-card" style="border-left-color:${d.event.color}">
+      <div class="cev-date">${d.date}</div>
+      <div class="cev-event" style="color:${d.event.color}">${d.event.label}</div>
+      <div class="cev-driver">${d.event.desc}</div>
+      <div class="cev-impact" style="color:${d.event.color};background:${d.event.color}18">${d.event.driver} · ${d.event.impact || ''}</div>
+    </div>`).join('');
+
+  const bullHtml = (s.bullCase || []).map(b => `<div class="bb-item"><span>✅</span>${b}</div>`).join('');
+  const bearHtml = (s.bearCase || []).map(b => `<div class="bb-item"><span>⚠️</span>${b}</div>`).join('');
+
+  const html = `
+    <div style="height:3px;background:${s.color}"></div>
+
+    <!-- HERO -->
+    <div class="ticker-hero">
+      <div>
+        <div class="th-ticker" style="color:${s.color}">${s.ticker}</div>
+        <div class="th-name">${s.name}</div>
+        <div class="th-sector" style="color:${s.color};background:${s.color}15;border:1px solid ${s.color}30">${s.sector}</div>
+      </div>
+      <div>
+        <div class="th-price" style="color:${s.priceColor || s.color}">${s.price}</div>
+        <div class="th-change" style="color:${s.changePositive?'#4caf7d':'#e05252'};background:${s.changePositive?'rgba(76,175,125,.1)':'rgba(224,82,82,.1)'}">${s.change}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="th-signal" style="color:${s.verdictColor};background:${s.verdictColor}18;border:1px solid ${s.verdictColor}40">${s.verdict}</div>
+        <span class="th-upside" style="color:${s.verdictColor}">${s.upside} · R:R ${s.rr} · ${s.confidence}</span>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat"><span class="stat-label">МКТ. КАП.</span><span class="stat-val">${s.marketCap||'—'}</span></div>
+      <div class="stat"><span class="stat-label">P/E</span><span class="stat-val" style="color:var(--gold)">${s.pe||'—'}</span></div>
+      <div class="stat"><span class="stat-label">ДИВИДЕНД</span><span class="stat-val" style="color:var(--green)">${s.dividend||'—'}</span></div>
+      <div class="stat"><span class="stat-label">52W LOW</span><span class="stat-val" style="color:var(--red)">${s.low52}</span></div>
+      <div class="stat"><span class="stat-label">52W HIGH</span><span class="stat-val" style="color:var(--green)">${s.high52}</span></div>
+      <div class="stat"><span class="stat-label">ATH</span><span class="stat-val" style="color:var(--gold2)">${s.ath}</span></div>
+      <div class="stat"><span class="stat-label">БИРЖА</span><span class="stat-val" style="color:var(--blue)">${s.exchange}</span></div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs-bar">
+      <button class="tab-btn active" onclick="switchTab('analysis')">📊 АНАЛИЗ</button>
+      <button class="tab-btn" onclick="switchTab('chart')">📈 ГРАФИК + СОБЫТИЯ</button>
+      <button class="tab-btn" onclick="switchTab('algo')">⚙️ АЛГОРИТМ</button>
+    </div>
+
+    <!-- TAB: ANALYSIS -->
+    <div class="tab-content active" id="tab-analysis">
+      <div class="main-grid">
+
+        <div class="panel">
+          <div class="panel-title">📍 ТЕХНИЧЕСКИЕ УРОВНИ</div>
+          <div class="levels-grid">
+            <div class="level-box" style="border-left-color:#e05252">
+              <span class="lb-label">ПОДДЕРЖКА</span>
+              <div class="lb-val" style="color:#e05252">${s.support}</div>
+            </div>
+            <div class="level-box" style="border-left-color:${s.color}">
+              <span class="lb-label">ВХОД</span>
+              <div class="lb-val" style="color:${s.color}">${s.entry}</div>
+            </div>
+            <div class="level-box" style="border-left-color:#4caf7d">
+              <span class="lb-label">СОПРОТИВЛЕНИЕ</span>
+              <div class="lb-val" style="color:#4caf7d">${s.resistance}</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+            <div class="level-box" style="border-left-color:var(--gold)">
+              <span class="lb-label">PDH (ВЧЕРА MAX)</span>
+              <div class="lb-val" style="color:var(--gold)">${s.pdh||'—'}</div>
+            </div>
+            <div class="level-box" style="border-left-color:var(--red)">
+              <span class="lb-label">PDL (ВЧЕРА MIN)</span>
+              <div class="lb-val" style="color:var(--red)">${s.pdl||'—'}</div>
+            </div>
+          </div>
+          <div class="range-bar">
+            <div class="rb-labels"><span>52W LOW: ${s.low52}</span><span>52W HIGH: ${s.high52}</span></div>
+            <div class="rb-track">
+              <div class="rb-fill" style="width:${pct52}%;background:linear-gradient(to right,#e05252,${s.color})"></div>
+              <div class="rb-dot" style="left:${pct52}%;background:${s.color}"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">🎯 ЦЕНОВЫЕ ЦЕЛИ ДО 2028</div>
+          <div class="targets-grid">${targetsHtml}</div>
+          <div style="margin-top:14px;padding:12px;background:var(--panel);border-left:3px solid var(--red)">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--light);letter-spacing:1px;margin-bottom:4px">РИСК-МЕНЕДЖМЕНТ</div>
+            <div style="font-size:11px;color:var(--mid);line-height:1.5">${s.riskLevel||'—'}</div>
+          </div>
+        </div>
+
+        <div class="panel full-width">
+          <div class="panel-title">👔 ИНСАЙДЕРЫ И МАЖОРИТАРИИ — SEC FORM 4</div>
+          ${insidersHtml}
+        </div>
+
+        <div class="panel full-width">
+          <div class="panel-title">📡 УРОВЕНЬ 1 — МАКРО КОНТЕКСТ</div>
+          <div style="font-size:13px;color:var(--mid);line-height:1.7">${s.macro||'—'}</div>
+        </div>
+
+        <div class="panel full-width">
+          <div class="panel-title">🔗 УРОВЕНЬ 2 — СКРЫТАЯ КОРРЕЛЯЦИЯ</div>
+          <div class="corr-text">${s.correlation}</div>
+          ${chainHtml ? `<div class="corr-chain">${chainHtml}</div>` : ''}
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">📅 СОБЫТИЯ ДО 2028</div>
+          <div class="events-list">${eventsHtml}</div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">⚖️ МЕДВЕЖИЙ VS БЫЧИЙ КЕЙС</div>
+          <div class="bb-grid">
+            <div class="bb-side"><div class="bb-title" style="color:#4caf7d">🐂 БЫЧИЙ</div>${bullHtml}</div>
+            <div class="bb-side"><div class="bb-title" style="color:#e05252">🐻 МЕДВЕЖИЙ</div>${bearHtml}</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB: CHART -->
+    <div class="tab-content" id="tab-chart">
+      <div class="chart-container">
+        <div class="chart-controls">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--light);letter-spacing:2px">ТАЙМФРЕЙМ:</span>
+          <button class="chart-ctrl-btn on">ВСЁ ВРЕМЯ</button>
+          <button class="chart-ctrl-btn">1 ГОД</button>
+          <button class="chart-ctrl-btn">6 МЕС</button>
+          <div style="margin-left:auto;display:flex;gap:12px" class="chart-legend">
+            <div class="cl-item"><div class="cl-dot" style="background:var(--gold)"></div>PDH</div>
+            <div class="cl-item"><div class="cl-dot" style="background:var(--red)"></div>PDL</div>
+            <div class="cl-item"><div class="cl-dot" style="background:var(--blue)"></div>СОБЫТИЕ</div>
+            <div class="cl-item"><div class="cl-dot" style="background:var(--green)"></div>РОСТ</div>
+            <div class="cl-item"><div class="cl-dot" style="background:var(--red)"></div>ПАДЕНИЕ</div>
+          </div>
+        </div>
+        <div class="chart-wrap" id="chartWrap">
+          <canvas id="priceCanvas"></canvas>
+          <div class="chart-tip" id="chartTip">
+            <div style="display:flex;justify-content:space-between;gap:12px"><span style="color:var(--light)">Дата</span><span id="ct-date" style="font-weight:700">—</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px"><span style="color:var(--light)">Цена</span><span id="ct-price" style="font-weight:700;color:var(--gold)">—</span></div>
+            <div id="ct-event" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border2);display:none;color:var(--white);font-size:10px;line-height:1.5"></div>
+          </div>
+        </div>
+        <div class="chart-events-list">
+          <div class="cev-title">ДРАЙВЕРЫ ДВИЖЕНИЙ — ПОЧЕМУ ЦЕНА ДВИГАЛАСЬ</div>
+          <div class="cev-grid">${chartEventsHtml}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: ALGO -->
+    <div class="tab-content" id="tab-algo">
+      <div style="padding:24px 32px">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold);letter-spacing:4px;margin-bottom:20px">STARK 8-УРОВНЕВЫЙ АЛГОРИТМ АНАЛИЗА</div>
+        ${buildAlgoHtml(s)}
+      </div>
+    </div>
+
+    <!-- VERDICT -->
+    <div class="verdict-bar">
+      <div>
+        <div class="vb-label">STARK VERDICT</div>
+        <div class="vb-main">${s.verdictMain}</div>
+        <div class="vb-note">${s.verdictNote}</div>
+      </div>
+      <div class="vb-right">
+        <div class="vb-metric"><span class="vbm-label">ПОТЕНЦИАЛ</span><div class="vbm-val" style="color:var(--green)">${s.upside}</div></div>
+        <div class="vb-metric"><span class="vbm-label">R:R</span><div class="vbm-val" style="color:var(--gold)">${s.rr}</div></div>
+        <div class="vb-metric"><span class="vbm-label">СИГНАЛ</span><div class="vbm-val" style="color:${s.verdictColor}">${s.verdict}</div></div>
+        <button class="new-btn" onclick="newAnalysis()">↺ НОВЫЙ</button>
+      </div>
+    </div>
+  `;
+
+  const resultEl = document.getElementById('result');
+  resultEl.innerHTML = html;
+  resultEl.classList.add('show');
+  resultEl.scrollIntoView({ behavior: 'smooth' });
+
+  // Draw chart after render
+  setTimeout(() => drawChart(s), 100);
+}
+
+function buildAlgoHtml(s) {
+  const levels = [
+    { num:'01', title:'МАКРО КОНТЕКСТ', color:'#4a90d9', text: s.macro || '—' },
+    { num:'02', title:'СКРЫТАЯ КОРРЕЛЯЦИЯ', color:'#9b59b6', text: s.correlation || '—' },
+    { num:'03', title:'ИНСАЙДЕРЫ И УМНЫЕ ДЕНЬГИ', color:'#e8c96b', text: (s.insiders||[]).map(i=>`${i.name} (${i.role}): ${i.action} ${i.amount} · ${i.date}`).join(' | ') || 'Нет данных по инсайдерам' },
+    { num:'04', title:'ФУНДАМЕНТАЛ', color:'#4caf7d', text: `Выручка: ${s.revenue||'—'} | Маржа: ${s.margin||'—'} | P/E: ${s.pe||'—'} | Дивиденд: ${s.dividend||'—'}` },
+    { num:'05', title:'ТЕХНИКА PDH/PDL', color:'#c9a84c', text: `PDH: ${s.pdh||'—'} | PDL: ${s.pdl||'—'} | Поддержка: ${s.support} | Сопротивление: ${s.resistance} | 52W: ${s.low52}–${s.high52}` },
+    { num:'06', title:'КАТАЛИЗАТОР', color:'#e07d52', text: (s.events||[]).map(e=>`${e.date}: ${e.title}`).join(' | ') || '—' },
+    { num:'07', title:'РИСК-МЕНЕДЖМЕНТ', color:'#e05252', text: `${s.riskLevel||'—'} | Стоп: ${s.stopLevel||'—'} | R:R: ${s.rr||'—'}` },
+    { num:'08', title:'ВЕРДИКТ', color: s.verdictColor||'#4caf7d', text: `${s.verdict} · ${s.upside} потенциал · Уверенность: ${s.confidence} | ${s.verdictNote}` },
+  ];
+  return levels.map(l => `
+    <div class="algo-level" style="border-left-color:${l.color};margin-bottom:8px">
+      <div class="al-title" style="color:${l.color}">УРОВЕНЬ ${l.num} — ${l.title}</div>
+      <div class="al-text">${l.text}</div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════
+// CHART
+// ═══════════════════════════════════════════
+function drawChart(s) {
+  const wrap = document.getElementById('chartWrap');
+  const cv = document.getElementById('priceCanvas');
+  if (!wrap || !cv || !s.chartData || s.chartData.length < 2) return;
+
+  cv.width = wrap.clientWidth;
+  cv.height = wrap.clientHeight;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  const PAD = { top:40, right:60, bottom:40, left:60 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+  const data = s.chartData;
+  const N = data.length;
+
+  // Price range
+  const prices = data.map(d => d.price);
+  const minP = Math.min(...prices) - (Math.max(...prices) - Math.min(...prices)) * 0.1;
+  const maxP = Math.max(...prices) + (Math.max(...prices) - Math.min(...prices)) * 0.1;
+  const pRange = maxP - minP;
+
+  const toX = i => PAD.left + (i / (N-1)) * chartW;
+  const toY = p => PAD.top + chartH - ((p - minP) / pRange) * chartH;
+
+  // Background
+  ctx.fillStyle = '#0d0d0d';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = '#161616';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = PAD.top + (chartH / 5) * i;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(W - PAD.right, y); ctx.stroke();
+    const p = maxP - (pRange / 5) * i;
+    ctx.fillStyle = '#333';
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(p.toFixed(1), PAD.left - 6, y + 4);
+  }
+
+  // Gradient fill
+  const grad = ctx.createLinearGradient(0, PAD.top, 0, PAD.top + chartH);
+  grad.addColorStop(0, (s.color || '#c9a84c') + '22');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.beginPath();
+  ctx.moveTo(toX(0), toY(data[0].price));
+  data.forEach((d, i) => ctx.lineTo(toX(i), toY(d.price)));
+  ctx.lineTo(toX(N-1), PAD.top + chartH);
+  ctx.lineTo(toX(0), PAD.top + chartH);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Price line
+  ctx.strokeStyle = s.color || '#c9a84c';
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  data.forEach((d, i) => i === 0 ? ctx.moveTo(toX(i), toY(d.price)) : ctx.lineTo(toX(i), toY(d.price)));
+  ctx.stroke();
+
+  // PDH/PDL lines
+  if (s.pdh) {
+    const pdhNum = parseFloat(String(s.pdh).replace(/[^0-9.]/g, ''));
+    if (pdhNum) {
+      ctx.strokeStyle = '#c9a84c44';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 5]);
+      const y = toY(pdhNum);
+      if (y > PAD.top && y < PAD.top + chartH) {
+        ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(W - PAD.right, y); ctx.stroke();
+        ctx.fillStyle = '#c9a84c';
+        ctx.font = 'bold 9px JetBrains Mono, monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText('PDH', W - PAD.right + 4, y + 4);
+      }
+      ctx.setLineDash([]);
+    }
+  }
+
+  // Event dots
+  data.forEach((d, i) => {
+    if (!d.event) return;
+    const x = toX(i), y = toY(d.price);
+    const col = d.event.color || '#4a90d9';
+
+    ctx.shadowColor = col;
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#0d0d0d';
+    ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+
+    // Label
+    const isAbove = y > H * 0.6;
+    const labelY = isAbove ? y - 28 : y + 28;
+    const tw = ctx.measureText(d.event.label).width + 14;
+    const lx = Math.max(PAD.left, Math.min(W - PAD.right - tw, x - tw/2));
+
+    ctx.fillStyle = '#0d0d0d';
+    ctx.strokeStyle = col + '80';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(lx, labelY - 10, tw, 20, 2);
+    ctx.fill(); ctx.stroke();
+
+    ctx.fillStyle = col;
+    ctx.font = 'bold 9px JetBrains Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(d.event.label, lx + tw/2, labelY + 4);
+  });
+
+  // Date labels
+  ctx.fillStyle = '#2a2a2a';
+  ctx.font = '9px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  data.forEach((d, i) => {
+    if (i % Math.max(1, Math.floor(N/8)) !== 0) return;
+    ctx.fillText(d.date, toX(i), H - 6);
+  });
+
+  // Current price tag
+  const lastY = toY(data[N-1].price);
+  ctx.fillStyle = s.color || '#c9a84c';
+  ctx.fillRect(W - PAD.right + 2, lastY - 10, PAD.right - 4, 20);
+  ctx.fillStyle = '#000';
+  ctx.font = 'bold 10px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(data[N-1].price, W - PAD.right/2, lastY + 4);
+
+  // Tooltip
+  cv.onmousemove = e => {
+    const rect = cv.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const i = Math.round(((mx - PAD.left) / chartW) * (N-1));
+    if (i < 0 || i >= N) { document.getElementById('chartTip').classList.remove('show'); return; }
+    const d = data[i];
+    document.getElementById('ct-date').textContent = d.date;
+    document.getElementById('ct-price').textContent = '$' + d.price;
+    const evEl = document.getElementById('ct-event');
+    if (d.event) {
+      evEl.style.display = 'block';
+      evEl.style.color = d.event.color;
+      evEl.innerHTML = `<strong>${d.event.label}</strong><br>${d.event.desc}`;
+    } else { evEl.style.display = 'none'; }
+    const tip = document.getElementById('chartTip');
+    tip.classList.add('show');
+    tip.style.left = (mx + 16 > W - 200 ? mx - 210 : mx + 16) + 'px';
+    tip.style.top = Math.max(4, e.clientY - rect.top - 10) + 'px';
+  };
+  cv.onmouseleave = () => document.getElementById('chartTip').classList.remove('show');
+}
+
+// ═══════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['analysis','chart','algo'][i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function newAnalysis() {
+  document.getElementById('result').classList.remove('show');
+  document.getElementById('result').innerHTML = '';
+  document.getElementById('tickerInput').value = '';
+  document.getElementById('contextInput').value = '';
+  document.getElementById('inputSection').scrollIntoView({ behavior:'smooth' });
+  document.getElementById('tickerInput').focus();
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorBox');
+  el.textContent = '⚠️ ' + msg;
+  el.classList.add('show');
+}
+
+// INIT
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('tickerInput').addEventListener('keydown', e => { if (e.key === 'Enter') analyze(); });
+  const k = localStorage.getItem('groq_key');
+  if (k) { setKeyStatus('✅ КЛЮЧ СОХРАНЁН', 'var(--green)'); document.getElementById('apiKeyInput').value = '•'.repeat(24); }
+  document.getElementById('tickerInput').focus();
+});
+</script>
+</body>
+</html>
