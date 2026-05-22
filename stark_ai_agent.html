@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STARK AI AGENT</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@300;400;500;700&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+:root {
+  --black: #050505;
+  --dark: #090909;
+  --panel: #0d0d0d;
+  --border: #161616;
+  --border2: #1e1e1e;
+  --gold: #c9a84c;
+  --gold2: #e8c96b;
+  --red: #e05252;
+  --green: #4caf7d;
+  --blue: #4a90d9;
+  --purple: #9b59b6;
+  --gray: #2a2a2a;
+  --light: #555;
+  --mid: #777;
+  --white: #d0d0d0;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--black);
+  color: var(--white);
+  font-family: 'Rajdhani', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* SCAN LINES EFFECT */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.03) 2px,
+    rgba(0,0,0,0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* HEADER */
+.hdr {
+  padding: 20px 40px;
+  background: var(--dark);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.hdr-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 10px;
+  color: var(--gold);
+}
+.hdr-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--light);
+  letter-spacing: 4px;
+  margin-top: 2px;
+}
+.hdr-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--green);
+  letter-spacing: 2px;
+}
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--green); }
+  50% { opacity: 0.4; box-shadow: none; }
+}
+
+/* INPUT SECTION */
+.input-section {
+  padding: 40px;
+  background: var(--dark);
+  border-bottom: 1px solid var(--border);
+}
+.input-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  letter-spacing: 6px;
+  color: var(--gold);
+  margin-bottom: 20px;
+}
+.input-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.input-group { display: flex; flex-direction: column; gap: 6px; }
+.input-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--light);
+  letter-spacing: 3px;
+}
+.ticker-input {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 6px;
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  color: var(--gold);
+  padding: 12px 20px;
+  outline: none;
+  width: 200px;
+  transition: border-color .2s;
+  text-transform: uppercase;
+}
+.ticker-input:focus { border-color: var(--gold); box-shadow: 0 0 20px rgba(201,168,76,0.1); }
+.ticker-input::placeholder { color: var(--gray); }
+
+.context-input {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  color: var(--white);
+  padding: 12px 16px;
+  outline: none;
+  width: 380px;
+  transition: border-color .2s;
+  resize: none;
+  height: 58px;
+}
+.context-input:focus { border-color: var(--gold); }
+.context-input::placeholder { color: var(--light); }
+
+.analyze-btn {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 4px;
+  padding: 14px 36px;
+  background: var(--gold);
+  color: #000;
+  border: none;
+  cursor: pointer;
+  transition: all .2s;
+  height: 58px;
+  white-space: nowrap;
+}
+.analyze-btn:hover { background: var(--gold2); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(201,168,76,0.3); }
+.analyze-btn:active { transform: translateY(0); }
+.analyze-btn:disabled { background: var(--gray); color: var(--light); cursor: not-allowed; transform: none; box-shadow: none; }
+
+.quick-tickers {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.qt {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--light);
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all .15s;
+}
+.qt:hover { border-color: var(--gold); color: var(--gold); background: rgba(201,168,76,.06); }
+
+/* LOADING */
+.loading {
+  display: none;
+  padding: 60px 40px;
+  text-align: center;
+}
+.loading.show { display: block; }
+.loading-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 48px;
+  letter-spacing: 12px;
+  color: var(--gold);
+  animation: flicker 1.5s infinite;
+}
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.4; }
+  94% { opacity: 1; }
+  96% { opacity: 0.6; }
+  97% { opacity: 1; }
+}
+.loading-steps {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+.loading-step {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--light);
+  letter-spacing: 2px;
+  opacity: 0;
+  transition: opacity .4s, color .4s;
+}
+.loading-step.active { opacity: 1; color: var(--gold); }
+.loading-step.done { opacity: 0.5; color: var(--green); }
+.loading-bar {
+  width: 300px;
+  height: 2px;
+  background: var(--border2);
+  margin: 20px auto;
+  overflow: hidden;
+}
+.loading-fill {
+  height: 100%;
+  background: var(--gold);
+  width: 0%;
+  transition: width .5s ease;
+}
+
+/* RESULT */
+.result { display: none; padding: 0; }
+.result.show { display: block; }
+
+/* TICKER HERO */
+.ticker-hero {
+  padding: 32px 40px;
+  background: var(--dark);
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 32px;
+  align-items: center;
+}
+.th-left { }
+.th-ticker {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 64px;
+  letter-spacing: 8px;
+  line-height: 1;
+}
+.th-name { font-size: 16px; font-weight: 500; color: var(--mid); margin-top: 4px; }
+.th-sector {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 3px;
+  padding: 3px 10px;
+  border-radius: 1px;
+  margin-top: 6px;
+  display: inline-block;
+}
+.th-center { }
+.th-price {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 56px;
+  letter-spacing: 2px;
+  line-height: 1;
+}
+.th-change {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  margin-top: 6px;
+  display: inline-block;
+}
+.th-right {
+  text-align: right;
+}
+.th-signal {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 4px;
+  padding: 10px 24px;
+  border-radius: 1px;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+.th-upside {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  display: block;
+}
+
+/* STATS ROW */
+.stats-row {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+.stat {
+  flex: 1;
+  padding: 14px 20px;
+  border-right: 1px solid var(--border);
+  text-align: center;
+}
+.stat:last-child { border-right: none; }
+.stat-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  color: var(--light);
+  letter-spacing: 2px;
+  display: block;
+  margin-bottom: 4px;
+}
+.stat-val {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 1px;
+}
+
+/* MAIN GRID */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+}
+.full-width {
+  grid-column: 1 / -1;
+}
+
+/* PANELS */
+.panel {
+  background: var(--dark);
+  padding: 24px;
+}
+.panel-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--gold);
+  letter-spacing: 3px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.panel-title::after { content: ''; flex:1; height:1px; background: var(--border2); }
+
+/* LEVELS */
+.levels-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.level-box {
+  padding: 12px;
+  background: var(--panel);
+  border-left: 3px solid transparent;
+}
+.lb-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  color: var(--light);
+  letter-spacing: 1px;
+  display: block;
+  margin-bottom: 4px;
+}
+.lb-val {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 1px;
+}
+.lb-note { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--mid); }
+
+/* 52W BAR */
+.range-bar { margin-top: 8px; }
+.rb-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--light);
+  margin-bottom: 6px;
+}
+.rb-track {
+  height: 6px;
+  background: var(--border2);
+  border-radius: 3px;
+  position: relative;
+}
+.rb-fill { height: 100%; border-radius: 3px; }
+.rb-dot {
+  position: absolute;
+  top: -5px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--dark);
+  transform: translateX(-50%);
+}
+
+/* TARGETS */
+.targets-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.target-box {
+  padding: 14px;
+  background: var(--panel);
+  text-align: center;
+  border-top: 2px solid transparent;
+}
+.tb-label { font-family: 'JetBrains Mono', monospace; font-size: 8px; color: var(--light); letter-spacing: 1px; display:block; margin-bottom:4px; }
+.tb-val { font-family: 'Bebas Neue', sans-serif; font-size: 22px; }
+.tb-pct { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; }
+.tb-horizon { font-family: 'JetBrains Mono', monospace; font-size: 8px; color: var(--light); margin-top: 2px; }
+
+/* CORRELATION */
+.corr-text {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--mid);
+}
+.corr-text strong { color: var(--white); }
+.corr-chain {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.cc-node {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border: 1px solid var(--border2);
+  color: var(--white);
+}
+.cc-arrow { color: var(--gold); font-size: 14px; }
+
+/* EVENTS */
+.events-list { display: flex; flex-direction: column; gap: 0; }
+.ev-item {
+  display: grid;
+  grid-template-columns: 80px 16px 1fr;
+  gap: 0 12px;
+  padding: 0;
+}
+.ev-date {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--light);
+  padding-top: 13px;
+  text-align: right;
+  letter-spacing: 1px;
+}
+.ev-line-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.ev-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  margin-top: 10px;
+  flex-shrink: 0;
+  border: 2px solid var(--dark);
+}
+.ev-connector { width: 1px; flex: 1; min-height: 12px; background: var(--border2); }
+.ev-content {
+  padding: 8px 0 12px;
+}
+.ev-title-text { font-size: 12px; font-weight: 600; color: var(--white); line-height: 1.3; }
+.ev-desc { font-size: 11px; color: var(--light); margin-top: 2px; line-height: 1.4; }
+
+/* BEAR/BULL */
+.bb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
+.bb-side { background: var(--dark); padding: 20px; }
+.bb-title { font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 3px; margin-bottom: 12px; }
+.bb-item {
+  display: flex;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,.03);
+  font-size: 11px;
+  color: var(--light);
+  line-height: 1.4;
+}
+.bb-item:last-child { border: none; }
+.bb-ico { flex-shrink: 0; }
+
+/* VERDICT */
+.verdict-bar {
+  padding: 24px 40px;
+  background: var(--dark);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.vb-left { }
+.vb-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--gold);
+  letter-spacing: 3px;
+  margin-bottom: 6px;
+}
+.vb-main {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 2px;
+  color: var(--white);
+  line-height: 1.3;
+}
+.vb-note { font-size: 11px; color: var(--light); margin-top: 4px; line-height: 1.5; }
+.vb-right {
+  display: flex;
+  gap: 20px;
+}
+.vb-metric { text-align: center; }
+.vbm-label { font-family: 'JetBrains Mono', monospace; font-size: 8px; color: var(--light); letter-spacing: 2px; display: block; margin-bottom: 4px; }
+.vbm-val { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 1px; }
+
+/* NEW ANALYSIS BTN */
+.new-btn {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 3px;
+  padding: 10px 24px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--light);
+  cursor: pointer;
+  transition: all .2s;
+}
+.new-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+/* ERROR */
+.error-box {
+  display: none;
+  padding: 20px 40px;
+  background: rgba(224,82,82,.06);
+  border-left: 3px solid var(--red);
+  margin: 20px 40px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--red);
+}
+.error-box.show { display: block; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div>
+    <div class="hdr-logo">STARK AI AGENT</div>
+    <div class="hdr-sub">АНАЛИЗ АКЦИЙ · МЕТОД АЛЕКСЕЯ · POWERED BY CLAUDE</div>
+  </div>
+  <div class="hdr-status">
+    <div class="status-dot"></div>
+    AGENT ONLINE
+  </div>
+</div>
+
+<!-- INPUT -->
+<div class="input-section" id="inputSection">
+  <div class="input-title">▼ НАСТРОЙКА АГЕНТА</div>
+  <div style="margin-bottom:20px">
+    <div class="input-group">
+      <span class="input-label">GROQ API KEY — вставь один раз, сохранится в браузере</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="password" id="apiKeyInput" class="context-input" style="width:420px;height:42px;font-family:'JetBrains Mono',monospace;font-size:12px" placeholder="gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+        <button onclick="saveKey()" style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;padding:10px 20px;background:var(--green);color:#000;border:none;cursor:pointer;height:42px">СОХРАНИТЬ</button>
+        <span id="keyStatus" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--light)"></span>
+      </div>
+    </div>
+  </div>
+  <div class="input-title">▼ ВВЕДИ ТИКЕР — АГЕНТ СДЕЛАЕТ ПОЛНЫЙ РАЗБОР</div>
+  <div class="input-row">
+    <div class="input-group">
+      <span class="input-label">ТИКЕР</span>
+      <input type="text" class="ticker-input" id="tickerInput" placeholder="NKE" maxlength="6">
+    </div>
+    <div class="input-group">
+      <span class="input-label">ТВОЯ ГИПОТЕЗА (необязательно)</span>
+      <textarea class="context-input" id="contextInput" placeholder="Например: вижу корреляцию с нефтью, компания на дне цикла..."></textarea>
+    </div>
+    <button class="analyze-btn" id="analyzeBtn" onclick="analyze()">
+      ⚡ АНАЛИЗИРОВАТЬ
+    </button>
+  </div>
+  <div class="quick-tickers">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--light);letter-spacing:2px;padding-top:4px">БЫСТРЫЙ ВЫБОР:</span>
+    <button class="qt" onclick="quickTicker('NKE')">NKE</button>
+    <button class="qt" onclick="quickTicker('CCJ')">CCJ</button>
+    <button class="qt" onclick="quickTicker('CEG')">CEG</button>
+    <button class="qt" onclick="quickTicker('PBR')">PBR</button>
+    <button class="qt" onclick="quickTicker('VST')">VST</button>
+    <button class="qt" onclick="quickTicker('OKLO')">OKLO</button>
+    <button class="qt" onclick="quickTicker('NOK')">NOK</button>
+    <button class="qt" onclick="quickTicker('FCX')">FCX</button>
+    <button class="qt" onclick="quickTicker('RKLB')">RKLB</button>
+    <button class="qt" onclick="quickTicker('SBER')">SBER</button>
+  </div>
+</div>
+
+<!-- ERROR -->
+<div class="error-box" id="errorBox"></div>
+
+<!-- LOADING -->
+<div class="loading" id="loading">
+  <div class="loading-logo" id="loadingTicker">NKE</div>
+  <div class="loading-bar"><div class="loading-fill" id="loadingFill"></div></div>
+  <div class="loading-steps">
+    <div class="loading-step" id="step1">🔍 ПОИСК РЫНОЧНЫХ ДАННЫХ</div>
+    <div class="loading-step" id="step2">📊 АНАЛИЗ УРОВНЕЙ И ПАТТЕРНОВ</div>
+    <div class="loading-step" id="step3">🔗 ПОИСК СКРЫТЫХ КОРРЕЛЯЦИЙ</div>
+    <div class="loading-step" id="step4">📅 СОСТАВЛЕНИЕ КАРТЫ СОБЫТИЙ</div>
+    <div class="loading-step" id="step5">⚡ ФОРМИРОВАНИЕ ВЕРДИКТА</div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div class="result" id="result"></div>
+
+<script>
+function quickTicker(t) {
+  document.getElementById('tickerInput').value = t;
+  document.getElementById('tickerInput').focus();
+}
+
+async function analyze() {
+  const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+  const context = document.getElementById('contextInput').value.trim();
+
+  if (!ticker) {
+    showError('Введи тикер акции');
+    return;
+  }
+
+  document.getElementById('errorBox').classList.remove('show');
+  document.getElementById('result').classList.remove('show');
+  document.getElementById('result').innerHTML = '';
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('loadingTicker').textContent = ticker;
+  document.getElementById('analyzeBtn').disabled = true;
+
+  // Animate loading steps
+  const steps = ['step1','step2','step3','step4','step5'];
+  const fill = document.getElementById('loadingFill');
+  steps.forEach(s => document.getElementById(s).className = 'loading-step');
+
+  for (let i = 0; i < steps.length; i++) {
+    await sleep(600);
+    if (i > 0) document.getElementById(steps[i-1]).className = 'loading-step done';
+    document.getElementById(steps[i]).className = 'loading-step active';
+    fill.style.width = ((i+1)/steps.length*100) + '%';
+  }
+
+  const prompt = `Ты — STARK, AI агент для анализа акций. Используешь метод опытного трейдера: ищешь скрытые корреляции, нестандартные зависимости, события которые рынок ещё не заложил в цену.
+
+Проанализируй акцию: ${ticker}
+${context ? `Гипотеза инвестора: ${context}` : ''}
+
+Верни ТОЛЬКО валидный JSON без markdown, без комментариев, без \`\`\`. Начни сразу с {
+
+{
+  "ticker": "${ticker}",
+  "name": "полное название компании",
+  "sector": "СЕКТОР",
+  "exchange": "NYSE/NASDAQ/MOEX",
+  "price": "$XX.XX или XX ₽",
+  "priceNum": числовое значение без символов,
+  "priceColor": "#4caf7d или #e05252 в зависимости от тренда",
+  "change": "описание изменения за период",
+  "changePositive": true/false,
+  "color": "основной цвет акции hex",
+  "marketCap": "XXB",
+  "pe": "XX.X",
+  "dividend": "X.X% или —",
+  "low52": числовое значение,
+  "high52": числовое значение,
+  "ath": числовое значение,
+  "support": "уровень поддержки",
+  "resistance": "уровень сопротивления",
+  "entry": "точка входа",
+  "targets": [
+    {"label": "ЦЕЛЬ 1", "val": "$XX", "pct": "+XX%", "color": "#4caf7d", "horizon": "6-12М"},
+    {"label": "ЦЕЛЬ 2", "val": "$XX", "pct": "+XX%", "color": "#e8c96b", "horizon": "12-24М"},
+    {"label": "ЦЕЛЬ 3", "val": "$XX", "pct": "+XX%", "color": "#9b59b6", "horizon": "2028"}
+  ],
+  "correlation": "описание скрытой корреляции которую рынок не видит — развёрнуто, с конкретикой",
+  "correlationChain": ["узел1", "→", "узел2", "→", "узел3", "→", "узел4"],
+  "events": [
+    {"date": "МАЙ 2026", "title": "название события", "desc": "описание влияния на акцию", "color": "#e05252/#4caf7d/#4a90d9/#e8c96b"},
+    {"date": "3КВ 2026", "title": "...", "desc": "...", "color": "..."},
+    {"date": "2027", "title": "...", "desc": "...", "color": "..."},
+    {"date": "2028", "title": "...", "desc": "...", "color": "..."}
+  ],
+  "bullCase": ["аргумент 1", "аргумент 2", "аргумент 3", "аргумент 4"],
+  "bearCase": ["риск 1", "риск 2", "риск 3", "риск 4"],
+  "verdict": "ПОКУПАТЬ/ДЕРЖАТЬ/ЖДАТЬ/ПРОДАВАТЬ/СПЕКУЛЯТИВНО",
+  "verdictColor": "#4caf7d/#e8c96b/#e05252",
+  "verdictMain": "КРАТКОЕ РЕЗЮМЕ БОЛЬШИМИ БУКВАМИ",
+  "verdictNote": "детальная рекомендация 2-3 предложения",
+  "upside": "+XX%",
+  "riskReward": "X:1",
+  "confidence": "ВЫСОКАЯ/СРЕДНЯЯ/НИЗКАЯ"
+}`;
+
+  const apiKey = localStorage.getItem('groq_key');
+  if (!apiKey) {
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('analyzeBtn').disabled = false;
+    showError('Сначала вставь Groq API ключ в поле выше и нажми СОХРАНИТЬ');
+    return;
+  }
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 2000,
+        temperature: 0.3,
+        messages: [
+          {
+            role: 'system',
+            content: 'Ты — STARK, профессиональный AI агент для анализа акций. Отвечаешь ТОЛЬКО валидным JSON без markdown и без комментариев. Никаких пояснений — только JSON.'
+          },
+          { role: 'user', content: prompt }
+        ]
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error.message);
+
+    let text = data.choices?.[0]?.message?.content || '';
+
+    // Parse JSON
+    let stock;
+    try {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        stock = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('JSON not found');
+      }
+    } catch(e) {
+      throw new Error('Не удалось разобрать ответ агента. Попробуй ещё раз.');
+    }
+
+    renderDashboard(stock);
+
+  } catch(err) {
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('analyzeBtn').disabled = false;
+    showError(err.message || 'Ошибка агента. Попробуй ещё раз.');
+  }
+}
+
+function renderDashboard(s) {
+  document.getElementById('loading').classList.remove('show');
+  document.getElementById('analyzeBtn').disabled = false;
+
+  const pct52 = Math.min(100, Math.max(0,
+    ((s.priceNum - s.low52) / (s.high52 - s.low52)) * 100
+  ));
+
+  const eventsHtml = (s.events || []).map((ev, i) => `
+    <div class="ev-item">
+      <div class="ev-date">${ev.date}</div>
+      <div class="ev-line-wrap">
+        <div class="ev-dot" style="background:${ev.color};box-shadow:0 0 8px ${ev.color}44"></div>
+        ${i < s.events.length - 1 ? '<div class="ev-connector"></div>' : ''}
+      </div>
+      <div class="ev-content">
+        <div class="ev-title-text" style="color:${ev.color}">${ev.title}</div>
+        <div class="ev-desc">${ev.desc}</div>
+      </div>
+    </div>
+  `).join('');
+
+  const targetsHtml = (s.targets || []).map(t => `
+    <div class="target-box" style="border-top-color:${t.color}">
+      <span class="tb-label">${t.label}</span>
+      <div class="tb-val" style="color:${t.color}">${t.val}</div>
+      <div class="tb-pct" style="color:${t.color}">${t.pct}</div>
+      <div class="tb-horizon">${t.horizon || ''}</div>
+    </div>
+  `).join('');
+
+  const chainHtml = (s.correlationChain || []).map(node =>
+    node === '→'
+      ? `<span class="cc-arrow">→</span>`
+      : `<div class="cc-node">${node}</div>`
+  ).join('');
+
+  const bullHtml = (s.bullCase || []).map(b =>
+    `<div class="bb-item"><span class="bb-ico">✅</span>${b}</div>`
+  ).join('');
+
+  const bearHtml = (s.bearCase || []).map(b =>
+    `<div class="bb-item"><span class="bb-ico">⚠️</span>${b}</div>`
+  ).join('');
+
+  const html = `
+    <div style="height:3px;background:${s.color}"></div>
+
+    <!-- HERO -->
+    <div class="ticker-hero">
+      <div class="th-left">
+        <div class="th-ticker" style="color:${s.color}">${s.ticker}</div>
+        <div class="th-name">${s.name}</div>
+        <div class="th-sector" style="color:${s.color};background:${s.color}15;border:1px solid ${s.color}30">${s.sector}</div>
+      </div>
+      <div class="th-center">
+        <div class="th-price" style="color:${s.priceColor || s.color}">${s.price}</div>
+        <div class="th-change" style="color:${s.changePositive ? '#4caf7d' : '#e05252'};background:${s.changePositive ? 'rgba(76,175,125,.1)' : 'rgba(224,82,82,.1)'}">${s.change}</div>
+      </div>
+      <div class="th-right">
+        <div class="th-signal" style="background:${s.verdictColor}18;color:${s.verdictColor};border:1px solid ${s.verdictColor}40">${s.verdict}</div>
+        <span class="th-upside" style="color:${s.verdictColor}">${s.upside} потенциал · R:R ${s.riskReward}</span>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat"><span class="stat-label">МКТ. КАП.</span><span class="stat-val" style="color:var(--white)">${s.marketCap || '—'}</span></div>
+      <div class="stat"><span class="stat-label">P/E</span><span class="stat-val" style="color:var(--gold)">${s.pe || '—'}</span></div>
+      <div class="stat"><span class="stat-label">ДИВИДЕНД</span><span class="stat-val" style="color:var(--green)">${s.dividend || '—'}</span></div>
+      <div class="stat"><span class="stat-label">52W LOW</span><span class="stat-val" style="color:var(--red)">${s.low52}</span></div>
+      <div class="stat"><span class="stat-label">52W HIGH</span><span class="stat-val" style="color:var(--green)">${s.high52}</span></div>
+      <div class="stat"><span class="stat-label">ATH</span><span class="stat-val" style="color:var(--gold2)">${s.ath}</span></div>
+      <div class="stat"><span class="stat-label">БИРЖА</span><span class="stat-val" style="color:var(--blue)">${s.exchange}</span></div>
+      <div class="stat"><span class="stat-label">УВЕРЕННОСТЬ</span><span class="stat-val" style="color:${s.confidence==='ВЫСОКАЯ'?'#4caf7d':s.confidence==='СРЕДНЯЯ'?'#e8c96b':'#e05252'}">${s.confidence || '—'}</span></div>
+    </div>
+
+    <!-- MAIN GRID -->
+    <div class="main-grid">
+
+      <!-- LEVELS -->
+      <div class="panel">
+        <div class="panel-title">📍 УРОВНИ ЦЕНЫ</div>
+        <div class="levels-grid">
+          <div class="level-box" style="border-left-color:#e05252">
+            <span class="lb-label">ПОДДЕРЖКА</span>
+            <div class="lb-val" style="color:#e05252">${s.support}</div>
+          </div>
+          <div class="level-box" style="border-left-color:${s.color}">
+            <span class="lb-label">ТОЧКА ВХОДА</span>
+            <div class="lb-val" style="color:${s.color}">${s.entry}</div>
+          </div>
+          <div class="level-box" style="border-left-color:#4caf7d">
+            <span class="lb-label">СОПРОТИВЛЕНИЕ</span>
+            <div class="lb-val" style="color:#4caf7d">${s.resistance}</div>
+          </div>
+        </div>
+        <div class="range-bar">
+          <div class="rb-labels">
+            <span>52W LOW: ${s.low52}</span>
+            <span>СЕЙЧАС: ${s.price}</span>
+            <span>52W HIGH: ${s.high52}</span>
+          </div>
+          <div class="rb-track">
+            <div class="rb-fill" style="width:${pct52}%;background:linear-gradient(to right,#e05252,${s.color})"></div>
+            <div class="rb-dot" style="left:${pct52}%;background:${s.color}"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TARGETS -->
+      <div class="panel">
+        <div class="panel-title">🎯 ЦЕНОВЫЕ ЦЕЛИ ДО 2028</div>
+        <div class="targets-grid">${targetsHtml}</div>
+      </div>
+
+      <!-- CORRELATION -->
+      <div class="panel full-width">
+        <div class="panel-title">🔗 СКРЫТАЯ КОРРЕЛЯЦИЯ — МЕТОД АЛЕКСЕЯ</div>
+        <div class="corr-text">${s.correlation}</div>
+        ${chainHtml ? `<div class="corr-chain">${chainHtml}</div>` : ''}
+      </div>
+
+      <!-- EVENTS -->
+      <div class="panel">
+        <div class="panel-title">📅 СОБЫТИЯ ДО 2028</div>
+        <div class="events-list">${eventsHtml}</div>
+      </div>
+
+      <!-- BEAR/BULL -->
+      <div class="panel">
+        <div class="panel-title">⚖️ МЕДВЕЖИЙ VS БЫЧИЙ КЕЙС</div>
+        <div class="bb-grid">
+          <div class="bb-side">
+            <div class="bb-title" style="color:#4caf7d">🐂 БЫЧИЙ</div>
+            ${bullHtml}
+          </div>
+          <div class="bb-side">
+            <div class="bb-title" style="color:#e05252">🐻 МЕДВЕЖИЙ</div>
+            ${bearHtml}
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- VERDICT -->
+    <div class="verdict-bar">
+      <div class="vb-left">
+        <div class="vb-label">STARK VERDICT</div>
+        <div class="vb-main">${s.verdictMain}</div>
+        <div class="vb-note">${s.verdictNote}</div>
+      </div>
+      <div class="vb-right">
+        <div class="vb-metric">
+          <span class="vbm-label">ПОТЕНЦИАЛ</span>
+          <div class="vbm-val" style="color:var(--green)">${s.upside}</div>
+        </div>
+        <div class="vb-metric">
+          <span class="vbm-label">R:R</span>
+          <div class="vbm-val" style="color:var(--gold)">${s.riskReward}</div>
+        </div>
+        <div class="vb-metric">
+          <span class="vbm-label">СИГНАЛ</span>
+          <div class="vbm-val" style="color:${s.verdictColor}">${s.verdict}</div>
+        </div>
+        <button class="new-btn" onclick="newAnalysis()">↺ НОВЫЙ АНАЛИЗ</button>
+      </div>
+    </div>
+  `;
+
+  const resultEl = document.getElementById('result');
+  resultEl.innerHTML = html;
+  resultEl.classList.add('show');
+  resultEl.scrollIntoView({ behavior: 'smooth' });
+}
+
+function newAnalysis() {
+  document.getElementById('result').classList.remove('show');
+  document.getElementById('result').innerHTML = '';
+  document.getElementById('tickerInput').value = '';
+  document.getElementById('contextInput').value = '';
+  document.getElementById('inputSection').scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('tickerInput').focus();
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorBox');
+  el.textContent = '⚠️ ' + msg;
+  el.classList.add('show');
+}
+
+function saveKey() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key.startsWith('gsk_')) {
+    document.getElementById('keyStatus').textContent = '❌ Ключ должен начинаться с gsk_';
+    document.getElementById('keyStatus').style.color = 'var(--red)';
+    return;
+  }
+  localStorage.setItem('groq_key', key);
+  document.getElementById('keyStatus').textContent = '✅ СОХРАНЁН';
+  document.getElementById('keyStatus').style.color = 'var(--green)';
+  document.getElementById('apiKeyInput').value = '•'.repeat(20);
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Enter key support
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('tickerInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') analyze();
+  });
+
+  // Load saved key status
+  const savedKey = localStorage.getItem('groq_key');
+  if (savedKey) {
+    document.getElementById('apiKeyInput').value = '•'.repeat(20);
+    document.getElementById('keyStatus').textContent = '✅ КЛЮЧ СОХРАНЁН';
+    document.getElementById('keyStatus').style.color = 'var(--green)';
+  }
+
+  document.getElementById('tickerInput').focus();
+});
+</script>
+</body>
+</html>
