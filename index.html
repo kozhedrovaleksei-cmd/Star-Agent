@@ -384,7 +384,7 @@ async function analyze() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: 'llama3-groq-70b-8192-tool-use-preview',
+        model: 'llama-3.3-70b-versatile',
         max_tokens: 2000,
         temperature: 0.1,
         messages: [
