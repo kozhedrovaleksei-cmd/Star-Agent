@@ -324,9 +324,7 @@ canvas { display:block; cursor:crosshair; }
 // ═══════════════════════════════════════════
 function saveKey() {
   const key = document.getElementById('apiKeyInput').value.trim();
-  if (!key.startsWith('gsk_')) {
-    setKeyStatus('❌ Ключ должен начинаться с gsk_', 'var(--red)');
-    return;
+ 
   }
   localStorage.setItem('groq_key', key);
   setKeyStatus('✅ СОХРАНЁН', 'var(--green)');
