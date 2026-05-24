@@ -438,6 +438,7 @@ ${context ? 'Гипотеза инвестора: ' + context : ''}
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: 4000,
+        tools: [{"type": "web_search_20250305", "name": "web_search"}],
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -445,10 +446,15 @@ ${context ? 'Гипотеза инвестора: ' + context : ''}
     const data = await res.json();
     if (data.error) throw new Error(data.error.message || 'API Error');
 
-    const text = (data.content || [])
+    const allTextBlocks = (data.content || [])
       .filter(b => b.type === 'text')
-      .map(b => b.text)
-      .join('') || data.content?.[0]?.text || '';
+      .map(b => b.text);
+    
+    // Last text block has the final JSON after web search processing
+    const text = allTextBlocks[allTextBlocks.length - 1] || allTextBlocks[0] || '';
+    
+    console.log('BLOCKS:', (data.content||[]).map(b=>b.type).join(','));
+    console.log('LAST TEXT:', text.slice(0, 200));
 
     let stock;
     try {
