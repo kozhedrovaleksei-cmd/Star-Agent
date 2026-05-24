@@ -301,35 +301,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function getYahooPrice(ticker) {
   try {
-    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`, {
-      headers: { 'User-Agent': 'Mozilla/5.0' }
+    const res = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'price', ticker })
     });
     const data = await res.json();
-    const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
-    const prev = data?.chart?.result?.[0]?.meta?.chartPreviousClose;
-    const high52 = data?.chart?.result?.[0]?.meta?.fiftyTwoWeekHigh;
-    const low52 = data?.chart?.result?.[0]?.meta?.fiftyTwoWeekLow;
-    if (price) return { price, prev, high52, low52 };
+    if (data.price) return data;
   } catch(e) {}
   return null;
 }
 
 async function tavilySearch(query, apiKey) {
   try {
-    const res = await fetch('https://api.tavily.com/search', {
+    const res = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        api_key: apiKey,
-        query: query,
-        search_depth: 'advanced',
-        max_results: 5,
-        include_answer: true
-      })
+      body: JSON.stringify({ action: 'search', query, tavilyKey: apiKey || localStorage.getItem('tavily_key') || '' })
     });
     const data = await res.json();
-    if (data.answer) return data.answer + '\n\n' + (data.results || []).map(r => r.title + ': ' + r.content).join('\n\n');
-    return (data.results || []).map(r => r.title + ': ' + r.content).join('\n\n');
+    return data.result || '';
   } catch(e) {
     return '';
   }
@@ -428,33 +419,16 @@ ${context ? 'Гипотеза инвестора: ' + context : ''}
 }`;
 
   try {
-    const res = await fetch('https://crazyrouter.com/v1/messages', {
+    const res = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${crKey}`,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 4000,
-        tools: [{"type": "web_search_20250305", "name": "web_search"}],
-        messages: [{ role: 'user', content: prompt }]
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'analyze', prompt })
     });
 
     const data = await res.json();
-    if (data.error) throw new Error(data.error.message || 'API Error');
+    if (data.error) throw new Error(data.error || 'API Error');
 
-    const allTextBlocks = (data.content || [])
-      .filter(b => b.type === 'text')
-      .map(b => b.text);
-    
-    // Last text block has the final JSON after web search processing
-    const text = allTextBlocks[allTextBlocks.length - 1] || allTextBlocks[0] || '';
-    
-    console.log('BLOCKS:', (data.content||[]).map(b=>b.type).join(','));
-    console.log('LAST TEXT:', text.slice(0, 200));
+    const text = data.text || '';
 
     let stock;
     try {
