@@ -536,7 +536,7 @@ ${context ? 'Гипотеза инвестора: ' + context : ''}
       name: safe(stock.name, stock.company || stock.fullName || ticker),
       sector: safe(stock.sector, stock.industry || 'N/A'),
       exchange: safe(stock.exchange, 'NYSE'),
-      price: safe(stock.price, stock.currentPrice || stock.lastPrice || '$0'),
+      price: safe(stock.price, stock.currentPrice || stock.lastPrice || '$0').toString().includes('$') ? safe(stock.price, '$0').toString() : '$' + safe(stock.price, '0').toString(),
       priceNum: parseFloat(stock.priceNum || stock.price?.replace(/[^0-9.]/g,'')) || 0,
       change: safe(stock.change, stock.priceChange || '0%'),
       marketCap: safe(stock.marketCap, stock.mktCap || 'N/A'),
