@@ -339,7 +339,6 @@ async function analyze() {
   const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
   const context = document.getElementById('contextInput').value.trim();
   const crKey = localStorage.getItem('crazyrouter_key');
-  const tvKey = localStorage.getItem('tavily_key');
 
   hideError();
   if (!ticker) { showError('Введи тикер'); return; }
@@ -353,53 +352,21 @@ async function analyze() {
   const steps = ['s1','s2','s3','s4','s5','s6','s7','s8'];
   steps.forEach(s => document.getElementById(s).className = 'step');
 
-  let webData = '';
-  let newsData = '';
-
-  // Step 1 - Yahoo Finance real price
-  document.getElementById('s1').className = 'step active';
-  const yahooData = await getYahooPrice(ticker);
-  let yahooInfo = '';
-  if (yahooData) {
-    const chg = yahooData.prev ? (((yahooData.price - yahooData.prev) / yahooData.prev) * 100).toFixed(2) : null;
-    yahooInfo = `РЕАЛЬНАЯ ЦЕНА (Yahoo Finance, прямо сейчас): $${yahooData.price.toFixed(2)}${chg ? `, изменение за день: ${chg}%` : ''}${yahooData.high52 ? `, 52W HIGH: $${yahooData.high52.toFixed(2)}` : ''}${yahooData.low52 ? `, 52W LOW: $${yahooData.low52.toFixed(2)}` : ''}`;
-  }
-  document.getElementById('s1').className = 'step done';
-
-  // Step 2 - Tavily news
-  document.getElementById('s2').className = 'step active';
-  if (tvKey) {
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('en-US', {month:'long', year:'numeric'});
-    webData = await tavilySearch(`${ticker} stock price ${dateStr} latest news earnings`, tvKey);
-    document.getElementById('s2').className = 'step done';
-
-    // Step 3 - News
-    document.getElementById('s3').className = 'step active';
-    newsData = await tavilySearch(`${ticker} stock insider trades SEC Form 4 ${dateStr} latest`, tvKey);
-    document.getElementById('s3').className = 'step done';
-  } else {
-    document.getElementById('s2').className = 'step done';
-    document.getElementById('s3').className = 'step done';
-  }
-
-  // Animate remaining steps
-  const animRest = async () => {
-    for (let i = 2; i < steps.length; i++) {
+  // Animate steps — Claude делает всё сам через веб-поиск
+  const animSteps = async () => {
+    for (let i = 0; i < steps.length; i++) {
+      if (i > 0) document.getElementById(steps[i-1]).className = 'step done';
       document.getElementById(steps[i]).className = 'step active';
-      await sleep(700);
-      if (i < steps.length - 1) document.getElementById(steps[i]).className = 'step done';
+      await sleep(600);
     }
   };
-  animRest();
+  animSteps();
 
   const prompt = `Ты — STARK AI агент анализа акций. Проанализируй акцию ${ticker} по методу STARK (8 уровней: макро, скрытая корреляция, инсайдеры SEC Form 4, фундаментал, PDH/PDL, катализаторы, риск Герчик, вердикт).
 
-${yahooInfo ? yahooInfo : ''}
-${webData ? 'Данные из интернета: ' + webData.slice(0, 1000) : ''}
-${newsData ? 'Новости: ' + newsData.slice(0, 500) : ''}
 ${context ? 'Гипотеза инвестора: ' + context : ''}
 
+Найди актуальные данные по ${ticker} через веб-поиск (текущая цена, последние новости, инсайдеры SEC Form 4).
 ВАЖНО: Верни ТОЛЬКО JSON. Никакого текста до или после. Начни с { и закончи }.
 
 Заполни все поля реальными данными по ${ticker}:
@@ -580,7 +547,7 @@ ${context ? 'Гипотеза инвестора: ' + context : ''}
       chartEvents: Array.isArray(stock.chartEvents) ? stock.chartEvents : []
     };
 
-    renderResult(norm, !!tvKey);
+    renderResult(norm, false);
 
   } catch(e) {
     document.getElementById('loading').classList.remove('show');
