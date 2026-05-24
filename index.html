@@ -529,7 +529,11 @@ ${context ? 'Гипотеза инвестора: ' + context : ''}
     await sleep(400);
     document.getElementById('loading').classList.remove('show');
 
-    // Normalize - защита от undefined и разных названий полей
+    // DEBUG — посмотреть что вернул Claude
+    console.log('RAW TEXT:', text.slice(0, 500));
+    console.log('PARSED STOCK:', JSON.stringify(stock).slice(0, 500));
+
+    // Normalize
     const safe = (v, def='—') => (v !== undefined && v !== null && v !== '') ? v : def;
     const norm = {
       ticker: safe(stock.ticker, ticker),
