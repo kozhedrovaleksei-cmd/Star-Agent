@@ -472,7 +472,55 @@ ${context ? `Гипотеза инвестора: ${context}` : ''}
     steps.forEach(s => document.getElementById(s).className = 'step done');
     await sleep(400);
     document.getElementById('loading').classList.remove('show');
-    renderResult(stock, !!tvKey);
+
+    // Normalize - защита от undefined и разных названий полей
+    const safe = (v, def='—') => (v !== undefined && v !== null && v !== '') ? v : def;
+    const norm = {
+      ticker: safe(stock.ticker, ticker),
+      name: safe(stock.name, stock.company || stock.fullName || ticker),
+      sector: safe(stock.sector, stock.industry || 'N/A'),
+      exchange: safe(stock.exchange, 'NYSE'),
+      price: safe(stock.price, stock.currentPrice || stock.lastPrice || '$0'),
+      priceNum: parseFloat(stock.priceNum || stock.price?.replace(/[^0-9.]/g,'')) || 0,
+      change: safe(stock.change, stock.priceChange || '0%'),
+      marketCap: safe(stock.marketCap, stock.mktCap || 'N/A'),
+      pe: safe(stock.pe, stock.peRatio || stock.p_e || 'N/A'),
+      dividend: safe(stock.dividend, stock.dividendYield || '0%'),
+      week52Low: safe(stock.week52Low, stock['52wLow'] || '0'),
+      week52High: safe(stock.week52High, stock['52wHigh'] || '0'),
+      week52LowNum: parseFloat(stock.week52LowNum || stock['52wLow']) || 0,
+      week52HighNum: parseFloat(stock.week52HighNum || stock['52wHigh']) || 1,
+      atHigh: safe(stock.atHigh, stock.allTimeHigh || stock.ath || 'N/A'),
+      verdict: safe(stock.verdict, 'НАБЛЮДАТЬ'),
+      verdictEn: safe(stock.verdictEn, 'watch'),
+      confidence: safe(stock.confidence, 'СРЕДНЯЯ'),
+      rr: safe(stock.rr, stock.riskReward || '2:1'),
+      support: safe(stock.support, '0'),
+      entry: safe(stock.entry, stock.entryPoint || '0'),
+      resistance: safe(stock.resistance, '0'),
+      target1: safe(stock.target1, '0'),
+      target1Pct: safe(stock.target1Pct, '+0%'),
+      target1Period: safe(stock.target1Period, '6-12 мес'),
+      target2: safe(stock.target2, '0'),
+      target2Pct: safe(stock.target2Pct, '+0%'),
+      target2Period: safe(stock.target2Period, '12-24 мес'),
+      target3: safe(stock.target3, '0'),
+      target3Pct: safe(stock.target3Pct, '+0%'),
+      target3Period: safe(stock.target3Period, '2026-2028'),
+      webDataSummary: safe(stock.webDataSummary, stock.summary || ''),
+      correlation: safe(stock.correlation, stock.hiddenCorrelation || 'Нет данных'),
+      correlationChain: Array.isArray(stock.correlationChain) ? stock.correlationChain : [],
+      insiders: Array.isArray(stock.insiders) ? stock.insiders : [],
+      events: Array.isArray(stock.events) ? stock.events : [],
+      bullCase: safe(stock.bullCase, stock.bull || 'Нет данных'),
+      bearCase: safe(stock.bearCase, stock.bear || 'Нет данных'),
+      verdict_text: safe(stock.verdict_text, stock.verdictText || stock.analysis || 'Нет данных'),
+      stopLoss: safe(stock.stopLoss, stock.stop || '0'),
+      macro: safe(stock.macro, stock.macroContext || ''),
+      chartEvents: Array.isArray(stock.chartEvents) ? stock.chartEvents : []
+    };
+
+    renderResult(norm, !!tvKey);
 
   } catch(e) {
     document.getElementById('loading').classList.remove('show');
