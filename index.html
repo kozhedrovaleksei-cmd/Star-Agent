@@ -331,12 +331,14 @@ async function analyze() {
   // Step 1 - Web search
   document.getElementById('s1').className = 'step active';
   if (tvKey) {
-    webData = await tavilySearch(`${ticker} stock price current 2026 analysis`, tvKey);
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', {month:'long', year:'numeric'});
+    webData = await tavilySearch(`${ticker} stock price ${dateStr} latest news earnings`, tvKey);
     document.getElementById('s1').className = 'step done';
 
     // Step 2 - News
     document.getElementById('s2').className = 'step active';
-    newsData = await tavilySearch(`${ticker} stock news insider buying SEC Form 4 2026`, tvKey);
+    newsData = await tavilySearch(`${ticker} stock insider trades SEC Form 4 ${dateStr} latest`, tvKey);
     document.getElementById('s2').className = 'step done';
   } else {
     document.getElementById('s1').className = 'step done';
