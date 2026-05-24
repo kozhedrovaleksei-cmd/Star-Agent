@@ -183,6 +183,19 @@ body { background: var(--bg); color: var(--text); font-family: 'JetBrains Mono',
 .verdict-title { font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 3px; color: var(--gold); margin-bottom: 12px; }
 .verdict-text { font-size: 12px; color: var(--text); line-height: 1.8; }
 .verdict-phrase { margin-top: 16px; font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 4px; color: var(--gold); }
+.chart-section { background: var(--bg2); border: 1px solid var(--border); border-radius: 3px; padding: 16px; margin-bottom: 16px; }
+.chart-title { font-size: 10px; color: var(--gold); letter-spacing: 2px; margin-bottom: 16px; }
+.chart-wrap { position: relative; width: 100%; height: 300px; }
+.chart-tooltip { position: absolute; background: var(--bg3); border: 1px solid var(--gold); border-radius: 3px; padding: 10px 14px; pointer-events: none; display: none; z-index: 10; max-width: 240px; line-height: 1.6; }
+.tt-date { color: var(--gold); font-size: 10px; letter-spacing: 1px; margin-bottom: 4px; }
+.tt-price { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--text); }
+.tt-driver { color: var(--text); font-size: 11px; margin-top: 4px; }
+.chart-events-list { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; }
+.chart-event-item { display: flex; gap: 10px; align-items: flex-start; font-size: 11px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.chart-event-item:last-child { border-bottom: none; }
+.ev-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 2px; }
+.ev-peak { background: var(--gold); } .ev-crash { background: var(--red); } .ev-catalyst { background: var(--green); } .ev-current { background: #4A9EFF; }
+.ev-date { color: var(--dim); min-width: 60px; } .ev-label { color: var(--gold); min-width: 80px; } .ev-driver { color: var(--text); flex: 1; }
 </style>
 </head>
 <body>
@@ -435,7 +448,14 @@ ${newsData ? `НОВОСТИ И ИНСАЙДЕРЫ:\n${newsData}\n` : ''}
   "bearCase": "Медвежий сценарий 3-4 предложения",
   "verdict_text": "Итоговый вердикт STARK 4-5 предложений",
   "stopLoss": "XX.XX",
-  "macro": "Макро контекст применительно к акции"
+  "macro": "Макро контекст применительно к акции",
+  "chartEvents": [
+    {"date": "2021-11", "price": 179, "label": "ATH", "type": "peak", "driver": "Пик цикла. Переоценённость. P/E 40x."},
+    {"date": "2022-06", "price": 95, "label": "-47%", "type": "crash", "driver": "Ошибка DTC стратегии. Рост запасов."},
+    {"date": "2024-06", "price": 75, "label": "Обвал", "type": "crash", "driver": "Слабый прогноз. Китай -20%."},
+    {"date": "2024-10", "price": 78, "label": "Новый CEO", "type": "catalyst", "driver": "Elliott Hill вернулся. Разворот стратегии."},
+    {"date": "2026-05", "price": 44, "label": "Сейчас", "type": "current", "driver": "Исторический минимум. Потенциал восстановления."}
+  ]
 }`;
 
   try {
@@ -580,10 +600,138 @@ function renderResult(s, hasWeb) {
       <div class="verdict-text">${s.verdict_text}</div>
       <div style="margin-top:12px;font-size:11px;color:var(--dim)">${s.macro}</div>
       <div class="verdict-phrase">ВОТ ТАК ЗАКАЛЯЕТСЯ ХАРАКТЕР.</div>
+    </div>
+    <div class="chart-section">
+      <div class="chart-title">📈 ИСТОРИЯ ЦЕНЫ — КЛЮЧЕВЫЕ СОБЫТИЯ И ДРАЙВЕРЫ</div>
+      <div class="chart-wrap">
+        <canvas id="priceChart"></canvas>
+        <div class="chart-tooltip" id="chartTooltip">
+          <div class="tt-date" id="ttDate"></div>
+          <div class="tt-price" id="ttPrice"></div>
+          <div class="tt-driver" id="ttDriver"></div>
+        </div>
+      </div>
+      <div class="chart-events-list" id="chartEventsList"></div>
     </div>`;
 
   document.getElementById('result').classList.add('show');
   document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
+
+  // Draw chart after DOM update
+  setTimeout(() => drawChart(s.chartEvents || []), 100);
+}
+
+function drawChart(events) {
+  const canvas = document.getElementById('priceChart');
+  if (!canvas || !events.length) return;
+  const ctx = canvas.getContext('2d');
+  const wrap = canvas.parentElement;
+  canvas.width = wrap.offsetWidth;
+  canvas.height = wrap.offsetHeight;
+  const W = canvas.width, H = canvas.height;
+  const pad = { top: 20, right: 20, bottom: 40, left: 50 };
+
+  const prices = events.map(e => e.price);
+  const minP = Math.min(...prices) * 0.9;
+  const maxP = Math.max(...prices) * 1.1;
+
+  const typeColor = { peak: '#C9A84C', crash: '#E05252', catalyst: '#4CAF7D', current: '#4A9EFF' };
+
+  const xOf = (i) => pad.left + (i / (events.length - 1)) * (W - pad.left - pad.right);
+  const yOf = (p) => pad.top + (1 - (p - minP) / (maxP - minP)) * (H - pad.top - pad.bottom);
+
+  // Background grid
+  ctx.strokeStyle = '#1A1A1A';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (i / 4) * (H - pad.top - pad.bottom);
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    const val = maxP - (i / 4) * (maxP - minP);
+    ctx.fillStyle = '#444'; ctx.font = '10px JetBrains Mono, monospace';
+    ctx.fillText('$' + val.toFixed(0), 4, y + 4);
+  }
+
+  // Gradient fill
+  const grad = ctx.createLinearGradient(0, pad.top, 0, H - pad.bottom);
+  grad.addColorStop(0, 'rgba(201,168,76,0.2)');
+  grad.addColorStop(1, 'rgba(201,168,76,0)');
+  ctx.beginPath();
+  ctx.moveTo(xOf(0), yOf(events[0].price));
+  events.forEach((e, i) => ctx.lineTo(xOf(i), yOf(e.price)));
+  ctx.lineTo(xOf(events.length - 1), H - pad.bottom);
+  ctx.lineTo(xOf(0), H - pad.bottom);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.strokeStyle = '#C9A84C';
+  ctx.lineWidth = 2;
+  events.forEach((e, i) => i === 0 ? ctx.moveTo(xOf(i), yOf(e.price)) : ctx.lineTo(xOf(i), yOf(e.price)));
+  ctx.stroke();
+
+  // Event dots + labels
+  events.forEach((e, i) => {
+    const x = xOf(i), y = yOf(e.price);
+    const color = typeColor[e.type] || '#888';
+    ctx.beginPath();
+    ctx.arc(x, y, 6, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = '#080808';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = color;
+    ctx.font = 'bold 10px JetBrains Mono, monospace';
+    const labelX = Math.max(pad.left, Math.min(W - pad.right - 40, x - 20));
+    ctx.fillText(e.label, labelX, y - 12);
+
+    // Date below
+    ctx.fillStyle = '#444';
+    ctx.font = '9px JetBrains Mono, monospace';
+    ctx.fillText(e.date, Math.max(pad.left, x - 18), H - pad.bottom + 16);
+  });
+
+  // Hover
+  const tooltip = document.getElementById('chartTooltip');
+  canvas.addEventListener('mousemove', (ev) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (ev.clientX - rect.left) * (W / rect.width);
+    let closest = null, minDist = 999;
+    events.forEach((e, i) => {
+      const d = Math.abs(xOf(i) - mx);
+      if (d < minDist) { minDist = d; closest = { e, i }; }
+    });
+    if (closest && minDist < 40) {
+      document.getElementById('ttDate').textContent = closest.e.date;
+      document.getElementById('ttPrice').textContent = '$' + closest.e.price;
+      document.getElementById('ttDriver').textContent = closest.e.driver;
+      const tx = Math.min(ev.clientX - rect.left + 12, rect.width - 250);
+      const ty = Math.max(0, ev.clientY - rect.top - 60);
+      tooltip.style.left = tx + 'px';
+      tooltip.style.top = ty + 'px';
+      tooltip.style.display = 'block';
+    } else {
+      tooltip.style.display = 'none';
+    }
+  });
+  canvas.addEventListener('mouseleave', () => tooltip.style.display = 'none');
+
+  // Events list
+  const typeColor2 = { peak: 'ev-peak', crash: 'ev-crash', catalyst: 'ev-catalyst', current: 'ev-current' };
+  const list = document.getElementById('chartEventsList');
+  if (list) {
+    list.innerHTML = events.map(e => `
+      <div class="chart-event-item">
+        <div class="ev-dot ${typeColor2[e.type] || 'ev-catalyst'}"></div>
+        <div class="ev-date">${e.date}</div>
+        <div class="ev-label">${e.label}</div>
+        <div class="ev-driver">${e.driver}</div>
+      </div>`).join('');
+  }
 }
 </script>
 </body>
