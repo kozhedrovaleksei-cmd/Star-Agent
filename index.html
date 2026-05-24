@@ -380,11 +380,11 @@ async function analyze() {
 {"ticker":"${ticker}","name":"Full Company Name","sector":"SECTOR NAME","exchange":"NYSE","price":"$00.00","priceNum":41.88,"priceColor":"#e05252","change":"-75% from ATH","changePositive":false,"color":"#c9a84c","marketCap":"62B","pe":"27.5","dividend":"3.9%","revenue":"declining 2024-2025","margin":"gross margin 43%","low52":41.70,"high52":80.17,"ath":179.10,"support":"$38-42","resistance":"$55-58","pdh":"$43.20","pdl":"$41.50","entry":"$41-43","macro":"Fed holding rates at 4.25-4.5%, strong dollar pressuring international revenue, consumer spending slowing","correlation":"AI integration announcement could reprice stock like Nokia +36% in May 2026; World Cup 2026 sponsorship = marketing catalyst","correlationChain":["AI TREND","→","NIKE AI","→","STOCK RERATING","→","+30-50%"],"insiders":[{"name":"Elliott Hill","role":"CEO","action":"КУПИЛ","amount":"$2.1M","date":"2025-10","signal":"СИЛЬНЫЙ","signalColor":"#4caf7d"}],"targets":[{"label":"ЦЕЛЬ 1","val":"$62","pct":"+48%","color":"#4caf7d","horizon":"6-12М"},{"label":"ЦЕЛЬ 2","val":"$90","pct":"+115%","color":"#e8c96b","horizon":"12-24М"},{"label":"ЦЕЛЬ 3","val":"$130","pct":"+210%","color":"#9b59b6","horizon":"2028"}],"chartData":[{"date":"Jan 2023","price":124,"event":null},{"date":"Jun 2023","price":110,"event":{"label":"DTC Fail","desc":"Direct-to-consumer strategy failing, wholesale partners lost","driver":"STRATEGY","color":"#e05252","impact":"-15%"}},{"date":"Jan 2024","price":104,"event":null},{"date":"Jun 2024","price":75,"event":{"label":"Crash -18%","desc":"Biggest single-day drop in 20 years, guidance cut","driver":"EARNINGS","color":"#ff4444","impact":"-18%"}},{"date":"Oct 2024","price":84,"event":{"label":"New CEO","desc":"Elliott Hill appointed, Win Now plan announced","driver":"MANAGEMENT","color":"#4a90d9","impact":"+12%"}},{"date":"Apr 2025","price":55,"event":{"label":"Tariffs","desc":"Trump tariffs on Vietnam/Indonesia manufacturing","driver":"MACRO","color":"#e07d52","impact":"-25%"}},{"date":"Aug 2025","price":80,"event":{"label":"Recovery","desc":"Best quarter under Hill, wholesale partners back","driver":"EARNINGS","color":"#4caf7d","impact":"+45%"}},{"date":"Apr 2026","price":42,"event":{"label":"9Y Low","desc":"China sales -20% forecast, structural shift to local brands","driver":"CHINA","color":"#ff4444","impact":"-47%"}}],"events":[{"date":"25 ИЮН 2026","title":"Квартальный отчёт Q4 FY2026","desc":"Key numbers: China revenue, margin, Hill guidance FY2027. Move ±15% possible","driver":"EARNINGS","color":"#e05252"},{"date":"ИЮЛ 2026","title":"FIFA World Cup 2026","desc":"Nike main sponsor USA/Canada/Mexico. Marketing catalyst","driver":"BRAND","color":"#4caf7d"},{"date":"2027","title":"Full wholesale recovery + AI announcement","desc":"Foot Locker, Dicks partnerships restored. AI personalization launch","driver":"GROWTH","color":"#e8c96b"},{"date":"2028","title":"LA Olympics 2028","desc":"Nike largest sponsor. Massive brand rerating","driver":"BRAND","color":"#9b59b6"}],"riskLevel":"Stop at $38, risk $380 per $10K deposit at 1% rule, position size 26 shares","rr":"2.5:1","stopLevel":"$38","bullCase":["Brand existed 60 years, will exist 60 more","CEO Hill knows company from inside, right plan","$62 analyst consensus = +48% upside","World Cup + Olympics = marketing supercycle"],"bearCase":["China structural loss to Anta and Li-Ning","On Running and Hoka taking running market share","Tariffs pressure on Asian manufacturing margins","Recovery timeline 3-5 years per CEO own words"],"verdict":"ПОКУПАТЬ","verdictColor":"#4caf7d","verdictMain":"ICONIC BRAND AT 9-YEAR LOW — ACCUMULATE","verdictNote":"Enter 50% now at $41-43, 50% after June 25 earnings. Hold 2-3 years minimum for full recovery cycle.","upside":"+48%","confidence":"СРЕДНЯЯ"}`;
 
   try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const res = await fetch('https://api.crazyrouter.com/anthropic/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'claude-sonnet-4-5',
         max_tokens: 2000,
         temperature: 0.1,
         messages: [
@@ -397,7 +397,7 @@ async function analyze() {
     const data = await res.json();
     if (data.error) throw new Error(data.error.message);
 
-    let text = data.choices?.[0]?.message?.content || '';
+    let text = data.content?.[0]?.text || '';
     let stock;
     try {
       const m = text.match(/\{[\s\S]*\}/);
@@ -886,7 +886,7 @@ function showError(msg) {
 // INIT
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('tickerInput').addEventListener('keydown', e => { if (e.key === 'Enter') analyze(); });
-  const k = localStorage.getItem('groq_key');
+  const k = localStorage.getItem('crazyrouter_key');
   if (k) { setKeyStatus('✅ КЛЮЧ СОХРАНЁН', 'var(--green)'); document.getElementById('apiKeyInput').value = '•'.repeat(24); }
   document.getElementById('tickerInput').focus();
 });
