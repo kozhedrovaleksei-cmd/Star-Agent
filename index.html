@@ -286,6 +286,21 @@ document.addEventListener('DOMContentLoaded', () => {
   if (tv) { setTVStatus('✅ СОХРАНЁН', 'var(--green)'); document.getElementById('tvKeyInput').value = tv; }
 });
 
+async function getYahooPrice(ticker) {
+  try {
+    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    const data = await res.json();
+    const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+    const prev = data?.chart?.result?.[0]?.meta?.chartPreviousClose;
+    const high52 = data?.chart?.result?.[0]?.meta?.fiftyTwoWeekHigh;
+    const low52 = data?.chart?.result?.[0]?.meta?.fiftyTwoWeekLow;
+    if (price) return { price, prev, high52, low52 };
+  } catch(e) {}
+  return null;
+}
+
 async function tavilySearch(query, apiKey) {
   try {
     const res = await fetch('https://api.tavily.com/search', {
@@ -328,21 +343,31 @@ async function analyze() {
   let webData = '';
   let newsData = '';
 
-  // Step 1 - Web search
+  // Step 1 - Yahoo Finance real price
   document.getElementById('s1').className = 'step active';
+  const yahooData = await getYahooPrice(ticker);
+  let yahooInfo = '';
+  if (yahooData) {
+    const chg = yahooData.prev ? (((yahooData.price - yahooData.prev) / yahooData.prev) * 100).toFixed(2) : null;
+    yahooInfo = `РЕАЛЬНАЯ ЦЕНА (Yahoo Finance, прямо сейчас): $${yahooData.price.toFixed(2)}${chg ? `, изменение за день: ${chg}%` : ''}${yahooData.high52 ? `, 52W HIGH: $${yahooData.high52.toFixed(2)}` : ''}${yahooData.low52 ? `, 52W LOW: $${yahooData.low52.toFixed(2)}` : ''}`;
+  }
+  document.getElementById('s1').className = 'step done';
+
+  // Step 2 - Tavily news
+  document.getElementById('s2').className = 'step active';
   if (tvKey) {
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US', {month:'long', year:'numeric'});
     webData = await tavilySearch(`${ticker} stock price ${dateStr} latest news earnings`, tvKey);
-    document.getElementById('s1').className = 'step done';
+    document.getElementById('s2').className = 'step done';
 
-    // Step 2 - News
-    document.getElementById('s2').className = 'step active';
+    // Step 3 - News
+    document.getElementById('s3').className = 'step active';
     newsData = await tavilySearch(`${ticker} stock insider trades SEC Form 4 ${dateStr} latest`, tvKey);
-    document.getElementById('s2').className = 'step done';
+    document.getElementById('s3').className = 'step done';
   } else {
-    document.getElementById('s1').className = 'step done';
     document.getElementById('s2').className = 'step done';
+    document.getElementById('s3').className = 'step done';
   }
 
   // Animate remaining steps
@@ -359,7 +384,8 @@ async function analyze() {
 
 Акция для анализа: ${ticker}${context ? '\nГипотеза инвестора: ' + context : ''}
 
-${webData ? `АКТУАЛЬНЫЕ ДАННЫЕ ИЗ ИНТЕРНЕТА (май 2026):\n${webData}\n` : ''}
+${yahooInfo ? `\n${yahooInfo}\n` : ''}
+${webData ? `АКТУАЛЬНЫЕ НОВОСТИ (Tavily):\n${webData}\n` : ''}
 ${newsData ? `НОВОСТИ И ИНСАЙДЕРЫ:\n${newsData}\n` : ''}
 
 Используй актуальные данные выше для анализа. Верни ТОЛЬКО валидный JSON:
