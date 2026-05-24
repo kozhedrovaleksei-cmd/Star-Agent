@@ -393,70 +393,16 @@ async function analyze() {
   };
   animRest();
 
-  const prompt = `Ты — STARK AI, профессиональный агент анализа акций по методу Алексея — опытного трейдера с 14 годами опыта, специализирующегося на скрытых корреляциях и лаговых зависимостях.
+  const prompt = `Проанализируй акцию ${ticker} по методу STARK — 8 уровней: макро, скрытая корреляция, инсайдеры SEC Form 4, фундаментал, PDH/PDL техника, катализаторы, риск по Герчику, вердикт.
 
-Акция для анализа: ${ticker}${context ? '\nГипотеза инвестора: ' + context : ''}
+${yahooInfo ? `Актуальная цена: ${yahooInfo}` : ''}
+${webData ? `Данные из интернета: ${webData.slice(0, 800)}` : ''}
+${newsData ? `Новости: ${newsData.slice(0, 500)}` : ''}
+${context ? `Гипотеза инвестора: ${context}` : ''}
 
-${yahooInfo ? `\n${yahooInfo}\n` : ''}
-${webData ? `АКТУАЛЬНЫЕ НОВОСТИ (Tavily):\n${webData}\n` : ''}
-${newsData ? `НОВОСТИ И ИНСАЙДЕРЫ:\n${newsData}\n` : ''}
+КРИТИЧНО: Ответь ТОЛЬКО валидным JSON без единого слова до или после. Никаких пояснений. Только JSON начиная с { и заканчивая }.
 
-Используй актуальные данные выше для анализа. Верни ТОЛЬКО валидный JSON:
-
-{
-  "ticker": "${ticker}",
-  "name": "Полное название",
-  "sector": "Сектор",
-  "exchange": "NYSE/NASDAQ/MOEX",
-  "price": "$XX.XX",
-  "priceNum": 0,
-  "change": "+X.X% за последний период",
-  "marketCap": "XXB",
-  "pe": "XX.X",
-  "dividend": "X.X%",
-  "week52Low": "XX.XX",
-  "week52High": "XX.XX",
-  "week52LowNum": 0,
-  "week52HighNum": 0,
-  "atHigh": "XXX.XX",
-  "verdict": "ПОКУПАТЬ",
-  "verdictEn": "buy",
-  "confidence": "ВЫСОКАЯ",
-  "rr": "2.5:1",
-  "support": "XX.XX",
-  "entry": "XX.XX",
-  "resistance": "XX.XX",
-  "target1": "XX.XX",
-  "target1Pct": "+XX%",
-  "target1Period": "6-12 мес",
-  "target2": "XX.XX",
-  "target2Pct": "+XX%",
-  "target2Period": "12-24 мес",
-  "target3": "XX.XX",
-  "target3Pct": "+XX%",
-  "target3Period": "2026-2028",
-  "webDataSummary": "Краткое резюме найденных актуальных данных из интернета",
-  "correlation": "Скрытая корреляция которую рынок не видит",
-  "correlationChain": ["Фактор 1", "Фактор 2", "Фактор 3", "Результат"],
-  "insiders": [
-    {"name": "Имя", "role": "CEO", "action": "Купил", "amount": "$2M", "date": "Март 2026", "signal": "buy"}
-  ],
-  "events": [
-    {"date": "Июнь 2026", "text": "Событие", "urgent": true}
-  ],
-  "bullCase": "Бычий сценарий 3-4 предложения",
-  "bearCase": "Медвежий сценарий 3-4 предложения",
-  "verdict_text": "Итоговый вердикт STARK 4-5 предложений",
-  "stopLoss": "XX.XX",
-  "macro": "Макро контекст применительно к акции",
-  "chartEvents": [
-    {"date": "2021-11", "price": 179, "label": "ATH", "type": "peak", "driver": "Пик цикла. Переоценённость. P/E 40x."},
-    {"date": "2022-06", "price": 95, "label": "-47%", "type": "crash", "driver": "Ошибка DTC стратегии. Рост запасов."},
-    {"date": "2024-06", "price": 75, "label": "Обвал", "type": "crash", "driver": "Слабый прогноз. Китай -20%."},
-    {"date": "2024-10", "price": 78, "label": "Новый CEO", "type": "catalyst", "driver": "Elliott Hill вернулся. Разворот стратегии."},
-    {"date": "2026-05", "price": 44, "label": "Сейчас", "type": "current", "driver": "Исторический минимум. Потенциал восстановления."}
-  ]
-}`;
+{"ticker":"${ticker}","name":"НАЗВАНИЕ","sector":"СЕКТОР","exchange":"NYSE","price":"$0.00","priceNum":0,"change":"+0%","marketCap":"0B","pe":"0","dividend":"0%","week52Low":"0","week52High":"0","week52LowNum":0,"week52HighNum":0,"atHigh":"0","verdict":"ПОКУПАТЬ","verdictEn":"buy","confidence":"СРЕДНЯЯ","rr":"2:1","support":"0","entry":"0","resistance":"0","target1":"0","target1Pct":"+0%","target1Period":"6-12 мес","target2":"0","target2Pct":"+0%","target2Period":"12-24 мес","target3":"0","target3Pct":"+0%","target3Period":"2026-2028","webDataSummary":"РЕЗЮМЕ","correlation":"КОРРЕЛЯЦИЯ","correlationChain":["A","B","C","D"],"insiders":[{"name":"ИМЯ","role":"CEO","action":"Купил","amount":"$1M","date":"2026","signal":"buy"}],"events":[{"date":"2026","text":"СОБЫТИЕ","urgent":true}],"bullCase":"БЫЧИЙ","bearCase":"МЕДВЕЖИЙ","verdict_text":"ВЕРДИКТ","stopLoss":"0","macro":"МАКРО","chartEvents":[{"date":"2020","price":50,"label":"СОБЫТИЕ","type":"catalyst","driver":"ДРАЙВЕР"},{"date":"2023","price":100,"label":"РОСТ","type":"peak","driver":"ПРИЧИНА"},{"date":"2026","price":0,"label":"СЕЙЧАС","type":"current","driver":"ТЕКУЩЕЕ"}]}`;
 
   try {
     const res = await fetch('https://crazyrouter.com/v1/messages', {
