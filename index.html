@@ -22,475 +22,192 @@
   --dim: #666;
 }
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
-  min-height: 100vh;
-}
+body { background: var(--bg); color: var(--text); font-family: 'JetBrains Mono', monospace; min-height: 100vh; }
 
-/* HEADER */
 .hdr {
   padding: 24px 32px 20px;
   border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between;
   background: linear-gradient(135deg, #080800 0%, #080808 100%);
 }
-.hdr-left { display: flex; align-items: center; gap: 16px; }
-.hdr-logo {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 28px;
-  letter-spacing: 4px;
-  color: var(--gold);
-}
+.hdr-logo { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 4px; color: var(--gold); }
 .hdr-sub { font-size: 10px; color: var(--dim); letter-spacing: 2px; }
-.status-dot {
-  width: 8px; height: 8px;
-  background: var(--green);
-  border-radius: 50%;
-  animation: pulse 2s infinite;
-  display: inline-block;
-  margin-right: 6px;
-}
+.status-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; display: inline-block; margin-right: 6px; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 .status-text { font-size: 10px; color: var(--green); letter-spacing: 2px; }
 
-/* KEY SECTION */
-.key-section {
-  padding: 16px 32px;
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.key-label { font-size: 10px; color: var(--dim); letter-spacing: 2px; white-space: nowrap; }
+.keys-section { padding: 16px 32px; background: var(--bg2); border-bottom: 1px solid var(--border); }
+.keys-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.key-label { font-size: 10px; color: var(--dim); letter-spacing: 2px; white-space: nowrap; min-width: 160px; }
 .key-input {
-  flex: 1;
-  min-width: 200px;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  padding: 8px 12px;
-  border-radius: 3px;
-  outline: none;
+  flex: 1; min-width: 200px;
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  padding: 8px 12px; border-radius: 3px; outline: none;
 }
 .key-input:focus { border-color: var(--gold); }
 .key-btn {
-  background: var(--gold);
-  color: #000;
-  border: none;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 14px;
-  letter-spacing: 2px;
-  padding: 8px 20px;
-  border-radius: 3px;
-  cursor: pointer;
-  white-space: nowrap;
+  background: var(--gold); color: #000; border: none;
+  font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 2px;
+  padding: 8px 20px; border-radius: 3px; cursor: pointer; white-space: nowrap;
 }
 .key-btn:hover { background: var(--gold2); }
 .key-status { font-size: 11px; }
 
-/* MAIN */
 .main { padding: 24px 32px; max-width: 1200px; }
 
-/* INPUT */
-.input-row {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
+.input-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
 .ticker-wrap { flex: 0 0 140px; }
 .ticker-label, .hypo-label { font-size: 10px; color: var(--dim); letter-spacing: 2px; margin-bottom: 6px; }
 .ticker-input {
-  width: 100%;
-  background: var(--bg2);
-  border: 1px solid var(--gold);
-  color: var(--gold);
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 28px;
-  letter-spacing: 3px;
-  padding: 10px 14px;
-  border-radius: 3px;
-  outline: none;
-  text-transform: uppercase;
+  width: 100%; background: var(--bg2); border: 1px solid var(--gold);
+  color: var(--gold); font-family: 'Bebas Neue', sans-serif; font-size: 28px;
+  letter-spacing: 3px; padding: 10px 14px; border-radius: 3px; outline: none; text-transform: uppercase;
 }
 .hypo-wrap { flex: 1; min-width: 200px; }
 .hypo-input {
-  width: 100%;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  padding: 10px 14px;
-  border-radius: 3px;
-  outline: none;
-  resize: none;
-  height: 62px;
+  width: 100%; background: var(--bg2); border: 1px solid var(--border);
+  color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  padding: 10px 14px; border-radius: 3px; outline: none; resize: none; height: 62px;
 }
 .hypo-input:focus { border-color: var(--gold); }
 .analyze-btn {
-  flex: 0 0 180px;
-  background: linear-gradient(135deg, var(--gold) 0%, #8B6914 100%);
-  color: #000;
-  border: none;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 20px;
-  letter-spacing: 3px;
-  border-radius: 3px;
-  cursor: pointer;
-  align-self: flex-end;
-  height: 62px;
+  flex: 0 0 180px; background: linear-gradient(135deg, var(--gold) 0%, #8B6914 100%);
+  color: #000; border: none; font-family: 'Bebas Neue', sans-serif; font-size: 20px;
+  letter-spacing: 3px; border-radius: 3px; cursor: pointer; align-self: flex-end; height: 62px;
 }
 .analyze-btn:hover { opacity: 0.9; }
 .analyze-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* QUICK */
 .quick { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
 .q-btn {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  color: var(--dim);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  padding: 5px 10px;
-  border-radius: 3px;
-  cursor: pointer;
-  letter-spacing: 1px;
+  background: var(--bg3); border: 1px solid var(--border); color: var(--dim);
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 5px 10px;
+  border-radius: 3px; cursor: pointer; letter-spacing: 1px;
 }
 .q-btn:hover { border-color: var(--gold); color: var(--gold); }
 
-/* LOADING */
 .loading { display: none; padding: 32px; text-align: center; }
 .loading.show { display: block; }
-.load-title {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 20px;
-  letter-spacing: 3px;
-  color: var(--gold);
-  margin-bottom: 20px;
-}
-.steps { display: flex; flex-direction: column; gap: 8px; max-width: 400px; margin: 0 auto; }
+.load-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 3px; color: var(--gold); margin-bottom: 20px; }
+.steps { display: flex; flex-direction: column; gap: 8px; max-width: 420px; margin: 0 auto; }
 .step {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 11px;
-  color: var(--dim);
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  background: var(--bg2);
-  transition: all 0.3s;
+  display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--dim);
+  padding: 8px 12px; border: 1px solid var(--border); border-radius: 3px;
+  background: var(--bg2); transition: all 0.3s;
 }
 .step.active { color: var(--gold); border-color: var(--gold); }
 .step.done { color: var(--green); border-color: var(--green); }
-.step-icon { font-size: 14px; }
 
-/* ERROR */
 .error-box {
-  display: none;
-  background: rgba(224,82,82,0.1);
-  border: 1px solid var(--red);
-  border-radius: 3px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  font-size: 12px;
-  color: var(--red);
+  display: none; background: rgba(224,82,82,0.1); border: 1px solid var(--red);
+  border-radius: 3px; padding: 12px 16px; margin-bottom: 16px; font-size: 12px; color: var(--red);
 }
 .error-box.show { display: block; }
 
-/* RESULT */
 .result { display: none; }
 .result.show { display: block; }
 
-/* STOCK HEADER */
-.stock-hdr {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-.stock-name {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 52px;
-  color: var(--gold);
-  letter-spacing: 4px;
-  line-height: 1;
-}
+.stock-hdr { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 16px; }
+.stock-name { font-family: 'Bebas Neue', sans-serif; font-size: 52px; color: var(--gold); letter-spacing: 4px; line-height: 1; }
 .stock-full { font-size: 12px; color: var(--dim); margin-top: 4px; }
-.stock-sector {
-  display: inline-block;
-  background: rgba(201,168,76,0.1);
-  border: 1px solid var(--gold);
-  color: var(--gold);
-  font-size: 10px;
-  padding: 3px 8px;
-  border-radius: 2px;
-  margin-top: 6px;
-  letter-spacing: 1px;
-}
+.stock-sector { display: inline-block; background: rgba(201,168,76,0.1); border: 1px solid var(--gold); color: var(--gold); font-size: 10px; padding: 3px 8px; border-radius: 2px; margin-top: 6px; letter-spacing: 1px; }
 .stock-price-block { text-align: right; }
-.stock-price {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 42px;
-  color: var(--text);
-  line-height: 1;
-}
+.stock-price { font-family: 'Bebas Neue', sans-serif; font-size: 42px; color: var(--text); line-height: 1; }
 .stock-change { font-size: 13px; margin-top: 4px; }
-.pos { color: var(--green); }
-.neg { color: var(--red); }
-.verdict-badge {
-  display: inline-block;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 18px;
-  letter-spacing: 3px;
-  padding: 8px 20px;
-  border-radius: 3px;
-  margin-top: 8px;
-}
+.pos { color: var(--green); } .neg { color: var(--red); }
+.verdict-badge { display: inline-block; font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 3px; padding: 8px 20px; border-radius: 3px; margin-top: 8px; }
 .verdict-buy { background: var(--green); color: #000; }
 .verdict-watch { background: #F5A623; color: #000; }
 .verdict-wait { background: var(--dim); color: #000; }
 .verdict-sell { background: var(--red); color: #fff; }
 
-/* METRICS */
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 10px;
-  margin-bottom: 20px;
-}
-.metric {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 12px;
-  text-align: center;
-}
+.web-data { background: rgba(76,175,125,0.05); border: 1px solid rgba(76,175,125,0.2); border-radius: 3px; padding: 12px 16px; margin-bottom: 16px; }
+.web-data-title { font-size: 10px; color: var(--green); letter-spacing: 2px; margin-bottom: 8px; }
+.web-data-text { font-size: 11px; color: var(--text); line-height: 1.6; }
+
+.metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-bottom: 20px; }
+.metric { background: var(--bg2); border: 1px solid var(--border); border-radius: 3px; padding: 12px; text-align: center; }
 .metric-label { font-size: 9px; color: var(--dim); letter-spacing: 2px; margin-bottom: 4px; }
 .metric-val { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--text); }
 
-/* LEVELS BAR */
-.price-bar {
-  margin-bottom: 20px;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 16px;
-}
+.price-bar { margin-bottom: 20px; background: var(--bg2); border: 1px solid var(--border); border-radius: 3px; padding: 16px; }
 .bar-title { font-size: 10px; color: var(--dim); letter-spacing: 2px; margin-bottom: 12px; }
-.bar-track {
-  height: 6px;
-  background: var(--border);
-  border-radius: 3px;
-  position: relative;
-  margin: 8px 0 20px;
-}
-.bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--red), var(--gold), var(--green));
-  border-radius: 3px;
-}
-.bar-marker {
-  position: absolute;
-  top: -4px;
-  width: 14px; height: 14px;
-  background: var(--text);
-  border: 2px solid var(--bg);
-  border-radius: 50%;
-  transform: translateX(-50%);
-}
-.bar-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  color: var(--dim);
-}
-.levels-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-.level-item {
-  text-align: center;
-  padding: 8px;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-}
+.bar-track { height: 6px; background: var(--border); border-radius: 3px; position: relative; margin: 8px 0 20px; }
+.bar-fill { height: 100%; background: linear-gradient(90deg, var(--red), var(--gold), var(--green)); border-radius: 3px; }
+.bar-marker { position: absolute; top: -4px; width: 14px; height: 14px; background: var(--text); border: 2px solid var(--bg); border-radius: 50%; transform: translateX(-50%); }
+.bar-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--dim); }
+.levels-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+.level-item { text-align: center; padding: 8px; border: 1px solid var(--border); border-radius: 3px; }
 .level-label { font-size: 9px; color: var(--dim); letter-spacing: 1px; }
 .level-val { font-family: 'Bebas Neue', sans-serif; font-size: 18px; margin-top: 2px; }
-.lvl-sup { color: var(--red); }
-.lvl-entry { color: var(--gold); }
-.lvl-res { color: var(--green); }
+.lvl-sup { color: var(--red); } .lvl-entry { color: var(--gold); } .lvl-res { color: var(--green); }
 
-/* TARGETS */
-.targets {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-bottom: 20px;
-}
-.target {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 14px;
-  text-align: center;
-}
+.targets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+.target { background: var(--bg2); border: 1px solid var(--border); border-radius: 3px; padding: 14px; text-align: center; }
 .target-label { font-size: 9px; color: var(--dim); letter-spacing: 2px; margin-bottom: 6px; }
 .target-price { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: var(--green); }
 .target-pct { font-size: 11px; color: var(--green); margin-top: 2px; }
 .target-period { font-size: 10px; color: var(--dim); margin-top: 2px; }
 
-/* CORR */
-.corr-section {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 16px;
-  margin-bottom: 16px;
-}
-.corr-title { font-size: 10px; color: var(--gold); letter-spacing: 2px; margin-bottom: 10px; }
+.corr-section, .insiders-section, .events-section { background: var(--bg2); border: 1px solid var(--border); border-radius: 3px; padding: 16px; margin-bottom: 16px; }
+.corr-title, .insiders-title, .events-title { font-size: 10px; color: var(--gold); letter-spacing: 2px; margin-bottom: 12px; }
 .corr-text { font-size: 12px; color: var(--text); line-height: 1.7; margin-bottom: 12px; }
-.corr-chain {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.corr-node {
-  background: rgba(201,168,76,0.1);
-  border: 1px solid rgba(201,168,76,0.3);
-  color: var(--gold);
-  font-size: 10px;
-  padding: 4px 8px;
-  border-radius: 2px;
-}
+.corr-chain { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.corr-node { background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.3); color: var(--gold); font-size: 10px; padding: 4px 8px; border-radius: 2px; }
 .corr-arrow { color: var(--dim); font-size: 12px; }
 
-/* EVENTS */
-.events-section {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 16px;
-  margin-bottom: 16px;
-}
-.events-title { font-size: 10px; color: var(--gold); letter-spacing: 2px; margin-bottom: 12px; }
-.event-item {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border);
-}
-.event-item:last-child { border-bottom: none; }
-.event-date { font-size: 10px; color: var(--dim); white-space: nowrap; min-width: 80px; }
-.event-text { font-size: 12px; color: var(--text); line-height: 1.5; }
-.event-tag {
-  display: inline-block;
-  font-size: 9px;
-  padding: 2px 6px;
-  border-radius: 2px;
-  margin-left: 6px;
-  vertical-align: middle;
-}
-.tag-urgent { background: rgba(224,82,82,0.2); color: var(--red); border: 1px solid rgba(224,82,82,0.3); }
-.tag-catalyst { background: rgba(201,168,76,0.15); color: var(--gold); border: 1px solid rgba(201,168,76,0.3); }
-
-/* INSIDERS */
-.insiders-section {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 16px;
-  margin-bottom: 16px;
-}
-.insiders-title { font-size: 10px; color: var(--gold); letter-spacing: 2px; margin-bottom: 12px; }
-.insider-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border);
-  flex-wrap: wrap;
-  gap: 8px;
-}
+.insider-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
 .insider-item:last-child { border-bottom: none; }
 .insider-name { font-size: 12px; color: var(--text); }
 .insider-role { font-size: 10px; color: var(--dim); }
 .insider-amount { font-family: 'Bebas Neue', sans-serif; font-size: 16px; }
-.insider-buy { color: var(--green); }
-.insider-sell { color: var(--red); }
+.insider-buy { color: var(--green); } .insider-sell { color: var(--red); }
 .insider-date { font-size: 10px; color: var(--dim); }
 
-/* CASES */
-.cases {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.case-item {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 14px;
-}
+.event-item { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.event-item:last-child { border-bottom: none; }
+.event-date { font-size: 10px; color: var(--dim); white-space: nowrap; min-width: 80px; }
+.event-text { font-size: 12px; color: var(--text); line-height: 1.5; }
+.event-tag { display: inline-block; font-size: 9px; padding: 2px 6px; border-radius: 2px; margin-left: 6px; }
+.tag-urgent { background: rgba(224,82,82,0.2); color: var(--red); border: 1px solid rgba(224,82,82,0.3); }
+.tag-catalyst { background: rgba(201,168,76,0.15); color: var(--gold); border: 1px solid rgba(201,168,76,0.3); }
+
+.cases { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.case-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 3px; padding: 14px; }
 .case-title { font-size: 10px; letter-spacing: 2px; margin-bottom: 8px; }
-.bull { color: var(--green); }
-.bear { color: var(--red); }
+.bull { color: var(--green); } .bear { color: var(--red); }
 .case-text { font-size: 11px; color: var(--text); line-height: 1.7; }
 
-/* VERDICT SECTION */
-.verdict-section {
-  background: linear-gradient(135deg, #0D0D00 0%, #080808 100%);
-  border: 1px solid var(--gold);
-  border-radius: 3px;
-  padding: 20px;
-  margin-bottom: 20px;
-}
+.verdict-section { background: linear-gradient(135deg, #0D0D00 0%, #080808 100%); border: 1px solid var(--gold); border-radius: 3px; padding: 20px; margin-bottom: 20px; }
 .verdict-title { font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 3px; color: var(--gold); margin-bottom: 12px; }
 .verdict-text { font-size: 12px; color: var(--text); line-height: 1.8; }
-.verdict-phrase {
-  margin-top: 16px;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 18px;
-  letter-spacing: 4px;
-  color: var(--gold);
-}
+.verdict-phrase { margin-top: 16px; font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 4px; color: var(--gold); }
 </style>
 </head>
 <body>
 
 <div class="hdr">
-  <div class="hdr-left">
-    <div>
-      <div class="hdr-logo">STARK AI AGENT</div>
-      <div class="hdr-sub">8-УРОВНЕВЫЙ АЛГОРИТМ · ИНСАЙДЕРЫ · МЕТОД АЛЕКСЕЯ · POWERED BY CLAUDE</div>
-    </div>
-  </div>
   <div>
-    <span class="status-dot"></span>
-    <span class="status-text">AGENT ONLINE</span>
+    <div class="hdr-logo">STARK AI AGENT</div>
+    <div class="hdr-sub">8-УРОВНЕВЫЙ АЛГОРИТМ · ИНСАЙДЕРЫ · ВЕБ-ПОИСК · МЕТОД АЛЕКСЕЯ · POWERED BY CLAUDE</div>
   </div>
+  <div><span class="status-dot"></span><span class="status-text">AGENT ONLINE</span></div>
 </div>
 
-<div class="key-section">
-  <span class="key-label">▼ CRAZYROUTER API KEY</span>
-  <input type="password" id="apiKeyInput" class="key-input" placeholder="sk-ant-xxxxxxxxxxxxxxxx">
-  <button class="key-btn" onclick="saveKey()">СОХРАНИТЬ</button>
-  <span id="keyStatus" class="key-status"></span>
+<div class="keys-section">
+  <div class="keys-row">
+    <span class="key-label">▼ CRAZYROUTER API KEY</span>
+    <input type="password" id="crKeyInput" class="key-input" placeholder="sk-xxxxxxxxxxxxxxxx">
+    <button class="key-btn" onclick="saveCRKey()">СОХРАНИТЬ</button>
+    <span id="crKeyStatus" class="key-status"></span>
+  </div>
+  <div class="keys-row">
+    <span class="key-label">▼ TAVILY API KEY (веб-поиск)</span>
+    <input type="password" id="tvKeyInput" class="key-input" placeholder="tvly-xxxxxxxxxxxxxxxx">
+    <button class="key-btn" onclick="saveTVKey()">СОХРАНИТЬ</button>
+    <span id="tvKeyStatus" class="key-status"></span>
+  </div>
 </div>
 
 <div class="main">
@@ -527,14 +244,14 @@ body {
   <div id="loading" class="loading">
     <div class="load-title">⚡ STARK АНАЛИЗИРУЕТ...</div>
     <div class="steps">
-      <div class="step" id="s1"><span class="step-icon">🌍</span> Макро контекст и ставки ЦБ/ФРС</div>
-      <div class="step" id="s2"><span class="step-icon">🔗</span> Скрытые корреляции и лаговые зависимости</div>
-      <div class="step" id="s3"><span class="step-icon">👔</span> Инсайдеры и мажоритарии (SEC Form 4)</div>
-      <div class="step" id="s4"><span class="step-icon">📊</span> Фундаментал и мультипликаторы</div>
-      <div class="step" id="s5"><span class="step-icon">📈</span> Техника PDH/PDL и уровни</div>
-      <div class="step" id="s6"><span class="step-icon">⏰</span> Катализаторы и даты событий</div>
-      <div class="step" id="s7"><span class="step-icon">🛡️</span> Риск-менеджмент по Герчику</div>
-      <div class="step" id="s8"><span class="step-icon">🎯</span> Финальный вердикт STARK</div>
+      <div class="step" id="s1"><span>🌐</span> Веб-поиск актуальных данных (Tavily)</div>
+      <div class="step" id="s2"><span>📰</span> Поиск новостей и инсайдеров</div>
+      <div class="step" id="s3"><span>🔗</span> Скрытые корреляции и лаговые зависимости</div>
+      <div class="step" id="s4"><span>📊</span> Фундаментал и мультипликаторы</div>
+      <div class="step" id="s5"><span>📈</span> Техника PDH/PDL и уровни</div>
+      <div class="step" id="s6"><span>⏰</span> Катализаторы и события до 2028</div>
+      <div class="step" id="s7"><span>🛡️</span> Риск-менеджмент по Герчику</div>
+      <div class="step" id="s8"><span>🎯</span> Финальный вердикт STARK</div>
     </div>
   </div>
 
@@ -542,96 +259,117 @@ body {
 </div>
 
 <script>
-// KEY MANAGEMENT
-function saveKey() {
-  const key = document.getElementById('apiKeyInput').value.trim();
-  if (!key) {
-    setKeyStatus('❌ Введи ключ', 'var(--red)');
-    return;
-  }
+function saveCRKey() {
+  const key = document.getElementById('crKeyInput').value.trim();
+  if (!key) { setCRStatus('❌ Введи ключ', 'var(--red)'); return; }
   localStorage.setItem('crazyrouter_key', key);
-  setKeyStatus('✅ КЛЮЧ СОХРАНЁН', 'var(--green)');
+  setCRStatus('✅ СОХРАНЁН', 'var(--green)');
 }
-
-function setKeyStatus(msg, color) {
-  const el = document.getElementById('keyStatus');
-  el.textContent = msg;
-  el.style.color = color;
+function saveTVKey() {
+  const key = document.getElementById('tvKeyInput').value.trim();
+  if (!key) { setTVStatus('❌ Введи ключ', 'var(--red)'); return; }
+  localStorage.setItem('tavily_key', key);
+  setTVStatus('✅ СОХРАНЁН', 'var(--green)');
 }
+function setCRStatus(msg, color) { const el = document.getElementById('crKeyStatus'); el.textContent = msg; el.style.color = color; }
+function setTVStatus(msg, color) { const el = document.getElementById('tvKeyStatus'); el.textContent = msg; el.style.color = color; }
+function setTicker(t) { document.getElementById('tickerInput').value = t; }
+function showError(msg) { const el = document.getElementById('errorBox'); el.textContent = '⚠ ' + msg; el.classList.add('show'); }
+function hideError() { document.getElementById('errorBox').classList.remove('show'); }
+async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-function setTicker(t) {
-  document.getElementById('tickerInput').value = t;
-  document.getElementById('tickerInput').focus();
-}
-
-// INIT
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('tickerInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') analyze();
-  });
-  const k = localStorage.getItem('crazyrouter_key');
-  if (k) {
-    setKeyStatus('✅ КЛЮЧ СОХРАНЁН', 'var(--green)');
-    document.getElementById('apiKeyInput').value = k;
-  }
+  document.getElementById('tickerInput').addEventListener('keydown', e => { if (e.key === 'Enter') analyze(); });
+  const cr = localStorage.getItem('crazyrouter_key');
+  const tv = localStorage.getItem('tavily_key');
+  if (cr) { setCRStatus('✅ СОХРАНЁН', 'var(--green)'); document.getElementById('crKeyInput').value = cr; }
+  if (tv) { setTVStatus('✅ СОХРАНЁН', 'var(--green)'); document.getElementById('tvKeyInput').value = tv; }
 });
 
-function showError(msg) {
-  const el = document.getElementById('errorBox');
-  el.textContent = '⚠ ' + msg;
-  el.classList.add('show');
+async function tavilySearch(query, apiKey) {
+  try {
+    const res = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: apiKey,
+        query: query,
+        search_depth: 'advanced',
+        max_results: 5,
+        include_answer: true
+      })
+    });
+    const data = await res.json();
+    if (data.answer) return data.answer + '\n\n' + (data.results || []).map(r => r.title + ': ' + r.content).join('\n\n');
+    return (data.results || []).map(r => r.title + ': ' + r.content).join('\n\n');
+  } catch(e) {
+    return '';
+  }
 }
-
-function hideError() {
-  document.getElementById('errorBox').classList.remove('show');
-}
-
-async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function analyze() {
   const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
   const context = document.getElementById('contextInput').value.trim();
-  const apiKey = localStorage.getItem('crazyrouter_key');
+  const crKey = localStorage.getItem('crazyrouter_key');
+  const tvKey = localStorage.getItem('tavily_key');
 
   hideError();
-
   if (!ticker) { showError('Введи тикер'); return; }
-  if (!apiKey) { showError('Сначала сохрани Crazyrouter API ключ'); return; }
+  if (!crKey) { showError('Сохрани Crazyrouter API ключ'); return; }
 
-  // UI
   document.getElementById('analyzeBtn').disabled = true;
   document.getElementById('result').classList.remove('show');
   document.getElementById('result').innerHTML = '';
-  const loading = document.getElementById('loading');
-  loading.classList.add('show');
+  document.getElementById('loading').classList.add('show');
 
   const steps = ['s1','s2','s3','s4','s5','s6','s7','s8'];
   steps.forEach(s => document.getElementById(s).className = 'step');
 
-  // Animate steps
-  const animSteps = async () => {
-    for (let i = 0; i < steps.length; i++) {
-      if (i > 0) document.getElementById(steps[i-1]).className = 'step done';
+  let webData = '';
+  let newsData = '';
+
+  // Step 1 - Web search
+  document.getElementById('s1').className = 'step active';
+  if (tvKey) {
+    webData = await tavilySearch(`${ticker} stock price current 2026 analysis`, tvKey);
+    document.getElementById('s1').className = 'step done';
+
+    // Step 2 - News
+    document.getElementById('s2').className = 'step active';
+    newsData = await tavilySearch(`${ticker} stock news insider buying SEC Form 4 2026`, tvKey);
+    document.getElementById('s2').className = 'step done';
+  } else {
+    document.getElementById('s1').className = 'step done';
+    document.getElementById('s2').className = 'step done';
+  }
+
+  // Animate remaining steps
+  const animRest = async () => {
+    for (let i = 2; i < steps.length; i++) {
       document.getElementById(steps[i]).className = 'step active';
-      await sleep(800);
+      await sleep(700);
+      if (i < steps.length - 1) document.getElementById(steps[i]).className = 'step done';
     }
   };
-  animSteps();
+  animRest();
 
-  const prompt = `Ты — STARK AI, профессиональный агент анализа акций. Метод: Алексей — опытный трейдер, 14 лет на рынке, специализируется на скрытых корреляциях и лаговых зависимостях.
+  const prompt = `Ты — STARK AI, профессиональный агент анализа акций по методу Алексея — опытного трейдера с 14 годами опыта, специализирующегося на скрытых корреляциях и лаговых зависимостях.
 
-Проанализируй акцию: ${ticker}${context ? '. Гипотеза инвестора: ' + context : ''}
+Акция для анализа: ${ticker}${context ? '\nГипотеза инвестора: ' + context : ''}
 
-Верни ТОЛЬКО валидный JSON без markdown, без пояснений, без текста до или после:
+${webData ? `АКТУАЛЬНЫЕ ДАННЫЕ ИЗ ИНТЕРНЕТА (май 2026):\n${webData}\n` : ''}
+${newsData ? `НОВОСТИ И ИНСАЙДЕРЫ:\n${newsData}\n` : ''}
+
+Используй актуальные данные выше для анализа. Верни ТОЛЬКО валидный JSON:
 
 {
   "ticker": "${ticker}",
-  "name": "Полное название компании",
+  "name": "Полное название",
   "sector": "Сектор",
-  "exchange": "NYSE или NASDAQ или MOEX",
+  "exchange": "NYSE/NASDAQ/MOEX",
   "price": "$XX.XX",
   "priceNum": 0,
-  "change": "+X.X% за последний квартал",
+  "change": "+X.X% за последний период",
   "marketCap": "XXB",
   "pe": "XX.X",
   "dividend": "X.X%",
@@ -656,22 +394,20 @@ async function analyze() {
   "target3": "XX.XX",
   "target3Pct": "+XX%",
   "target3Period": "2026-2028",
-  "correlation": "Описание скрытой корреляции которую рынок не видит. Лаговые зависимости.",
+  "webDataSummary": "Краткое резюме найденных актуальных данных из интернета",
+  "correlation": "Скрытая корреляция которую рынок не видит",
   "correlationChain": ["Фактор 1", "Фактор 2", "Фактор 3", "Результат"],
   "insiders": [
-    {"name": "Имя", "role": "CEO/CFO/Dir", "action": "Купил", "amount": "$2.1M", "date": "Март 2026", "signal": "buy"},
-    {"name": "Имя 2", "role": "CFO", "action": "Продал", "amount": "$500K", "date": "Янв 2026", "signal": "sell"}
+    {"name": "Имя", "role": "CEO", "action": "Купил", "amount": "$2M", "date": "Март 2026", "signal": "buy"}
   ],
   "events": [
-    {"date": "25 июня 2026", "text": "Квартальный отчёт Q3", "urgent": true},
-    {"date": "Июль 2026", "text": "Дивидендная отсечка", "urgent": false},
-    {"date": "2026-2027", "text": "Ожидаемое событие или катализатор", "urgent": false}
+    {"date": "Июнь 2026", "text": "Событие", "urgent": true}
   ],
-  "bullCase": "Бычий сценарий — почему акция вырастет. 3-4 предложения.",
-  "bearCase": "Медвежий сценарий — главные риски. 3-4 предложения.",
-  "verdict_text": "Итоговый вердикт по 8-уровневому алгоритму STARK. Конкретно. По делу. 4-5 предложений.",
+  "bullCase": "Бычий сценарий 3-4 предложения",
+  "bearCase": "Медвежий сценарий 3-4 предложения",
+  "verdict_text": "Итоговый вердикт STARK 4-5 предложений",
   "stopLoss": "XX.XX",
-  "macro": "Краткий макро контекст — ставки ФРС/ЦБ, DXY, геополитика применительно к этой акции."
+  "macro": "Макро контекст применительно к акции"
 }`;
 
   try {
@@ -679,38 +415,36 @@ async function analyze() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${crKey}`,
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'perplexity/sonar',
-        max_tokens: 2000,
+        model: 'claude-sonnet-4-5',
+        max_tokens: 2500,
         messages: [{ role: 'user', content: prompt }]
       })
     });
 
     const data = await res.json();
-
     if (data.error) throw new Error(data.error.message || 'API Error');
 
     const text = data.content?.[0]?.text || '';
-
     let stock;
     try {
       const m = text.match(/\{[\s\S]*\}/);
       if (m) stock = JSON.parse(m[0]);
       else throw new Error('JSON не найден');
     } catch(e) {
-      throw new Error('Ошибка парсинга ответа. Попробуй ещё раз.');
+      throw new Error('Ошибка парсинга. Попробуй ещё раз.');
     }
 
     steps.forEach(s => document.getElementById(s).className = 'step done');
-    await sleep(500);
-    loading.classList.remove('show');
-    renderResult(stock);
+    await sleep(400);
+    document.getElementById('loading').classList.remove('show');
+    renderResult(stock, !!tvKey);
 
   } catch(e) {
-    loading.classList.remove('show');
+    document.getElementById('loading').classList.remove('show');
     showError(e.message);
     steps.forEach(s => document.getElementById(s).className = 'step');
   } finally {
@@ -718,46 +452,36 @@ async function analyze() {
   }
 }
 
-function renderResult(s) {
-  const verdictClass = {
-    'buy': 'verdict-buy',
-    'watch': 'verdict-watch',
-    'wait': 'verdict-wait',
-    'sell': 'verdict-sell'
-  }[s.verdictEn] || 'verdict-watch';
-
-  // 52W bar
+function renderResult(s, hasWeb) {
+  const verdictClass = {'buy':'verdict-buy','watch':'verdict-watch','wait':'verdict-wait','sell':'verdict-sell'}[s.verdictEn] || 'verdict-watch';
   const lo = parseFloat(s.week52LowNum) || 0;
   const hi = parseFloat(s.week52HighNum) || 1;
-  const cur = parseFloat(s.priceNum) || (lo + hi) / 2;
-  const pct = Math.min(100, Math.max(0, ((cur - lo) / (hi - lo)) * 100));
+  const cur = parseFloat(s.priceNum) || (lo+hi)/2;
+  const pct = Math.min(100, Math.max(0, ((cur-lo)/(hi-lo))*100));
 
-  // Insiders HTML
-  const insidersHtml = (s.insiders || []).map(i => `
+  const insidersHtml = (s.insiders||[]).map(i=>`
     <div class="insider-item">
-      <div>
-        <div class="insider-name">${i.name}</div>
-        <div class="insider-role">${i.role}</div>
-      </div>
-      <div class="insider-amount ${i.signal === 'buy' ? 'insider-buy' : 'insider-sell'}">${i.action} ${i.amount}</div>
+      <div><div class="insider-name">${i.name}</div><div class="insider-role">${i.role}</div></div>
+      <div class="insider-amount ${i.signal==='buy'?'insider-buy':'insider-sell'}">${i.action} ${i.amount}</div>
       <div class="insider-date">${i.date}</div>
-    </div>
-  `).join('') || '<div style="font-size:11px;color:var(--dim)">Данные по инсайдерам недоступны</div>';
+    </div>`).join('') || '<div style="font-size:11px;color:var(--dim)">Нет данных по инсайдерам</div>';
 
-  // Events HTML
-  const eventsHtml = (s.events || []).map(e => `
+  const eventsHtml = (s.events||[]).map(e=>`
     <div class="event-item">
       <div class="event-date">${e.date}</div>
-      <div class="event-text">${e.text}${e.urgent ? '<span class="event-tag tag-urgent">СРОЧНО</span>' : '<span class="event-tag tag-catalyst">КАТАЛИЗАТОР</span>'}</div>
-    </div>
-  `).join('') || '<div style="font-size:11px;color:var(--dim)">Нет данных</div>';
+      <div class="event-text">${e.text}${e.urgent?'<span class="event-tag tag-urgent">СРОЧНО</span>':'<span class="event-tag tag-catalyst">КАТАЛИЗАТОР</span>'}</div>
+    </div>`).join('') || '<div style="font-size:11px;color:var(--dim)">Нет данных</div>';
 
-  // Correlation chain
-  const chainHtml = (s.correlationChain || []).map((c, i, arr) =>
-    `<span class="corr-node">${c}</span>${i < arr.length-1 ? '<span class="corr-arrow">→</span>' : ''}`
-  ).join('');
+  const chainHtml = (s.correlationChain||[]).map((c,i,arr)=>`<span class="corr-node">${c}</span>${i<arr.length-1?'<span class="corr-arrow">→</span>':''}`).join('');
 
-  const html = `
+  const webHtml = hasWeb && s.webDataSummary ? `
+    <div class="web-data">
+      <div class="web-data-title">🌐 АКТУАЛЬНЫЕ ДАННЫЕ ИЗ ИНТЕРНЕТА (май 2026)</div>
+      <div class="web-data-text">${s.webDataSummary}</div>
+    </div>` : '';
+
+  document.getElementById('result').innerHTML = `
+    ${webHtml}
     <div class="stock-hdr">
       <div>
         <div class="stock-name">${s.ticker}</div>
@@ -766,12 +490,11 @@ function renderResult(s) {
       </div>
       <div class="stock-price-block">
         <div class="stock-price">${s.price}</div>
-        <div class="stock-change ${s.change?.includes('+') ? 'pos' : 'neg'}">${s.change}</div>
+        <div class="stock-change ${s.change?.includes('+')?'pos':'neg'}">${s.change}</div>
         <div><span class="verdict-badge ${verdictClass}">${s.verdict}</span></div>
         <div style="font-size:10px;color:var(--dim);margin-top:6px">R:R ${s.rr} · ${s.confidence} уверенность</div>
       </div>
     </div>
-
     <div class="metrics">
       <div class="metric"><div class="metric-label">МКТ КАП</div><div class="metric-val">${s.marketCap}</div></div>
       <div class="metric"><div class="metric-label">P/E</div><div class="metric-val">${s.pe}</div></div>
@@ -782,85 +505,50 @@ function renderResult(s) {
       <div class="metric"><div class="metric-label">СТОП</div><div class="metric-val" style="color:var(--red)">${s.stopLoss}</div></div>
       <div class="metric"><div class="metric-label">БИРЖА</div><div class="metric-val">${s.exchange}</div></div>
     </div>
-
     <div class="price-bar">
       <div class="bar-title">52-НЕДЕЛЬНЫЙ ДИАПАЗОН</div>
       <div class="bar-track">
         <div class="bar-fill" style="width:${pct}%"></div>
         <div class="bar-marker" style="left:${pct}%"></div>
       </div>
-      <div class="bar-labels">
-        <span>${s.week52Low}</span>
-        <span style="color:var(--gold)">СЕЙЧАС ${s.price}</span>
-        <span>${s.week52High}</span>
-      </div>
-      <div class="levels-row" style="margin-top:12px">
+      <div class="bar-labels"><span>${s.week52Low}</span><span style="color:var(--gold)">СЕЙЧАС ${s.price}</span><span>${s.week52High}</span></div>
+      <div class="levels-row">
         <div class="level-item"><div class="level-label">ПОДДЕРЖКА</div><div class="level-val lvl-sup">${s.support}</div></div>
         <div class="level-item"><div class="level-label">ТОЧКА ВХОДА</div><div class="level-val lvl-entry">${s.entry}</div></div>
         <div class="level-item"><div class="level-label">СОПРОТИВЛЕНИЕ</div><div class="level-val lvl-res">${s.resistance}</div></div>
       </div>
     </div>
-
     <div class="targets">
-      <div class="target">
-        <div class="target-label">ЦЕЛЬ 1</div>
-        <div class="target-price">${s.target1}</div>
-        <div class="target-pct">${s.target1Pct}</div>
-        <div class="target-period">${s.target1Period}</div>
-      </div>
-      <div class="target">
-        <div class="target-label">ЦЕЛЬ 2</div>
-        <div class="target-price">${s.target2}</div>
-        <div class="target-pct">${s.target2Pct}</div>
-        <div class="target-period">${s.target2Period}</div>
-      </div>
-      <div class="target">
-        <div class="target-label">ЦЕЛЬ 3</div>
-        <div class="target-price">${s.target3}</div>
-        <div class="target-pct">${s.target3Pct}</div>
-        <div class="target-period">${s.target3Period}</div>
-      </div>
+      <div class="target"><div class="target-label">ЦЕЛЬ 1</div><div class="target-price">${s.target1}</div><div class="target-pct">${s.target1Pct}</div><div class="target-period">${s.target1Period}</div></div>
+      <div class="target"><div class="target-label">ЦЕЛЬ 2</div><div class="target-price">${s.target2}</div><div class="target-pct">${s.target2Pct}</div><div class="target-period">${s.target2Period}</div></div>
+      <div class="target"><div class="target-label">ЦЕЛЬ 3</div><div class="target-price">${s.target3}</div><div class="target-pct">${s.target3Pct}</div><div class="target-period">${s.target3Period}</div></div>
     </div>
-
     <div class="corr-section">
       <div class="corr-title">🔗 СКРЫТАЯ КОРРЕЛЯЦИЯ — МЕТОД АЛЕКСЕЯ</div>
       <div class="corr-text">${s.correlation}</div>
       <div class="corr-chain">${chainHtml}</div>
     </div>
-
     <div class="insiders-section">
       <div class="insiders-title">👔 ИНСАЙДЕРЫ И УМНЫЕ ДЕНЬГИ — SEC FORM 4</div>
       ${insidersHtml}
     </div>
-
     <div class="events-section">
       <div class="events-title">⏰ СОБЫТИЯ И КАТАЛИЗАТОРЫ ДО 2028</div>
       ${eventsHtml}
     </div>
-
     <div class="cases">
-      <div class="case-item">
-        <div class="case-title bull">▲ БЫЧИЙ КЕЙС</div>
-        <div class="case-text">${s.bullCase}</div>
-      </div>
-      <div class="case-item">
-        <div class="case-title bear">▼ МЕДВЕЖИЙ КЕЙС</div>
-        <div class="case-text">${s.bearCase}</div>
-      </div>
+      <div class="case-item"><div class="case-title bull">▲ БЫЧИЙ КЕЙС</div><div class="case-text">${s.bullCase}</div></div>
+      <div class="case-item"><div class="case-title bear">▼ МЕДВЕЖИЙ КЕЙС</div><div class="case-text">${s.bearCase}</div></div>
     </div>
-
     <div class="verdict-section">
       <div class="verdict-title">🎯 ВЕРДИКТ STARK — 8 УРОВНЕЙ</div>
       <div class="verdict-text">${s.verdict_text}</div>
       <div style="margin-top:12px;font-size:11px;color:var(--dim)">${s.macro}</div>
       <div class="verdict-phrase">ВОТ ТАК ЗАКАЛЯЕТСЯ ХАРАКТЕР.</div>
-    </div>
-  `;
+    </div>`;
 
-  const resultEl = document.getElementById('result');
-  resultEl.innerHTML = html;
-  resultEl.classList.add('show');
-  resultEl.scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('result').classList.add('show');
+  document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
 }
 </script>
 </body>
