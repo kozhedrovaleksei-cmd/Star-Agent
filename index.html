@@ -430,13 +430,43 @@ ${context ? `Гипотеза инвестора: ${context}` : ''}
       .filter(b => b.type === 'text')
       .map(b => b.text)
       .join('') || data.content?.[0]?.text || '';
+
     let stock;
     try {
-      const m = text.match(/\{[\s\S]*\}/);
-      if (m) stock = JSON.parse(m[0]);
-      else throw new Error('JSON не найден');
+      // Try multiple extraction methods
+      let jsonStr = null;
+
+      // Method 1: find last { } block (most complete)
+      const allMatches = [...text.matchAll(/\{[\s\S]*?\}/g)];
+      if (allMatches.length) {
+        // Try each match from longest to shortest
+        const sorted = allMatches.sort((a,b) => b[0].length - a[0].length);
+        for (const m of sorted) {
+          try { stock = JSON.parse(m[0]); break; } catch(e) {}
+        }
+      }
+
+      // Method 2: greedy match
+      if (!stock) {
+        const m = text.match(/\{[\s\S]*\}/);
+        if (m) {
+          try { stock = JSON.parse(m[0]); } catch(e) {}
+        }
+      }
+
+      // Method 3: find between first { and last }
+      if (!stock) {
+        const start = text.indexOf('{');
+        const end = text.lastIndexOf('}');
+        if (start !== -1 && end !== -1 && end > start) {
+          try { stock = JSON.parse(text.slice(start, end + 1)); } catch(e) {}
+        }
+      }
+
+      if (!stock) throw new Error('JSON не найден в ответе');
+
     } catch(e) {
-      throw new Error('Ошибка парсинга. Попробуй ещё раз.');
+      throw new Error('Ошибка парсинга — попробуй ещё раз');
     }
 
     steps.forEach(s => document.getElementById(s).className = 'step done');
