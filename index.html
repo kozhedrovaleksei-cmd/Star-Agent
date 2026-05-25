@@ -343,80 +343,52 @@ async function analyze() {
   const steps = ['s1','s2','s3','s4','s5','s6','s7','s8'];
   steps.forEach(s => document.getElementById(s).className = 'step');
 
-  // Animate steps — Claude делает всё сам через веб-поиск
-  const animSteps = async () => {
-    for (let i = 0; i < steps.length; i++) {
-      if (i > 0) document.getElementById(steps[i-1]).className = 'step done';
-      document.getElementById(steps[i]).className = 'step active';
-      await sleep(600);
-    }
-  };
-  animSteps();
+  // STEP 1 — получить данные
+  document.getElementById('s1').className = 'step active';
+  document.getElementById('s2').className = 'step active';
 
-  const prompt = `Ты — STARK AI агент анализа акций. Проанализируй акцию ${ticker} по методу STARK (8 уровней: макро, скрытая корреляция, инсайдеры SEC Form 4, фундаментал, PDH/PDL, катализаторы, риск Герчик, вердикт).
+  const dataPrompt = `Найди актуальные данные по акции ${ticker} (май 2026). Нужно:
+1. Текущая цена и изменение за год
+2. Market Cap, P/E, дивиденд
+3. 52W High и 52W Low
+4. Последние новости (1-2 предложения)
+5. Инсайдерские покупки CEO/CFO из SEC Form 4 за последние 6 месяцев
+6. Ближайшие события (отчёты, дивиденды)
+
+Отвечай кратко, только факты, на русском языке.`;
+
+  let rawData = '';
+  try {
+    const r1 = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'analyze', prompt: dataPrompt })
+    });
+    const d1 = await r1.json();
+    rawData = d1.text || '';
+  } catch(e) {}
+
+  document.getElementById('s1').className = 'step done';
+  document.getElementById('s2').className = 'step done';
+
+  // Animate remaining steps
+  for (let i = 2; i < steps.length - 1; i++) {
+    document.getElementById(steps[i]).className = 'step active';
+    await sleep(500);
+    document.getElementById(steps[i]).className = 'step done';
+  }
+  document.getElementById(steps[steps.length-1]).className = 'step active';
+
+  // STEP 2 — STARK анализ на основе данных
+  const prompt = `Ты — STARK AI. Сделай полный анализ акции ${ticker}.
+
+АКТУАЛЬНЫЕ ДАННЫЕ (найдены только что):
+${rawData || 'Используй свои знания'}
 
 ${context ? 'Гипотеза инвестора: ' + context : ''}
 
-Найди актуальные данные по ${ticker} через веб-поиск (текущая цена, последние новости, инсайдеры SEC Form 4).
-ВАЖНО: Верни ТОЛЬКО JSON. Никакого текста до или после. Начни с { и закончи }.
-
-Заполни все поля реальными данными по ${ticker}:
-{
-  "ticker": "${ticker}",
-  "name": "Полное название компании",
-  "sector": "Сектор компании",
-  "exchange": "NYSE или NASDAQ или MOEX",
-  "price": "$165.00",
-  "priceNum": 165.00,
-  "change": "-5.2% за последние 12 месяцев",
-  "marketCap": "$50B",
-  "pe": "18.5",
-  "dividend": "2.1%",
-  "week52Low": "120.00",
-  "week52High": "200.00",
-  "week52LowNum": 120,
-  "week52HighNum": 200,
-  "atHigh": "250.00",
-  "verdict": "ПОКУПАТЬ",
-  "verdictEn": "buy",
-  "confidence": "ВЫСОКАЯ",
-  "rr": "3:1",
-  "support": "155.00",
-  "entry": "162.00",
-  "resistance": "185.00",
-  "target1": "190.00",
-  "target1Pct": "+17%",
-  "target1Period": "6-12 мес",
-  "target2": "220.00",
-  "target2Pct": "+35%",
-  "target2Period": "12-24 мес",
-  "target3": "280.00",
-  "target3Pct": "+72%",
-  "target3Period": "2027-2028",
-  "webDataSummary": "Краткое резюме актуальных данных которые ты нашёл",
-  "correlation": "Описание скрытой корреляции которую рынок не видит. Лаговые зависимости 3-6 месяцев.",
-  "correlationChain": ["Фактор 1", "Фактор 2", "Фактор 3", "Результат для акции"],
-  "insiders": [
-    {"name": "Имя инсайдера", "role": "CEO", "action": "Купил", "amount": "$2.5M", "date": "Март 2026", "signal": "buy"},
-    {"name": "Имя 2", "role": "CFO", "action": "Продал", "amount": "$800K", "date": "Янв 2026", "signal": "sell"}
-  ],
-  "events": [
-    {"date": "Июнь 2026", "text": "Описание события", "urgent": true},
-    {"date": "Q3 2026", "text": "Описание события 2", "urgent": false}
-  ],
-  "bullCase": "Бычий сценарий — 3-4 предложения почему акция вырастет",
-  "bearCase": "Медвежий сценарий — 3-4 предложения главных рисков",
-  "verdict_text": "Финальный вердикт по 8 уровням STARK — 4-5 предложений конкретно по делу",
-  "stopLoss": "148.00",
-  "macro": "Макро контекст — ставки ФРС/ЦБ, DXY, геополитика применительно к этой акции",
-  "chartEvents": [
-    {"date": "2020", "price": 50, "label": "Дно COVID", "type": "crash", "driver": "Описание что случилось и почему цена упала"},
-    {"date": "2021", "price": 150, "label": "ATH", "type": "peak", "driver": "Описание пика и драйвера роста"},
-    {"date": "2023", "price": 80, "label": "Коррекция", "type": "crash", "driver": "Описание коррекции"},
-    {"date": "2025", "price": 120, "label": "Разворот", "type": "catalyst", "driver": "Описание катализатора"},
-    {"date": "2026", "price": 165, "label": "Сейчас", "type": "current", "driver": "Текущая ситуация"}
-  ]
-}`;
+Верни СТРОГО валидный JSON без markdown, без текста вокруг:
+{"ticker":"${ticker}","name":"","sector":"","exchange":"","price":"$0","priceNum":0,"change":"0%","marketCap":"","pe":"","dividend":"","week52Low":"","week52High":"","week52LowNum":0,"week52HighNum":0,"atHigh":"","verdict":"НАБЛЮДАТЬ","verdictEn":"watch","confidence":"СРЕДНЯЯ","rr":"2:1","support":"","entry":"","resistance":"","target1":"","target1Pct":"","target1Period":"","target2":"","target2Pct":"","target2Period":"","target3":"","target3Pct":"","target3Period":"","webDataSummary":"","correlation":"","correlationChain":[],"insiders":[],"events":[],"bullCase":"","bearCase":"","verdict_text":"","stopLoss":"","macro":"","chartEvents":[]}`;
 
   try {
     const res = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
