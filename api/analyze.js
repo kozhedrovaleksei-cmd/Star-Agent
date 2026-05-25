@@ -1,18 +1,18 @@
 export default async function handler(req, res) {
-  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
+
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { action, ticker, prompt, tavilyKey } = req.body;
+  const { action, ticker, prompt, query } = req.body;
   const crKey = process.env.CRAZYROUTER_KEY;
-  const tvKey = tavilyKey || process.env.TAVILY_KEY;
+  const tvKey = process.env.TAVILY_KEY;
 
   try {
-    // ACTION: get Yahoo Finance price
+
+    // ─── ACTION: Yahoo Finance price ───────────────────────────────────────
     if (action === 'price') {
       const r = await fetch(
         `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`,
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // ACTION: Tavily search
+    // ─── ACTION: Tavily search ─────────────────────────────────────────────
     if (action === 'search') {
       if (!tvKey) return res.json({ result: '' });
       const r = await fetch('https://api.tavily.com/search', {
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           api_key: tvKey,
-          query: req.body.query,
+          query: query || '',
           search_depth: 'basic',
           max_results: 5,
           include_answer: true
@@ -49,25 +49,71 @@ export default async function handler(req, res) {
       return res.json({ result });
     }
 
-    // ACTION: Claude analyze
+    // ─── ACTION: Claude analyze WITH web_search tool ───────────────────────
     if (action === 'analyze') {
       if (!crKey) return res.status(500).json({ error: 'No API key' });
-      const r = await fetch('https://crazyrouter.com/v1/messages', {
+
+      // First call — Claude with web_search to get REAL data
+      const r1 = await fetch('https://crazyrouter.com/v1/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${crKey}`,
-          'anthropic-version': '2023-06-01'
+          'anthropic-version': '2023-06-01',
+          'anthropic-beta': 'web-search-2025-03-05'
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-5',
           max_tokens: 4000,
+          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
           messages: [{ role: 'user', content: prompt }]
         })
       });
-      const data = await r.json();
-      if (data.error) return res.status(500).json({ error: data.error.message });
-      const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+
+      const d1 = await r1.json();
+
+      // If tool_use blocks exist — run second call with tool results
+      const hasToolUse = (d1.content || []).some(b => b.type === 'tool_use');
+
+      if (hasToolUse) {
+        // Build tool_result blocks from tool_use
+        const toolResults = (d1.content || [])
+          .filter(b => b.type === 'tool_use')
+          .map(b => ({
+            type: 'tool_result',
+            tool_use_id: b.id,
+            content: b.input ? JSON.stringify(b.input) : 'search executed'
+          }));
+
+        const r2 = await fetch('https://crazyrouter.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${crKey}`,
+            'anthropic-version': '2023-06-01',
+            'anthropic-beta': 'web-search-2025-03-05'
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-5',
+            max_tokens: 4000,
+            tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+            messages: [
+              { role: 'user', content: prompt },
+              { role: 'assistant', content: d1.content },
+              { role: 'user', content: toolResults }
+            ]
+          })
+        });
+
+        const d2 = await r2.json();
+        if (d2.error) return res.status(500).json({ error: d2.error.message });
+        const text = (d2.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+        return res.json({ text });
+      }
+
+      // No tool use — return text directly
+      if (d1.error) return res.status(500).json({ error: d1.error.message });
+      const text = (d1.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
       return res.json({ text });
     }
 
