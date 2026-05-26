@@ -429,18 +429,21 @@ ${rawData || 'Используй свои знания'}
 
 ${context ? 'Гипотеза инвестора: ' + context : ''}
 
-ВАЖНО: Верни СТРОГО валидный JSON без markdown, без текста вокруг.
-correlationChain — ТОЛЬКО массив строк.
-anticipation — объект с опережающими индикаторами.
+ВАЖНО: Верни СТРОГО валидный JSON без markdown, без текста вокруг. Только JSON, ничего больше.
+correlationChain — ТОЛЬКО массив строк, не объектов.
+insiders: [{"name":"Имя","role":"CEO","type":"buy","amount":"$500K","shares":"10000","date":"15 янв 2026"}]
+events: [{"date":"25 июн 2026","text":"Описание","urgent":false}]
+chartEvents: [{"date":"2024","price":85,"type":"peak","label":"ATH","driver":"Причина"}]
+correlationChain: ["строка1","строка2","строка3"]
 
-Формат insiders: [{"name":"Имя","role":"CEO","type":"buy","amount":"$500K","shares":"10000","date":"15 янв 2026"}]
-Формат events: [{"date":"25 июн 2026","text":"Описание","urgent":false}]
-Формат chartEvents: [{"date":"2024","price":85,"type":"peak","label":"ATH","driver":"Причина"}]
-Формат correlationChain: ["элемент1","элемент2","элемент3"]
-Формат anticipation: {"narrative":"Что рынок не видит и почему это важно прямо сейчас","indicators":[{"num":1,"name":"Название опережающего индикатора","description":"Что это и как мониторить","lag":"Лаг в неделях/месяцах"},{"num":2,"name":"...","description":"...","lag":"..."},{"num":3,"name":"...","description":"...","lag":"..."}],"method":"Одна строка — скрытая корреляция которую рынок не видит"}
+anticipationNarrative — что рынок не видит прямо сейчас (строка)
+anticipationInd1 — опережающий индикатор 1: название + описание + лаг (строка)
+anticipationInd2 — опережающий индикатор 2: название + описание + лаг (строка)
+anticipationInd3 — опережающий индикатор 3: название + описание + лаг (строка)
+anticipationMethod — скрытая корреляция одной строкой
 
-JSON шаблон:
-{"ticker":"${ticker}","name":"","sector":"","exchange":"","price":"$0","priceNum":0,"change":"0%","marketCap":"","pe":"","dividend":"","week52Low":"","week52High":"","week52LowNum":0,"week52HighNum":0,"atHigh":"","verdict":"НАБЛЮДАТЬ","verdictEn":"watch","confidence":"СРЕДНЯЯ","rr":"2:1","support":"","entry":"","resistance":"","target1":"","target1Pct":"","target1Period":"","target2":"","target2Pct":"","target2Period":"","target3":"","target3Pct":"","target3Period":"","webDataSummary":"","correlation":"","correlationChain":[],"insiders":[],"events":[],"bullCase":"","bearCase":"","verdict_text":"","stopLoss":"","macro":"","chartEvents":[],"anticipation":{"narrative":"","indicators":[],"method":""}}`;
+JSON шаблон — заполни ВСЕ поля реальными данными:
+{"ticker":"${ticker}","name":"","sector":"","exchange":"","price":"$0","priceNum":0,"change":"0%","marketCap":"","pe":"","dividend":"","week52Low":"","week52High":"","week52LowNum":0,"week52HighNum":0,"atHigh":"","verdict":"НАБЛЮДАТЬ","verdictEn":"watch","confidence":"СРЕДНЯЯ","rr":"2:1","support":"","entry":"","resistance":"","target1":"","target1Pct":"","target1Period":"","target2":"","target2Pct":"","target2Period":"","target3":"","target3Pct":"","target3Period":"","webDataSummary":"","correlation":"","correlationChain":[],"insiders":[],"events":[],"bullCase":"","bearCase":"","verdict_text":"","stopLoss":"","macro":"","chartEvents":[],"anticipationNarrative":"","anticipationInd1":"","anticipationInd2":"","anticipationInd3":"","anticipationMethod":""}`;
 
   try {
     const res = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
@@ -513,7 +516,16 @@ JSON шаблон:
       driver: extractStr(e.driver || e.description || '')
     })).filter(e => e.price > 0) : [];
 
-    const anticipation = stock.anticipation || { narrative: '', indicators: [], method: '' };
+    // Нормализация anticipation — плоские строковые поля
+    const anticipation = {
+      narrative: stock.anticipationNarrative || stock.anticipation?.narrative || '',
+      indicators: [
+        { num: 1, name: 'Индикатор 1', description: stock.anticipationInd1 || '', lag: '' },
+        { num: 2, name: 'Индикатор 2', description: stock.anticipationInd2 || '', lag: '' },
+        { num: 3, name: 'Индикатор 3', description: stock.anticipationInd3 || '', lag: '' }
+      ].filter(i => i.description),
+      method: stock.anticipationMethod || stock.anticipation?.method || ''
+    };
 
     const norm = {
       ticker: safe(stock.ticker, ticker),
