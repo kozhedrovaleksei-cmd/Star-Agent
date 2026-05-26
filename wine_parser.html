@@ -18,45 +18,41 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .hdr-title { font-family:'Bebas Neue'; font-size:22px; letter-spacing:3px; }
 .hdr-sub { font-size:11px; color:var(--dim); letter-spacing:1px; }
 .main { padding:24px 28px; max-width:1200px; }
-
 .search-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; box-shadow:var(--shadow); }
 .search-row { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
 .input-group { display:flex; flex-direction:column; gap:5px; flex:1; min-width:180px; }
 .input-label { font-size:10px; color:var(--dim); letter-spacing:1.5px; font-weight:700; text-transform:uppercase; }
 .search-input { background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:'IBM Plex Sans'; font-size:13px; padding:9px 12px; border-radius:7px; outline:none; transition:border-color 0.15s; }
 .search-input:focus { border-color:var(--gold); }
-.key-input { font-family:'IBM Plex Mono'; font-size:12px; }
-.parse-btn { background:var(--gold); color:#fff; border:none; font-family:'Bebas Neue'; font-size:16px; letter-spacing:2px; padding:10px 24px; border-radius:8px; cursor:pointer; white-space:nowrap; box-shadow:0 2px 8px rgba(184,150,12,0.3); height:40px; }
+.parse-btn { background:var(--gold); color:#fff; border:none; font-family:'Bebas Neue'; font-size:16px; letter-spacing:2px; padding:10px 24px; border-radius:8px; cursor:pointer; white-space:nowrap; box-shadow:0 2px 8px rgba(184,150,12,0.3); }
 .parse-btn:disabled { opacity:0.5; cursor:not-allowed; }
-
-.status { font-size:12px; color:var(--dim); padding:6px 0 12px; min-height:28px; }
-.loading-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--gold); animation:blink 1s infinite; margin-right:6px; }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
-
+.quick-btns { margin-top:10px; display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+.q-btn { padding:4px 10px; border-radius:5px; border:1px solid var(--border); background:var(--bg); font-size:11px; cursor:pointer; transition:all 0.15s; }
+.q-btn:hover { border-color:var(--gold); color:var(--gold); }
+.status { font-size:12px; color:var(--dim); padding:6px 0 12px; min-height:28px; display:flex; align-items:center; gap:8px; }
+.spinner { width:14px; height:14px; border:2px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin 0.8s linear infinite; flex-shrink:0; }
+@keyframes spin { to { transform:rotate(360deg); } }
 .results-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
 @media(max-width:700px) { .results-grid { grid-template-columns:1fr; } }
-
 .shop-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:16px; box-shadow:var(--shadow); }
-.shop-title { font-family:'Bebas Neue'; font-size:17px; letter-spacing:2px; margin-bottom:12px; padding-bottom:10px; border-bottom:2px solid var(--bg); }
-.shop-ws { color:#8B1A1A; border-color:#FCA5A5; }
-.shop-wz { color:#1A3A8B; border-color:#93C5FD; }
-
+.shop-title { font-family:'Bebas Neue'; font-size:17px; letter-spacing:2px; margin-bottom:12px; padding-bottom:8px; border-bottom:2px solid; }
+.shop-ws .shop-title { color:#8B1A1A; border-color:#FCA5A5; }
+.shop-wz .shop-title { color:#1A3A8B; border-color:#93C5FD; }
 .product-item { display:flex; justify-content:space-between; align-items:flex-start; padding:9px 0; border-bottom:1px solid var(--bg); gap:8px; }
 .product-item:last-child { border-bottom:none; }
 .product-name { font-size:12px; color:var(--text); line-height:1.4; flex:1; }
-.product-price { font-family:'IBM Plex Mono'; font-size:14px; font-weight:600; color:var(--gold); white-space:nowrap; }
-.product-url { font-size:10px; color:var(--dim); margin-top:2px; }
-
+.product-meta { font-size:10px; color:var(--dim); margin-top:2px; }
+.product-price { font-family:'IBM Plex Mono'; font-size:15px; font-weight:600; color:var(--gold); white-space:nowrap; }
 .compare-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:16px; box-shadow:var(--shadow); margin-bottom:16px; }
 .compare-title { font-family:'Bebas Neue'; font-size:17px; letter-spacing:2px; margin-bottom:12px; }
 .compare-row { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:8px; padding:9px 0; border-bottom:1px solid var(--bg); font-size:12px; align-items:center; }
 .compare-header { color:var(--dim); font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; }
-.diff-pos { color:var(--green); font-family:'IBM Plex Mono'; font-weight:600; }
-.diff-neg { color:var(--red); font-family:'IBM Plex Mono'; font-weight:600; }
+.diff-pos { color:var(--green); font-family:'IBM Plex Mono'; font-weight:700; }
+.diff-neg { color:var(--red); font-family:'IBM Plex Mono'; font-weight:700; }
 .tag { display:inline-block; font-size:9px; padding:1px 5px; border-radius:3px; font-weight:700; margin-left:4px; }
 .tag-ws { background:#FEF2F2; color:var(--red); }
 .tag-wz { background:#EFF6FF; color:#1E40AF; }
-.empty { text-align:center; padding:24px; color:var(--dim); font-size:12px; line-height:1.6; }
+.empty { text-align:center; padding:24px; color:var(--dim); font-size:12px; line-height:1.7; }
 </style>
 </head>
 <body>
@@ -64,7 +60,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 <div class="hdr">
   <div>
     <div class="hdr-title">🍾 WINE PRICE MONITOR</div>
-    <div class="hdr-sub">WINESHOPPER vs WINEZONE · ПОИСК ЧЕРЕЗ TAVILY · СРАВНЕНИЕ ЦЕН</div>
+    <div class="hdr-sub">WINESHOPPER vs WINEZONE · TAVILY + CLAUDE · СРАВНЕНИЕ ЦЕН</div>
   </div>
   <a href="https://star-agent-murex.vercel.app" style="font-size:12px;color:var(--dim);text-decoration:none;">← STARK AGENT</a>
 </div>
@@ -73,23 +69,28 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   <div class="search-card">
     <div class="search-row">
       <div class="input-group" style="flex:2">
-        <label class="input-label">Что ищем</label>
-        <input type="text" id="queryInput" class="search-input" placeholder="Moet Chandon, Dom Perignon, Ruinart...">
+        <label class="input-label">Название шампанского</label>
+        <input type="text" id="queryInput" class="search-input" placeholder="Moet Chandon Brut Imperial">
       </div>
       <div class="input-group">
-        <label class="input-label">Tavily API Key</label>
-        <input type="password" id="tavilyKey" class="search-input key-input" placeholder="tvly-...">
+        <label class="input-label">Crazyrouter Key</label>
+        <input type="password" id="crKey" class="search-input" placeholder="sk-...">
+      </div>
+      <div class="input-group">
+        <label class="input-label">Tavily Key</label>
+        <input type="password" id="tvKey" class="search-input" placeholder="tvly-...">
       </div>
       <button class="parse-btn" id="parseBtn" onclick="startSearch()">🔍 НАЙТИ</button>
     </div>
-    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-      <span style="font-size:10px;color:var(--dim);align-self:center;letter-spacing:1px">БЫСТРЫЙ ВЫБОР:</span>
-      <button onclick="setQuery('Moet Chandon шампанское')" style="padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg);font-size:11px;cursor:pointer">Moet Chandon</button>
-      <button onclick="setQuery('Dom Perignon шампанское')" style="padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg);font-size:11px;cursor:pointer">Dom Perignon</button>
-      <button onclick="setQuery('Ruinart шампанское')" style="padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg);font-size:11px;cursor:pointer">Ruinart</button>
-      <button onclick="setQuery('Veuve Clicquot шампанское')" style="padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg);font-size:11px;cursor:pointer">Veuve Clicquot</button>
-      <button onclick="setQuery('Bollinger шампанское')" style="padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg);font-size:11px;cursor:pointer">Bollinger</button>
-      <button onclick="setQuery('Louis Roederer шампанское')" style="padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg);font-size:11px;cursor:pointer">Louis Roederer</button>
+    <div class="quick-btns">
+      <span style="font-size:10px;color:var(--dim);letter-spacing:1px">БЫСТРЫЙ ВЫБОР:</span>
+      <button class="q-btn" onclick="setQuery('Moet Chandon Brut Imperial')">Moet Chandon</button>
+      <button class="q-btn" onclick="setQuery('Dom Perignon Vintage')">Dom Perignon</button>
+      <button class="q-btn" onclick="setQuery('Ruinart Blanc de Blancs')">Ruinart</button>
+      <button class="q-btn" onclick="setQuery('Veuve Clicquot Yellow Label')">Veuve Clicquot</button>
+      <button class="q-btn" onclick="setQuery('Bollinger Special Cuvee')">Bollinger</button>
+      <button class="q-btn" onclick="setQuery('Louis Roederer Cristal')">Cristal</button>
+      <button class="q-btn" onclick="setQuery('Krug Grande Cuvee')">Krug</button>
     </div>
   </div>
 
@@ -101,96 +102,84 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 <script>
 const API = 'https://star-agent-murex.vercel.app/api/analyze';
 
-// Load saved key
-const savedKey = localStorage.getItem('tavily_key');
-if (savedKey) document.getElementById('tavilyKey').value = savedKey;
+// Load saved keys
+const savedCR = localStorage.getItem('crazyrouter_key');
+const savedTV = localStorage.getItem('tavily_key');
+if (savedCR) document.getElementById('crKey').value = savedCR;
+if (savedTV) document.getElementById('tvKey').value = savedTV;
 
 function setQuery(q) { document.getElementById('queryInput').value = q; }
 
 function setStatus(msg, loading=false) {
   document.getElementById('statusLine').innerHTML = loading
-    ? `<span class="loading-dot"></span>${msg}`
-    : msg;
+    ? `<div class="spinner"></div><span>${msg}</span>`
+    : `<span>${msg}</span>`;
 }
 
-async function tavilySearch(query, tavilyKey) {
-  try {
-    const r = await fetch(API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'search',
-        query,
-        tavilyKey
-      })
-    });
-    const data = await r.json();
-    return data.result || '';
-  } catch(e) { return ''; }
-}
-
-function extractPrices(text, shopName) {
-  const products = [];
-  const lines = text.split('\n');
-
-  lines.forEach(line => {
-    // Ищем цены в формате 12 345 руб, 12345₽, 12 345 р.
-    const priceMatch = line.match(/(\d[\d\s]{2,5})\s*(?:руб|₽|р\.|rub)/i);
-    if (!priceMatch) return;
-
-    const price = parseInt(priceMatch[1].replace(/\s/g, ''));
-    if (price < 500 || price > 300000) return;
-
-    // Название — текст до цены
-    const namePart = line.slice(0, line.toLowerCase().indexOf(priceMatch[0].toLowerCase())).trim();
-    const name = namePart
-      .replace(/[*#\[\]|•→]/g, '')
-      .replace(/https?:\/\/\S+/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    if (name.length > 5 && name.length < 120) {
-      products.push({ name, price, shop: shopName });
-    }
+async function searchTavily(query, tvKey) {
+  const r = await fetch(API, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'search', query, tavilyKey: tvKey })
   });
-
-  // Дедупликация
-  const seen = new Set();
-  return products.filter(p => {
-    const key = p.name.slice(0, 20).toLowerCase();
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).sort((a,b) => a.price - b.price).slice(0, 25);
+  const d = await r.json();
+  return d.result || '';
 }
 
-function renderShop(products, shopName, colorClass) {
-  if (!products.length) {
-    return `<div class="shop-card">
-      <div class="shop-title ${colorClass}">🍾 ${shopName} (0)</div>
-      <div class="empty">Цены не найдены.<br>Попробуй другой запрос или добавь название бренда точнее.</div>
+async function claudeExtract(rawText, shopName, champagne, crKey) {
+  const prompt = `Из текста ниже извлеки ВСЕ упоминания шампанского "${champagne}" с ценами в рублях с сайта ${shopName}.
+
+ТЕКСТ:
+${rawText.slice(0, 3000)}
+
+Верни JSON массив (без markdown, только JSON):
+[{"name":"полное название позиции","price":12345,"volume":"750ml или другой объём если есть","type":"Brut/Rose/Blanc/др если есть"}]
+
+Если цен не найдено — верни пустой массив: []
+Цены только в рублях. Игнорируй цены в долларах/евро.`;
+
+  const r = await fetch(API, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'analyze', prompt })
+  });
+  const d = await r.json();
+  const text = d.text || '';
+  try {
+    const clean = text.replace(/```json/gi,'').replace(/```/g,'').trim();
+    const start = clean.indexOf('[');
+    const end = clean.lastIndexOf(']');
+    if (start !== -1 && end !== -1) return JSON.parse(clean.slice(start, end+1));
+  } catch(e) {}
+  return [];
+}
+
+function renderShop(products, shopName, cls) {
+  if (!products.length) return `
+    <div class="shop-card ${cls}">
+      <div class="shop-title">🍾 ${shopName} (0)</div>
+      <div class="empty">Позиции не найдены на этом сайте.<br>Попробуй другой бренд или вариант написания.</div>
     </div>`;
-  }
-  return `<div class="shop-card">
-    <div class="shop-title ${colorClass}">🍾 ${shopName} (${products.length})</div>
+
+  return `<div class="shop-card ${cls}">
+    <div class="shop-title">🍾 ${shopName} (${products.length})</div>
     ${products.map(p => `
       <div class="product-item">
-        <div class="product-name">${p.name}</div>
-        <div class="product-price">${p.price.toLocaleString('ru')} ₽</div>
+        <div>
+          <div class="product-name">${p.name}</div>
+          <div class="product-meta">${[p.volume, p.type].filter(Boolean).join(' · ')}</div>
+        </div>
+        <div class="product-price">${Number(p.price).toLocaleString('ru')} ₽</div>
       </div>`).join('')}
   </div>`;
 }
 
-function renderCompare(wsProducts, wzProducts) {
+function renderCompare(ws, wz) {
   const matches = [];
-
-  wsProducts.forEach(ws => {
-    wzProducts.forEach(wz => {
-      const wsKey = ws.name.toLowerCase().replace(/[^а-яёa-z0-9]/gi,'').slice(0,15);
-      const wzKey = wz.name.toLowerCase().replace(/[^а-яёa-z0-9]/gi,'').slice(0,15);
-      if (wsKey.length > 5 && wzKey.length > 5 && (wsKey.includes(wzKey.slice(0,10)) || wzKey.includes(wsKey.slice(0,10)))) {
-        const diff = wzProducts[0].price - wsProducts[0].price;
-        matches.push({ name: ws.name, wsPrice: ws.price, wzPrice: wz.price, diff: wz.price - ws.price });
+  ws.forEach(a => {
+    wz.forEach(b => {
+      const ak = a.name.toLowerCase().replace(/[^а-яёa-z0-9]/gi,'').slice(0,20);
+      const bk = b.name.toLowerCase().replace(/[^а-яёa-z0-9]/gi,'').slice(0,20);
+      if (ak.length > 6 && bk.length > 6 && (ak.includes(bk.slice(0,12)) || bk.includes(ak.slice(0,12)))) {
+        matches.push({ name: a.name, wsPrice: a.price, wzPrice: b.price, diff: b.price - a.price });
       }
     });
   });
@@ -198,22 +187,19 @@ function renderCompare(wsProducts, wzProducts) {
   if (!matches.length) return '';
 
   return `<div class="compare-card">
-    <div class="compare-title">📊 СОВПАДЕНИЯ — РАЗНИЦА ЦЕН</div>
+    <div class="compare-title">📊 СРАВНЕНИЕ — НАЙДЕНО ${matches.length} СОВПАДЕНИЙ</div>
     <div class="compare-row compare-header">
-      <span>Позиция</span>
-      <span>WineShopper</span>
-      <span>WineZone</span>
-      <span>Разница</span>
+      <span>Позиция</span><span>WineShopper</span><span>WineZone</span><span>Разница</span>
     </div>
     ${matches.map(m => {
-      const diffClass = m.diff > 0 ? 'diff-neg' : 'diff-pos';
+      const cls = m.diff > 0 ? 'diff-neg' : m.diff < 0 ? 'diff-pos' : '';
       const sign = m.diff > 0 ? '+' : '';
       const tag = m.diff > 200 ? '<span class="tag tag-ws">WS дешевле</span>' : m.diff < -200 ? '<span class="tag tag-wz">WZ дешевле</span>' : '';
       return `<div class="compare-row">
-        <span>${m.name.slice(0,45)}${tag}</span>
-        <span style="font-family:'IBM Plex Mono'">${m.wsPrice.toLocaleString('ru')} ₽</span>
-        <span style="font-family:'IBM Plex Mono'">${m.wzPrice.toLocaleString('ru')} ₽</span>
-        <span class="${diffClass}">${sign}${m.diff.toLocaleString('ru')} ₽</span>
+        <span>${m.name.slice(0,50)}${tag}</span>
+        <span style="font-family:'IBM Plex Mono'">${Number(m.wsPrice).toLocaleString('ru')} ₽</span>
+        <span style="font-family:'IBM Plex Mono'">${Number(m.wzPrice).toLocaleString('ru')} ₽</span>
+        <span class="${cls}">${sign}${Number(m.diff).toLocaleString('ru')} ₽</span>
       </div>`;
     }).join('')}
   </div>`;
@@ -221,63 +207,52 @@ function renderCompare(wsProducts, wzProducts) {
 
 async function startSearch() {
   const query = document.getElementById('queryInput').value.trim();
-  const tavilyKey = document.getElementById('tavilyKey').value.trim();
+  const crKey = document.getElementById('crKey').value.trim();
+  const tvKey = document.getElementById('tvKey').value.trim();
 
   if (!query) { setStatus('⚠ Введи название шампанского'); return; }
-  if (!tavilyKey) { setStatus('⚠ Введи Tavily API key'); return; }
+  if (!crKey || !tvKey) { setStatus('⚠ Нужны оба ключа — Crazyrouter и Tavily'); return; }
 
-  localStorage.setItem('tavily_key', tavilyKey);
+  localStorage.setItem('crazyrouter_key', crKey);
+  localStorage.setItem('tavily_key', tvKey);
 
   const btn = document.getElementById('parseBtn');
   btn.disabled = true;
   document.getElementById('resultsGrid').style.display = 'none';
   document.getElementById('compareSection').style.display = 'none';
 
-  // Два параллельных поиска
-  setStatus(`Ищем "${query}" на WineShopper и WineZone...`, true);
+  // Шаг 1 — Tavily ищет на обоих сайтах
+  setStatus(`Ищем "${query}" на WineShopper...`, true);
+  const wsRaw = await searchTavily(`${query} цена купить site:wine-shopper.ru`, tvKey);
 
-  const [wsRaw, wzRaw] = await Promise.all([
-    tavilySearch(`${query} купить цена site:wine-shopper.ru`, tavilyKey),
-    tavilySearch(`${query} купить цена site:winezone.ru`, tavilyKey)
+  setStatus(`Ищем "${query}" на WineZone...`, true);
+  const wzRaw = await searchTavily(`${query} цена купить site:winezone.ru`, tvKey);
+
+  // Шаг 2 — Claude извлекает структурированные данные
+  setStatus('Claude извлекает цены из результатов...', true);
+  const [wsProducts, wzProducts] = await Promise.all([
+    claudeExtract(wsRaw, 'wine-shopper.ru', query, crKey),
+    claudeExtract(wzRaw, 'winezone.ru', query, crKey)
   ]);
 
-  setStatus('Извлекаем цены...', true);
-
-  const wsProducts = extractPrices(wsRaw, 'WineShopper');
-  const wzProducts = extractPrices(wzRaw, 'WineZone');
-
-  // Если мало результатов — ищем без site:
-  let wsExtra = [], wzExtra = [];
-  if (wsProducts.length < 3) {
-    const raw = await tavilySearch(`${query} wine-shopper.ru цена рублей`, tavilyKey);
-    wsExtra = extractPrices(raw, 'WineShopper');
-  }
-  if (wzProducts.length < 3) {
-    const raw = await tavilySearch(`${query} winezone.ru цена рублей`, tavilyKey);
-    wzExtra = extractPrices(raw, 'WineZone');
-  }
-
-  const wsFinal = [...wsProducts, ...wsExtra].slice(0,25);
-  const wzFinal = [...wzProducts, ...wzExtra].slice(0,25);
-
+  // Рендер
   document.getElementById('resultsGrid').style.display = 'grid';
   document.getElementById('resultsGrid').innerHTML =
-    renderShop(wsFinal, 'WINESHOPPER', 'shop-ws') +
-    renderShop(wzFinal, 'WINEZONE', 'shop-wz');
+    renderShop(wsProducts, 'WINESHOPPER', 'shop-ws') +
+    renderShop(wzProducts, 'WINEZONE', 'shop-wz');
 
-  const compareHtml = renderCompare(wsFinal, wzFinal);
+  const compareHtml = renderCompare(wsProducts, wzProducts);
   if (compareHtml) {
     document.getElementById('compareSection').style.display = 'block';
     document.getElementById('compareSection').innerHTML = compareHtml;
   }
 
-  const total = wsFinal.length + wzFinal.length;
-  setStatus(`✅ Найдено: WineShopper ${wsFinal.length} поз. · WineZone ${wzFinal.length} поз.`);
+  setStatus(`✅ WineShopper: ${wsProducts.length} поз. · WineZone: ${wzProducts.length} поз.`);
   btn.disabled = false;
 }
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Enter') startSearch();
+  if (e.key === 'Enter' && document.activeElement.id === 'queryInput') startSearch();
 });
 </script>
 </body>
