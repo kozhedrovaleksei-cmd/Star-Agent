@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WINE PRICE MONITOR</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --bg:#F0F1F3; --bg2:#fff; --border:#D1D5DB;
+  --gold:#B8960C; --green:#065F46; --red:#991B1B;
+  --text:#111827; --dim:#6B7280;
+  --shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans-serif; min-height:100vh; }
+.hdr { background:var(--bg2); border-bottom:1px solid var(--border); padding:16px 28px; display:flex; align-items:center; justify-content:space-between; box-shadow:var(--shadow); }
+.hdr-title { font-family:'Bebas Neue'; font-size:22px; letter-spacing:3px; }
+.hdr-sub { font-size:11px; color:var(--dim); letter-spacing:1px; }
+.main { padding:24px 28px; max-width:1200px; }
+.search-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:20px; box-shadow:var(--shadow); display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
+.input-group { display:flex; flex-direction:column; gap:5px; flex:1; min-width:200px; }
+.input-label { font-size:10px; color:var(--dim); letter-spacing:1.5px; font-weight:700; text-transform:uppercase; }
+.search-input { background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:'IBM Plex Sans'; font-size:13px; padding:9px 12px; border-radius:7px; outline:none; transition:border-color 0.15s; }
+.search-input:focus { border-color:var(--gold); }
+.parse-btn { background:var(--gold); color:#fff; border:none; font-family:'Bebas Neue'; font-size:16px; letter-spacing:2px; padding:10px 24px; border-radius:8px; cursor:pointer; white-space:nowrap; box-shadow:0 2px 8px rgba(184,150,12,0.3); }
+.parse-btn:disabled { opacity:0.5; cursor:not-allowed; }
+.status { font-size:12px; color:var(--dim); padding:8px 0; }
+.results-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; }
+.shop-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:16px; box-shadow:var(--shadow); }
+.shop-title { font-family:'Bebas Neue'; font-size:18px; letter-spacing:2px; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.shop-ws { color:#8B1A1A; }
+.shop-wz { color:#1A3A8B; }
+.product-item { display:flex; justify-content:space-between; align-items:flex-start; padding:10px 0; border-bottom:1px solid var(--bg); gap:10px; }
+.product-item:last-child { border-bottom:none; }
+.product-name { font-size:12px; color:var(--text); line-height:1.4; flex:1; }
+.product-price { font-family:'IBM Plex Mono'; font-size:14px; font-weight:600; color:var(--gold); white-space:nowrap; }
+.compare-section { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:16px; box-shadow:var(--shadow); }
+.compare-title { font-family:'Bebas Neue'; font-size:16px; letter-spacing:2px; margin-bottom:12px; color:var(--text); }
+.compare-row { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:10px; padding:10px 0; border-bottom:1px solid var(--bg); font-size:12px; align-items:center; }
+.compare-header { font-weight:700; color:var(--dim); font-size:10px; letter-spacing:1px; text-transform:uppercase; }
+.diff-pos { color:var(--green); font-family:'IBM Plex Mono'; font-weight:600; }
+.diff-neg { color:var(--red); font-family:'IBM Plex Mono'; font-weight:600; }
+.diff-zero { color:var(--dim); font-family:'IBM Plex Mono'; }
+.loading { display:inline-block; width:14px; height:14px; border:2px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin 0.8s linear infinite; vertical-align:middle; margin-right:6px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.empty { text-align:center; padding:30px; color:var(--dim); font-size:13px; }
+.tag { display:inline-block; font-size:9px; padding:2px 6px; border-radius:3px; font-weight:700; margin-left:6px; }
+.tag-cheaper { background:#ECFDF5; color:var(--green); border:1px solid #A7F3D0; }
+.tag-expensive { background:#FEF2F2; color:var(--red); border:1px solid #FECACA; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div class="hdr-title">🍾 WINE PRICE MONITOR</div>
+    <div class="hdr-sub">WINESHOPPER vs WINEZONE · СРАВНЕНИЕ ЦЕН · POWERED BY FIRECRAWL</div>
+  </div>
+  <a href="https://star-agent-murex.vercel.app" style="font-size:12px;color:var(--dim);text-decoration:none;">← STARK AGENT</a>
+</div>
+
+<div class="main">
+  <div class="search-card">
+    <div class="input-group">
+      <label class="input-label">Категория / запрос</label>
+      <input type="text" id="queryInput" class="search-input" placeholder="шампанское" value="шампанское">
+    </div>
+    <div class="input-group" style="flex:0 0 200px">
+      <label class="input-label">WineShopper URL</label>
+      <input type="text" id="wsUrl" class="search-input" value="https://wine-shopper.ru/catalog/shampanskoe/">
+    </div>
+    <div class="input-group" style="flex:0 0 200px">
+      <label class="input-label">WineZone URL</label>
+      <input type="text" id="wzUrl" class="search-input" value="https://winezone.ru/catalog/shampanskoe/">
+    </div>
+    <button class="parse-btn" id="parseBtn" onclick="startParse()">🔍 ПАРСИТЬ</button>
+  </div>
+
+  <div id="statusLine" class="status"></div>
+
+  <div class="results-grid" id="resultsGrid" style="display:none">
+    <div class="shop-card">
+      <div class="shop-title shop-ws">🍷 WINESHOPPER <span id="wsCount" style="font-size:13px;color:var(--dim)"></span></div>
+      <div id="wsList"></div>
+    </div>
+    <div class="shop-card">
+      <div class="shop-title shop-wz">🍾 WINEZONE <span id="wzCount" style="font-size:13px;color:var(--dim)"></span></div>
+      <div id="wzList"></div>
+    </div>
+  </div>
+
+  <div class="compare-section" id="compareSection" style="display:none">
+    <div class="compare-title">📊 СРАВНЕНИЕ ЦЕН — НАЙДЕНО СОВПАДЕНИЙ</div>
+    <div id="compareTable"></div>
+  </div>
+</div>
+
+<script>
+const API = 'https://star-agent-murex.vercel.app/api/analyze';
+
+function setStatus(msg) {
+  document.getElementById('statusLine').innerHTML = msg;
+}
+
+async function scrapeUrl(url) {
+  try {
+    const r = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'scrape', url })
+    });
+    const data = await r.json();
+    return data.result || '';
+  } catch(e) {
+    return '';
+  }
+}
+
+function parseProducts(markdown, shopName) {
+  const products = [];
+  const lines = markdown.split('\n');
+
+  // Паттерны для извлечения названий и цен
+  const pricePatterns = [
+    /(.+?)\s+(\d[\d\s]*)\s*руб/gi,
+    /(.+?)\s+(\d[\d\s]*)\s*₽/gi,
+    /\*\*(.+?)\*\*.*?(\d[\d\s]{2,})\s*(?:руб|₽)/gi,
+  ];
+
+  lines.forEach(line => {
+    // Ищем строки с ценами
+    const priceMatch = line.match(/(\d{3,6})\s*(?:руб|₽|р\.)/i);
+    if (priceMatch) {
+      const price = parseInt(priceMatch[1].replace(/\s/g, ''));
+      if (price > 200 && price < 500000) {
+        // Берём текст до цены как название
+        const beforePrice = line.slice(0, line.indexOf(priceMatch[0])).trim();
+        const name = beforePrice
+          .replace(/[#*\[\]|]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (name.length > 5 && name.length < 150) {
+          products.push({ name, price, shop: shopName });
+        }
+      }
+    }
+  });
+
+  // Дедупликация по имени
+  const seen = new Set();
+  return products.filter(p => {
+    const key = p.name.slice(0, 30).toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 30);
+}
+
+function renderProducts(products, listId, countId) {
+  const list = document.getElementById(listId);
+  const count = document.getElementById(countId);
+  count.textContent = `(${products.length} позиций)`;
+
+  if (!products.length) {
+    list.innerHTML = '<div class="empty">Не удалось извлечь товары.<br>Сайт может блокировать парсинг.</div>';
+    return;
+  }
+
+  list.innerHTML = products.map(p => `
+    <div class="product-item">
+      <div class="product-name">${p.name}</div>
+      <div class="product-price">${p.price.toLocaleString('ru')} ₽</div>
+    </div>`).join('');
+}
+
+function compareProducts(wsProducts, wzProducts) {
+  const compareSection = document.getElementById('compareSection');
+  const compareTable = document.getElementById('compareTable');
+
+  const matches = [];
+
+  wsProducts.forEach(ws => {
+    wzProducts.forEach(wz => {
+      // Простое сравнение по первым словам названия
+      const wsWords = ws.name.toLowerCase().split(' ').slice(0, 3).join(' ');
+      const wzWords = wz.name.toLowerCase().split(' ').slice(0, 3).join(' ');
+
+      if (wsWords.length > 5 && wzWords.includes(wsWords.slice(0, 10)) ||
+          wsWords.includes(wzWords.slice(0, 10))) {
+        const diff = wz.price - ws.price;
+        const diffPct = ((diff / ws.price) * 100).toFixed(1);
+        matches.push({ name: ws.name, wsPrice: ws.price, wzPrice: wz.price, diff, diffPct });
+      }
+    });
+  });
+
+  if (!matches.length) {
+    compareSection.style.display = 'none';
+    return;
+  }
+
+  compareSection.style.display = 'block';
+  compareTable.innerHTML = `
+    <div class="compare-row compare-header">
+      <span>Название</span>
+      <span>WineShopper</span>
+      <span>WineZone</span>
+      <span>Разница</span>
+    </div>` +
+    matches.map(m => {
+      const diffClass = m.diff > 0 ? 'diff-neg' : m.diff < 0 ? 'diff-pos' : 'diff-zero';
+      const sign = m.diff > 0 ? '+' : '';
+      const tag = m.diff > 0
+        ? '<span class="tag tag-expensive">WS дешевле</span>'
+        : m.diff < 0
+        ? '<span class="tag tag-cheaper">WZ дешевле</span>'
+        : '';
+      return `<div class="compare-row">
+        <span style="font-size:11px">${m.name.slice(0,50)}...${tag}</span>
+        <span style="font-family:'IBM Plex Mono';font-size:13px">${m.wsPrice.toLocaleString('ru')} ₽</span>
+        <span style="font-family:'IBM Plex Mono';font-size:13px">${m.wzPrice.toLocaleString('ru')} ₽</span>
+        <span class="${diffClass}">${sign}${m.diff.toLocaleString('ru')} ₽ (${sign}${m.diffPct}%)</span>
+      </div>`;
+    }).join('');
+}
+
+async function startParse() {
+  const wsUrl = document.getElementById('wsUrl').value.trim();
+  const wzUrl = document.getElementById('wzUrl').value.trim();
+  const btn = document.getElementById('parseBtn');
+
+  btn.disabled = true;
+  document.getElementById('resultsGrid').style.display = 'none';
+  document.getElementById('compareSection').style.display = 'none';
+
+  setStatus('<span class="loading"></span>Парсим WineShopper...');
+  const wsRaw = await scrapeUrl(wsUrl);
+
+  setStatus('<span class="loading"></span>Парсим WineZone...');
+  const wzRaw = await scrapeUrl(wzUrl);
+
+  setStatus('<span class="loading"></span>Извлекаем цены...');
+
+  const wsProducts = parseProducts(wsRaw, 'WineShopper');
+  const wzProducts = parseProducts(wzRaw, 'WineZone');
+
+  document.getElementById('resultsGrid').style.display = 'grid';
+  renderProducts(wsProducts, 'wsList', 'wsCount');
+  renderProducts(wzProducts, 'wzList', 'wzCount');
+  compareProducts(wsProducts, wzProducts);
+
+  const total = wsProducts.length + wzProducts.length;
+  setStatus(`✅ Готово — найдено ${wsProducts.length} позиций на WineShopper и ${wzProducts.length} на WineZone`);
+  btn.disabled = false;
+}
+</script>
+</body>
+</html>
