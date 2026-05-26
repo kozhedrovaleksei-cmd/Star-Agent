@@ -397,12 +397,28 @@ async function analyze() {
 1. Текущая цена и изменение
 2. Market Cap, P/E, дивиденд, 52W High/Low
 3. Последние новости
-4. Инсайдерские покупки CEO/CFO за 6 месяцев
-5. Ближайшие события
-6. Поставщики, конкуренты или смежные компании которые могут быть опережающими индикаторами
+4. Ближайшие события
+5. Поставщики, конкуренты или смежные компании — опережающие индикаторы
+
+ИНСАЙДЕРСКИЕ ДАННЫЕ С OPENINSIDER (реальные):
+${insiderData ? insiderData.slice(0, 500) : 'Нет данных'}
+
 Отвечай кратко, только факты.`;
 
   let rawData = '';
+  let insiderData = '';
+
+  // Firecrawl — реальные инсайдеры с OpenInsider
+  try {
+    const ri = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'insiders', ticker })
+    });
+    const di = await ri.json();
+    insiderData = di.result || '';
+  } catch(e) {}
+
+  // Claude web_search — актуальные данные
   try {
     const r1 = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
