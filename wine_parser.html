@@ -17,7 +17,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .hdr { background:var(--bg2); border-bottom:1px solid var(--border); padding:16px 28px; display:flex; align-items:center; justify-content:space-between; box-shadow:var(--shadow); }
 .hdr-title { font-family:'Bebas Neue'; font-size:22px; letter-spacing:3px; }
 .hdr-sub { font-size:11px; color:var(--dim); letter-spacing:1px; }
-.main { padding:24px 28px; max-width:1200px; }
+.main { padding:24px 28px; max-width:1100px; }
 .search-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; box-shadow:var(--shadow); }
 .search-row { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
 .input-group { display:flex; flex-direction:column; gap:5px; flex:1; min-width:180px; }
@@ -28,16 +28,16 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .parse-btn:disabled { opacity:0.5; cursor:not-allowed; }
 .quick-btns { margin-top:10px; display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
 .q-btn { padding:4px 10px; border-radius:5px; border:1px solid var(--border); background:var(--bg); font-size:11px; cursor:pointer; transition:all 0.15s; }
-.q-btn:hover { border-color:var(--gold); color:var(--gold); }
+.q-btn:hover { border-color:var(--gold); color:var(--gold); background:#FFFBEB; }
 .status { font-size:12px; color:var(--dim); padding:6px 0 12px; min-height:28px; display:flex; align-items:center; gap:8px; }
 .spinner { width:14px; height:14px; border:2px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin 0.8s linear infinite; flex-shrink:0; }
 @keyframes spin { to { transform:rotate(360deg); } }
 .results-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
 @media(max-width:700px) { .results-grid { grid-template-columns:1fr; } }
 .shop-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:16px; box-shadow:var(--shadow); }
-.shop-title { font-family:'Bebas Neue'; font-size:17px; letter-spacing:2px; margin-bottom:12px; padding-bottom:8px; border-bottom:2px solid; }
 .shop-ws .shop-title { color:#8B1A1A; border-color:#FCA5A5; }
 .shop-wz .shop-title { color:#1A3A8B; border-color:#93C5FD; }
+.shop-title { font-family:'Bebas Neue'; font-size:17px; letter-spacing:2px; margin-bottom:12px; padding-bottom:8px; border-bottom:2px solid; }
 .product-item { display:flex; justify-content:space-between; align-items:flex-start; padding:9px 0; border-bottom:1px solid var(--bg); gap:8px; }
 .product-item:last-child { border-bottom:none; }
 .product-name { font-size:12px; color:var(--text); line-height:1.4; flex:1; }
@@ -60,7 +60,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 <div class="hdr">
   <div>
     <div class="hdr-title">🍾 WINE PRICE MONITOR</div>
-    <div class="hdr-sub">WINESHOPPER vs WINEZONE · TAVILY + CLAUDE · СРАВНЕНИЕ ЦЕН</div>
+    <div class="hdr-sub">WINESHOPPER vs WINEZONE · CLAUDE WEB SEARCH · СРАВНЕНИЕ ЦЕН</div>
   </div>
   <a href="https://star-agent-murex.vercel.app" style="font-size:12px;color:var(--dim);text-decoration:none;">← STARK AGENT</a>
 </div>
@@ -72,13 +72,9 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
         <label class="input-label">Название шампанского</label>
         <input type="text" id="queryInput" class="search-input" placeholder="Moet Chandon Brut Imperial">
       </div>
-      <div class="input-group">
-        <label class="input-label">Crazyrouter Key</label>
+      <div class="input-group" style="flex:0 0 240px">
+        <label class="input-label">Crazyrouter API Key</label>
         <input type="password" id="crKey" class="search-input" placeholder="sk-...">
-      </div>
-      <div class="input-group">
-        <label class="input-label">Tavily Key</label>
-        <input type="password" id="tvKey" class="search-input" placeholder="tvly-...">
       </div>
       <button class="parse-btn" id="parseBtn" onclick="startSearch()">🔍 НАЙТИ</button>
     </div>
@@ -91,6 +87,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
       <button class="q-btn" onclick="setQuery('Bollinger Special Cuvee')">Bollinger</button>
       <button class="q-btn" onclick="setQuery('Louis Roederer Cristal')">Cristal</button>
       <button class="q-btn" onclick="setQuery('Krug Grande Cuvee')">Krug</button>
+      <button class="q-btn" onclick="setQuery('Laurent Perrier Rose')">Laurent-Perrier</button>
     </div>
   </div>
 
@@ -102,11 +99,8 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 <script>
 const API = 'https://star-agent-murex.vercel.app/api/analyze';
 
-// Load saved keys
 const savedCR = localStorage.getItem('crazyrouter_key');
-const savedTV = localStorage.getItem('tavily_key');
 if (savedCR) document.getElementById('crKey').value = savedCR;
-if (savedTV) document.getElementById('tvKey').value = savedTV;
 
 function setQuery(q) { document.getElementById('queryInput').value = q; }
 
@@ -116,47 +110,49 @@ function setStatus(msg, loading=false) {
     : `<span>${msg}</span>`;
 }
 
-async function searchTavily(query, tvKey) {
-  const r = await fetch(API, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'search', query, tavilyKey: tvKey })
-  });
-  const d = await r.json();
-  return d.result || '';
+async function claudeSearch(champagne, crKey) {
+  const prompt = `Используй web_search tool прямо сейчас и найди актуальные цены на шампанское "${champagne}" на двух сайтах:
+1. wine-shopper.ru
+2. winezone.ru
+
+Поищи: "${champagne} цена wine-shopper.ru" и "${champagne} цена winezone.ru"
+
+После поиска верни ТОЛЬКО валидный JSON без markdown:
+{
+  "wineshopper": [
+    {"name": "полное название", "price": 12345, "volume": "750 мл", "type": "Brut/Rose/etc"}
+  ],
+  "winezone": [
+    {"name": "полное название", "price": 12345, "volume": "750 мл", "type": "Brut/Rose/etc"}
+  ]
 }
 
-async function claudeExtract(rawText, shopName, champagne, crKey) {
-  const prompt = `Из текста ниже извлеки ВСЕ упоминания шампанского "${champagne}" с ценами в рублях с сайта ${shopName}.
+Цены только в рублях. Если на сайте не найдено — пустой массив [].
+Только JSON, никакого текста вокруг.`;
 
-ТЕКСТ:
-${rawText.slice(0, 3000)}
-
-Верни JSON массив (без markdown, только JSON):
-[{"name":"полное название позиции","price":12345,"volume":"750ml или другой объём если есть","type":"Brut/Rose/Blanc/др если есть"}]
-
-Если цен не найдено — верни пустой массив: []
-Цены только в рублях. Игнорируй цены в долларах/евро.`;
-
-  const r = await fetch(API, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'analyze', prompt })
-  });
-  const d = await r.json();
-  const text = d.text || '';
   try {
+    const r = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'analyze', prompt })
+    });
+    const d = await r.json();
+    const text = d.text || '';
     const clean = text.replace(/```json/gi,'').replace(/```/g,'').trim();
-    const start = clean.indexOf('[');
-    const end = clean.lastIndexOf(']');
-    if (start !== -1 && end !== -1) return JSON.parse(clean.slice(start, end+1));
+    const start = clean.indexOf('{');
+    const end = clean.lastIndexOf('}');
+    if (start !== -1 && end !== -1) {
+      return JSON.parse(clean.slice(start, end+1));
+    }
   } catch(e) {}
-  return [];
+  return { wineshopper: [], winezone: [] };
 }
 
 function renderShop(products, shopName, cls) {
-  if (!products.length) return `
+  if (!products || !products.length) return `
     <div class="shop-card ${cls}">
       <div class="shop-title">🍾 ${shopName} (0)</div>
-      <div class="empty">Позиции не найдены на этом сайте.<br>Попробуй другой бренд или вариант написания.</div>
+      <div class="empty">Позиции не найдены.<br>Попробуй другой бренд.</div>
     </div>`;
 
   return `<div class="shop-card ${cls}">
@@ -164,22 +160,24 @@ function renderShop(products, shopName, cls) {
     ${products.map(p => `
       <div class="product-item">
         <div>
-          <div class="product-name">${p.name}</div>
+          <div class="product-name">${p.name || '—'}</div>
           <div class="product-meta">${[p.volume, p.type].filter(Boolean).join(' · ')}</div>
         </div>
-        <div class="product-price">${Number(p.price).toLocaleString('ru')} ₽</div>
+        <div class="product-price">${Number(p.price||0).toLocaleString('ru')} ₽</div>
       </div>`).join('')}
   </div>`;
 }
 
 function renderCompare(ws, wz) {
+  if (!ws.length || !wz.length) return '';
+
   const matches = [];
   ws.forEach(a => {
     wz.forEach(b => {
-      const ak = a.name.toLowerCase().replace(/[^а-яёa-z0-9]/gi,'').slice(0,20);
-      const bk = b.name.toLowerCase().replace(/[^а-яёa-z0-9]/gi,'').slice(0,20);
-      if (ak.length > 6 && bk.length > 6 && (ak.includes(bk.slice(0,12)) || bk.includes(ak.slice(0,12)))) {
-        matches.push({ name: a.name, wsPrice: a.price, wzPrice: b.price, diff: b.price - a.price });
+      const ak = (a.name||'').toLowerCase().replace(/[^а-яёa-z0-9]/gi,'').slice(0,15);
+      const bk = (b.name||'').toLowerCase().replace(/[^а-яёa-z0-9]/gi,'').slice(0,15);
+      if (ak.length > 5 && bk.length > 5 && (ak.includes(bk.slice(0,10)) || bk.includes(ak.slice(0,10)))) {
+        matches.push({ name: a.name, wsPrice: Number(a.price||0), wzPrice: Number(b.price||0), diff: Number(b.price||0) - Number(a.price||0) });
       }
     });
   });
@@ -187,19 +185,20 @@ function renderCompare(ws, wz) {
   if (!matches.length) return '';
 
   return `<div class="compare-card">
-    <div class="compare-title">📊 СРАВНЕНИЕ — НАЙДЕНО ${matches.length} СОВПАДЕНИЙ</div>
+    <div class="compare-title">📊 СРАВНЕНИЕ — ${matches.length} СОВПАДЕНИЙ</div>
     <div class="compare-row compare-header">
       <span>Позиция</span><span>WineShopper</span><span>WineZone</span><span>Разница</span>
     </div>
     ${matches.map(m => {
       const cls = m.diff > 0 ? 'diff-neg' : m.diff < 0 ? 'diff-pos' : '';
       const sign = m.diff > 0 ? '+' : '';
-      const tag = m.diff > 200 ? '<span class="tag tag-ws">WS дешевле</span>' : m.diff < -200 ? '<span class="tag tag-wz">WZ дешевле</span>' : '';
+      const tag = m.diff > 200 ? '<span class="tag tag-ws">WS дешевле</span>'
+        : m.diff < -200 ? '<span class="tag tag-wz">WZ дешевле</span>' : '';
       return `<div class="compare-row">
-        <span>${m.name.slice(0,50)}${tag}</span>
-        <span style="font-family:'IBM Plex Mono'">${Number(m.wsPrice).toLocaleString('ru')} ₽</span>
-        <span style="font-family:'IBM Plex Mono'">${Number(m.wzPrice).toLocaleString('ru')} ₽</span>
-        <span class="${cls}">${sign}${Number(m.diff).toLocaleString('ru')} ₽</span>
+        <span style="font-size:11px">${(m.name||'').slice(0,50)}${tag}</span>
+        <span style="font-family:'IBM Plex Mono'">${m.wsPrice.toLocaleString('ru')} ₽</span>
+        <span style="font-family:'IBM Plex Mono'">${m.wzPrice.toLocaleString('ru')} ₽</span>
+        <span class="${cls}">${sign}${m.diff.toLocaleString('ru')} ₽</span>
       </div>`;
     }).join('')}
   </div>`;
@@ -208,46 +207,36 @@ function renderCompare(ws, wz) {
 async function startSearch() {
   const query = document.getElementById('queryInput').value.trim();
   const crKey = document.getElementById('crKey').value.trim();
-  const tvKey = document.getElementById('tvKey').value.trim();
 
   if (!query) { setStatus('⚠ Введи название шампанского'); return; }
-  if (!crKey || !tvKey) { setStatus('⚠ Нужны оба ключа — Crazyrouter и Tavily'); return; }
+  if (!crKey) { setStatus('⚠ Введи Crazyrouter API key'); return; }
 
   localStorage.setItem('crazyrouter_key', crKey);
-  localStorage.setItem('tavily_key', tvKey);
 
   const btn = document.getElementById('parseBtn');
   btn.disabled = true;
   document.getElementById('resultsGrid').style.display = 'none';
   document.getElementById('compareSection').style.display = 'none';
 
-  // Шаг 1 — Tavily ищет на обоих сайтах
-  setStatus(`Ищем "${query}" на WineShopper...`, true);
-  const wsRaw = await searchTavily(`${query} цена купить site:wine-shopper.ru`, tvKey);
+  setStatus(`Claude ищет "${query}" на WineShopper и WineZone...`, true);
 
-  setStatus(`Ищем "${query}" на WineZone...`, true);
-  const wzRaw = await searchTavily(`${query} цена купить site:winezone.ru`, tvKey);
+  const data = await claudeSearch(query, crKey);
 
-  // Шаг 2 — Claude извлекает структурированные данные
-  setStatus('Claude извлекает цены из результатов...', true);
-  const [wsProducts, wzProducts] = await Promise.all([
-    claudeExtract(wsRaw, 'wine-shopper.ru', query, crKey),
-    claudeExtract(wzRaw, 'winezone.ru', query, crKey)
-  ]);
+  const ws = Array.isArray(data.wineshopper) ? data.wineshopper : [];
+  const wz = Array.isArray(data.winezone) ? data.winezone : [];
 
-  // Рендер
   document.getElementById('resultsGrid').style.display = 'grid';
   document.getElementById('resultsGrid').innerHTML =
-    renderShop(wsProducts, 'WINESHOPPER', 'shop-ws') +
-    renderShop(wzProducts, 'WINEZONE', 'shop-wz');
+    renderShop(ws, 'WINESHOPPER', 'shop-ws') +
+    renderShop(wz, 'WINEZONE', 'shop-wz');
 
-  const compareHtml = renderCompare(wsProducts, wzProducts);
+  const compareHtml = renderCompare(ws, wz);
   if (compareHtml) {
     document.getElementById('compareSection').style.display = 'block';
     document.getElementById('compareSection').innerHTML = compareHtml;
   }
 
-  setStatus(`✅ WineShopper: ${wsProducts.length} поз. · WineZone: ${wzProducts.length} поз.`);
+  setStatus(`✅ WineShopper: ${ws.length} поз. · WineZone: ${wz.length} поз.`);
   btn.disabled = false;
 }
 
