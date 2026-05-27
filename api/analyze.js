@@ -9,7 +9,6 @@ export default async function handler(req, res) {
   const crKey = process.env.CRAZYROUTER_KEY;
   const tvKey = process.env.TAVILY_KEY;
 
-  // Tavily поиск — реальные данные
   async function tavilySearch(q) {
     if (!tvKey) return '';
     try {
@@ -29,7 +28,6 @@ export default async function handler(req, res) {
     } catch(e) { return ''; }
   }
 
-  // Claude без web_search — просто анализирует текст
   async function callClaude(messages, maxTokens = 4000) {
     const r = await fetch('https://crazyrouter.com/v1/messages', {
       method: 'POST',
@@ -51,20 +49,25 @@ export default async function handler(req, res) {
 
   try {
     if (action === 'price') {
-      const r = await fetch(
-        `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`,
-        { headers: { 'User-Agent': 'Mozilla/5.0' } }
-      );
-      const data = await r.json();
-      const meta = data?.chart?.result?.[0]?.meta;
-      if (!meta) return res.json({ price: null });
-      return res.json({
-        price: meta.regularMarketPrice,
-        prev: meta.chartPreviousClose,
-        high52: meta.fiftyTwoWeekHigh,
-        low52: meta.fiftyTwoWeekLow,
-        marketCap: meta.marketCap
-      });
+      // Пробуем Yahoo Finance
+      try {
+        const r = await fetch(
+          `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`,
+          { headers: { 'User-Agent': 'Mozilla/5.0' } }
+        );
+        const data = await r.json();
+        const meta = data?.chart?.result?.[0]?.meta;
+        if (meta && meta.regularMarketPrice) {
+          return res.json({
+            price: meta.regularMarketPrice,
+            prev: meta.chartPreviousClose,
+            high52: meta.fiftyTwoWeekHigh,
+            low52: meta.fiftyTwoWeekLow,
+            marketCap: meta.marketCap
+          });
+        }
+      } catch(e) {}
+      return res.json({ price: null });
     }
 
     if (action === 'search') {
@@ -75,12 +78,12 @@ export default async function handler(req, res) {
     if (action === 'analyze') {
       if (!crKey) return res.status(500).json({ error: 'No API key' });
 
-      // ШАГ 1: 4 реальных поиска через Tavily
+      // ШАГ 1: 4 параллельных поиска через Tavily — реальные данные 2026
       const [news, insiders, catalysts, correlations] = await Promise.all([
         tavilySearch(`${ticker} stock price today May 2026`),
         tavilySearch(`${ticker} insider buying SEC Form 4 2026`),
         tavilySearch(`${ticker} earnings news catalyst May 2026`),
-        tavilySearch(`${ticker} suppliers leading indicators 2026`)
+        tavilySearch(`${ticker} suppliers leading indicators correlation 2026`)
       ]);
 
       const rawData = `
@@ -97,13 +100,13 @@ ${catalysts || 'нет данных'}
 ${correlations || 'нет данных'}
 `.trim();
 
-      // ШАГ 2: Claude анализирует реальные данные
+      // ШАГ 2: Claude анализирует реальные данные и возвращает JSON
       const analysisPrompt = `${prompt}
 
 РЕАЛЬНЫЕ ДАННЫЕ ИЗ ВЕБ-ПОИСКА (май 2026):
 ${rawData}
 
-КРИТИЧНО: Используй ТОЛЬКО данные выше. Все цены, события, инсайдеры — только из этих данных. Текущий год 2026.`;
+КРИТИЧНО: Используй ТОЛЬКО данные выше. Все цены, события, инсайдеры — только из этих данных за 2026 год. Не используй данные старше января 2026. Если в разделе "ЦЕНА И РЫНОК" есть цена — используй именно её в полях price и priceNum.`;
 
       const text = await callClaude([{ role: 'user', content: analysisPrompt }], 4000);
       return res.json({ text });
