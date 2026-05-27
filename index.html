@@ -391,34 +391,25 @@ async function analyze() {
   document.getElementById('s1').className = 'step active';
   document.getElementById('s2').className = 'step active';
 
-  // Yahoo Finance — реальная цена прямо сейчас
-  let rawData = '';
-  let yahooData = '';
-  try {
-    const ry = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'price', ticker })
-    });
-    const dy = await ry.json();
-    if (dy.price) {
-      yahooData = `РЕАЛЬНЫЕ ДАННЫЕ YAHOO FINANCE (прямо сейчас):
-Текущая цена: $${dy.price}
-Предыдущее закрытие: $${dy.prev}
-52W High: $${dy.high52}
-52W Low: $${dy.low52}
-Market Cap: $${dy.marketCap ? (dy.marketCap/1e9).toFixed(1) + 'B' : 'N/A'}`;
-      rawData = yahooData;
-    }
-  } catch(e) {}
+  const dataPrompt = `Используй web_search tool чтобы найти актуальные данные по акции ${ticker} прямо сейчас (май 2026).
+Поищи: "${ticker} stock price today 2026", "${ticker} insider buying SEC Form 4 2026", "${ticker} earnings date 2026", "${ticker} suppliers competitors leading indicators 2026".
+Нужно:
+1. Текущая цена и изменение
+2. Market Cap, P/E, дивиденд, 52W High/Low
+3. Последние новости
+4. Инсайдерские покупки CEO/CFO за 6 месяцев
+5. Ближайшие события
+6. Поставщики, конкуренты или смежные компании которые могут быть опережающими индикаторами
+Отвечай кратко, только факты.`;
 
-  // Firecrawl — инсайдеры с OpenInsider
+  let rawData = '';
   try {
-    const ri = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
+    const r1 = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'insiders', ticker })
+      body: JSON.stringify({ action: 'analyze', prompt: dataPrompt })
     });
-    const di = await ri.json();
-    if (di.result) rawData += '\n\nИНСАЙДЕРЫ OPENINSIDER:\n' + di.result.slice(0, 400);
+    const d1 = await r1.json();
+    rawData = d1.text || '';
   } catch(e) {}
 
   document.getElementById('s1').className = 'step done';
@@ -433,10 +424,8 @@ Market Cap: $${dy.marketCap ? (dy.marketCap/1e9).toFixed(1) + 'B' : 'N/A'}`;
 
   const prompt = `Ты — STARK AI. Сделай полный анализ акции ${ticker} по методу Алексея.
 
-АКТУАЛЬНЫЕ ДАННЫЕ (получены прямо сейчас — используй ТОЛЬКО эти цифры для price/priceNum/week52Low/week52High/marketCap):
-${rawData || 'Нет реальных данных — используй web_search'}
-
-КРИТИЧНО: priceNum в JSON должен быть ТОЧНО равен цене из YAHOO FINANCE выше. Не используй данные из своей памяти для цены.
+АКТУАЛЬНЫЕ ДАННЫЕ (найдены через веб-поиск только что):
+${rawData || 'Используй свои знания'}
 
 ${context ? 'Гипотеза инвестора: ' + context : ''}
 
