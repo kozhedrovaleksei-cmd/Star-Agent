@@ -1,806 +1,183 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>STARK AI AGENT</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;600&display=swap');
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚡️ STARK UNIVERSAL AGGREGATOR</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0a0a0a;
+      color: #00ff9d;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    header { text-align: center; margin-bottom: 30px; }
+    h1 { color: #00ff9d; margin: 0; font-size: 2.4em; }
+    .subtitle { color: #00cc7a; font-size: 1.1em; }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    input {
+      flex: 1;
+      min-width: 300px;
+      padding: 16px 20px;
+      font-size: 18px;
+      background: #1a1a1a;
+      border: 2px solid #00ff9d;
+      color: white;
+      border-radius: 10px;
+    }
+    button {
+      padding: 16px 36px;
+      background: #00ff9d;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 17px;
+      white-space: nowrap;
+    }
+    button:hover { background: #00e68a; transform: scale(1.03); }
 
-:root {
-  --gold: #B8960C;
-  --gold2: #D4AA1A;
-  --gold-light: #F5E6A3;
-  --red: #C0392B;
-  --green: #1E7E4E;
-  --blue: #2563EB;
-  --bg: #F2F3F5;
-  --bg2: #FFFFFF;
-  --bg3: #E8EAED;
-  --bg4: #ECEEF1;
-  --border: #D1D5DB;
-  --border2: #E5E7EB;
-  --text: #111827;
-  --text2: #374151;
-  --dim: #6B7280;
-  --dim2: #9CA3AF;
-  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow2: 0 4px 12px rgba(0,0,0,0.08);
-}
+    .quick-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .quick-btn {
+      padding: 8px 18px;
+      background: #1f1f1f;
+      border: 1px solid #00ff9d;
+      color: #00ff9d;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .quick-btn:hover { background: #00ff9d; color: #000; }
 
-body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
-
-/* HEADER */
-.hdr {
-  padding: 20px 32px;
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-  background: var(--bg2);
-  box-shadow: var(--shadow);
-}
-.hdr-left { display: flex; align-items: center; gap: 14px; }
-.hdr-icon { width: 36px; height: 36px; background: var(--gold); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-.hdr-logo { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 3px; color: var(--text); }
-.hdr-sub { font-size: 11px; color: var(--dim); letter-spacing: 1px; margin-top: 1px; }
-.status-badge { display: flex; align-items: center; gap: 6px; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 20px; padding: 5px 12px; }
-.status-dot { width: 7px; height: 7px; background: #10B981; border-radius: 50%; animation: pulse 2s infinite; }
-@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(0.9)} }
-.status-text { font-size: 11px; color: #065F46; font-weight: 600; letter-spacing: 1px; }
-
-/* KEYS */
-.keys-section { padding: 14px 32px; background: var(--bg4); border-bottom: 1px solid var(--border2); }
-.keys-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
-.keys-row:last-child { margin-bottom: 0; }
-.key-label { font-size: 11px; color: var(--dim); letter-spacing: 1px; font-weight: 500; white-space: nowrap; min-width: 180px; }
-.key-input {
-  flex: 1; min-width: 200px;
-  background: var(--bg2); border: 1px solid var(--border);
-  color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px;
-  padding: 7px 12px; border-radius: 6px; outline: none;
-  transition: border-color 0.15s;
-}
-.key-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,150,12,0.1); }
-.key-btn {
-  background: var(--text); color: #fff; border: none;
-  font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 1px;
-  padding: 7px 16px; border-radius: 6px; cursor: pointer; white-space: nowrap;
-  transition: background 0.15s;
-}
-.key-btn:hover { background: #374151; }
-.key-status { font-size: 11px; font-weight: 500; }
-
-/* MAIN */
-.main { padding: 24px 32px; max-width: 1100px; }
-
-.input-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); }
-.input-row { display: flex; gap: 12px; flex-wrap: wrap; }
-.ticker-wrap { flex: 0 0 130px; }
-.input-label { font-size: 11px; color: var(--dim); letter-spacing: 1px; font-weight: 600; margin-bottom: 6px; text-transform: uppercase; }
-.ticker-input {
-  width: 100%; background: var(--bg); border: 2px solid var(--border);
-  color: var(--gold); font-family: 'Bebas Neue', sans-serif; font-size: 28px;
-  letter-spacing: 3px; padding: 10px 12px; border-radius: 8px; outline: none;
-  text-transform: uppercase; transition: border-color 0.15s;
-}
-.ticker-input:focus { border-color: var(--gold); }
-.hypo-wrap { flex: 1; min-width: 200px; }
-.hypo-input {
-  width: 100%; background: var(--bg); border: 1px solid var(--border);
-  color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px;
-  padding: 10px 14px; border-radius: 8px; outline: none; resize: none; height: 62px;
-  transition: border-color 0.15s;
-}
-.hypo-input:focus { border-color: var(--gold); }
-.analyze-btn {
-  flex: 0 0 160px;
-  background: linear-gradient(135deg, var(--gold) 0%, #8B6914 100%);
-  color: #fff; border: none; font-family: 'Bebas Neue', sans-serif; font-size: 18px;
-  letter-spacing: 2px; border-radius: 8px; cursor: pointer; align-self: flex-end;
-  height: 62px; transition: opacity 0.15s; box-shadow: 0 2px 8px rgba(184,150,12,0.3);
-}
-.analyze-btn:hover { opacity: 0.9; }
-.analyze-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-/* QUICK */
-.quick { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
-.quick-label { font-size: 11px; color: var(--dim); letter-spacing: 1px; font-weight: 600; }
-.q-btn {
-  background: var(--bg2); border: 1px solid var(--border); color: var(--text2);
-  font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 4px 10px;
-  border-radius: 5px; cursor: pointer; font-weight: 600; transition: all 0.15s;
-}
-.q-btn:hover { border-color: var(--gold); color: var(--gold); background: #FFFBEB; }
-
-/* ERROR */
-.error-box {
-  display: none; background: #FEF2F2; border: 1px solid #FECACA;
-  border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 12px; color: var(--red);
-}
-.error-box.show { display: block; }
-
-/* LOADING */
-.loading { display: none; padding: 40px 32px; text-align: center; }
-.loading.show { display: block; }
-.load-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; color: var(--text); margin-bottom: 24px; }
-.steps { display: flex; flex-direction: column; gap: 8px; max-width: 400px; margin: 0 auto; }
-.step {
-  display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--dim);
-  padding: 8px 14px; border: 1px solid var(--border2); border-radius: 8px;
-  background: var(--bg2); transition: all 0.3s; text-align: left;
-}
-.step.active { color: var(--gold); border-color: var(--gold); background: #FFFBEB; }
-.step.done { color: var(--green); border-color: #A7F3D0; background: #ECFDF5; }
-
-/* RESULT */
-.result { display: none; }
-.result.show { display: block; }
-
-/* STOCK HEADER */
-.stock-hdr-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 12px; padding: 20px 24px; margin-bottom: 14px; box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; }
-.stock-name { font-family: 'Bebas Neue', sans-serif; font-size: 56px; color: var(--text); letter-spacing: 3px; line-height: 1; }
-.stock-full { font-size: 13px; color: var(--dim); margin-top: 4px; }
-.stock-sector { display: inline-block; background: #FEF3C7; border: 1px solid #FDE68A; color: #92400E; font-size: 10px; padding: 3px 8px; border-radius: 4px; margin-top: 6px; letter-spacing: 1px; font-weight: 600; }
-.stock-price-block { text-align: right; }
-.stock-price { font-family: 'Bebas Neue', sans-serif; font-size: 46px; color: var(--text); line-height: 1; }
-.stock-change { font-size: 13px; margin-top: 4px; font-weight: 600; }
-.pos { color: var(--green); } .neg { color: var(--red); }
-.verdict-badge { display: inline-block; font-family: 'Bebas Neue', sans-serif; font-size: 15px; letter-spacing: 2px; padding: 6px 16px; border-radius: 6px; margin-top: 8px; }
-.verdict-buy { background: #ECFDF5; color: var(--green); border: 1px solid #A7F3D0; }
-.verdict-watch { background: #FFFBEB; color: #92400E; border: 1px solid #FDE68A; }
-.verdict-wait { background: #F9FAFB; color: var(--dim); border: 1px solid var(--border); }
-.verdict-sell { background: #FEF2F2; color: var(--red); border: 1px solid #FECACA; }
-.rr-badge { font-size: 11px; color: var(--dim); margin-top: 4px; }
-
-/* METRICS GRID */
-.metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-bottom: 14px; }
-.metric { background: var(--bg2); border: 1px solid var(--border2); border-radius: 8px; padding: 12px; text-align: center; box-shadow: var(--shadow); }
-.metric-label { font-size: 9px; color: var(--dim); letter-spacing: 1px; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; }
-.metric-val { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--text); }
-
-/* PRICE BAR */
-.price-bar-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; box-shadow: var(--shadow); }
-.card-title { font-size: 10px; color: var(--dim); letter-spacing: 2px; font-weight: 700; margin-bottom: 14px; text-transform: uppercase; }
-.bar-track { height: 8px; background: var(--bg3); border-radius: 4px; position: relative; margin: 10px 0 20px; }
-.bar-fill { height: 100%; background: linear-gradient(90deg, #EF4444, var(--gold), #10B981); border-radius: 4px; }
-.bar-marker { position: absolute; top: -5px; width: 18px; height: 18px; background: var(--bg2); border: 3px solid var(--text); border-radius: 50%; transform: translateX(-50%); box-shadow: var(--shadow2); }
-.bar-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--dim); font-weight: 500; }
-.levels-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
-.level-item { text-align: center; padding: 10px; border: 1px solid var(--border2); border-radius: 8px; background: var(--bg); }
-.level-label { font-size: 9px; color: var(--dim); letter-spacing: 1px; font-weight: 700; text-transform: uppercase; }
-.level-val { font-family: 'Bebas Neue', sans-serif; font-size: 20px; margin-top: 2px; }
-.lvl-sup { color: var(--red); } .lvl-entry { color: var(--gold); } .lvl-res { color: var(--green); }
-
-/* TARGETS */
-.targets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
-.target { background: var(--bg2); border: 1px solid var(--border2); border-radius: 10px; padding: 14px; text-align: center; box-shadow: var(--shadow); }
-.target-label { font-size: 9px; color: var(--dim); letter-spacing: 1px; font-weight: 700; margin-bottom: 6px; text-transform: uppercase; }
-.target-price { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: var(--green); }
-.target-pct { font-size: 12px; color: var(--green); margin-top: 2px; font-weight: 600; }
-.target-period { font-size: 10px; color: var(--dim); margin-top: 2px; }
-
-/* SECTIONS */
-.section-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; box-shadow: var(--shadow); }
-.section-title { font-size: 10px; color: var(--dim); letter-spacing: 2px; font-weight: 700; margin-bottom: 14px; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
-.corr-text { font-size: 13px; color: var(--text2); line-height: 1.7; margin-bottom: 12px; }
-.corr-chain { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.corr-node { background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; font-size: 11px; padding: 4px 10px; border-radius: 5px; font-weight: 600; }
-.corr-arrow { color: var(--dim2); font-size: 14px; }
-
-/* INSIDERS */
-.insider-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border2); flex-wrap: wrap; gap: 8px; }
-.insider-item:last-child { border-bottom: none; }
-.insider-name { font-size: 13px; color: var(--text); font-weight: 600; }
-.insider-role { font-size: 11px; color: var(--dim); }
-.insider-amount { font-family: 'Bebas Neue', sans-serif; font-size: 17px; }
-.insider-buy { color: var(--green); } .insider-sell { color: var(--red); }
-.insider-date { font-size: 11px; color: var(--dim); }
-
-/* EVENTS */
-.event-item { display: flex; gap: 14px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border2); }
-.event-item:last-child { border-bottom: none; }
-.event-date { font-size: 11px; color: var(--dim); white-space: nowrap; min-width: 90px; font-weight: 600; }
-.event-text { font-size: 13px; color: var(--text2); line-height: 1.5; }
-.event-tag { display: inline-block; font-size: 9px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-weight: 700; letter-spacing: 1px; }
-.tag-urgent { background: #FEF2F2; color: var(--red); border: 1px solid #FECACA; }
-.tag-catalyst { background: #FFFBEB; color: #92400E; border: 1px solid #FDE68A; }
-
-/* CASES */
-.cases { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-.case-item { background: var(--bg2); border: 1px solid var(--border2); border-radius: 10px; padding: 14px; box-shadow: var(--shadow); }
-.case-title { font-size: 10px; letter-spacing: 2px; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; }
-.bull { color: var(--green); } .bear { color: var(--red); }
-.case-text { font-size: 12px; color: var(--text2); line-height: 1.7; }
-
-/* VERDICT */
-.verdict-section { background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%); border: 1px solid #FDE68A; border-radius: 12px; padding: 22px; margin-bottom: 14px; box-shadow: var(--shadow); }
-.verdict-title { font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 3px; color: var(--gold); margin-bottom: 12px; }
-.verdict-text { font-size: 13px; color: var(--text2); line-height: 1.8; }
-.verdict-phrase { margin-top: 16px; font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 4px; color: var(--gold); }
-
-/* ANTICIPATION SECTION — новый блок */
-.anticipation-section { background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border: 1px solid #BFDBFE; border-radius: 12px; padding: 22px; margin-bottom: 14px; box-shadow: var(--shadow); }
-.anticipation-title { font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 3px; color: var(--blue); margin-bottom: 14px; }
-.anticipation-text { font-size: 13px; color: #1E3A5F; line-height: 1.8; margin-bottom: 16px; }
-.indicator-list { display: flex; flex-direction: column; gap: 10px; }
-.indicator-item { display: flex; gap: 12px; align-items: flex-start; background: rgba(255,255,255,0.7); border: 1px solid #BFDBFE; border-radius: 8px; padding: 12px; }
-.indicator-num { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--blue); line-height: 1; min-width: 28px; }
-.indicator-body { flex: 1; }
-.indicator-name { font-size: 12px; font-weight: 700; color: #1E3A5F; margin-bottom: 2px; }
-.indicator-desc { font-size: 12px; color: #3B5F8A; line-height: 1.5; }
-.indicator-lag { display: inline-block; font-size: 10px; font-weight: 700; background: #DBEAFE; color: var(--blue); border-radius: 4px; padding: 2px 6px; margin-top: 4px; letter-spacing: 1px; }
-.method-line { margin-top: 14px; font-size: 12px; color: #1E3A5F; background: rgba(255,255,255,0.7); border: 1px solid #BFDBFE; border-radius: 8px; padding: 10px 14px; font-style: italic; }
-
-/* CHART */
-.chart-section { background: var(--bg2); border: 1px solid var(--border2); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; box-shadow: var(--shadow); }
-.chart-wrap { position: relative; width: 100%; height: 260px; }
-.chart-tooltip { position: absolute; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; pointer-events: none; display: none; z-index: 10; max-width: 220px; line-height: 1.6; box-shadow: var(--shadow2); }
-.tt-date { color: var(--gold); font-size: 10px; letter-spacing: 1px; margin-bottom: 4px; font-weight: 700; }
-.tt-price { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--text); }
-.tt-driver { color: var(--text2); font-size: 11px; margin-top: 4px; }
-.chart-events-list { margin-top: 14px; display: flex; flex-direction: column; gap: 4px; }
-.chart-event-item { display: flex; gap: 10px; align-items: flex-start; font-size: 11px; padding: 6px 0; border-bottom: 1px solid var(--border2); }
-.chart-event-item:last-child { border-bottom: none; }
-.ev-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 2px; }
-.ev-peak { background: var(--gold); }
-.ev-crash { background: var(--red); }
-.ev-catalyst { background: var(--green); }
-.ev-current { background: var(--blue); }
-.ev-date { color: var(--dim); min-width: 64px; font-weight: 600; }
-.ev-label { color: var(--gold); min-width: 80px; font-weight: 700; }
-.ev-driver { color: var(--text2); flex: 1; }
-
-/* WEB DATA */
-.web-data { background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; }
-.web-data-title { font-size: 10px; color: var(--green); letter-spacing: 2px; font-weight: 700; margin-bottom: 6px; text-transform: uppercase; }
-.web-data-text { font-size: 12px; color: var(--text2); line-height: 1.6; }
-</style>
+    .result {
+      background: #111;
+      padding: 30px;
+      border-radius: 12px;
+      border: 1px solid #00ff9d;
+      white-space: pre-wrap;
+      font-size: 15.5px;
+      max-height: 75vh;
+      overflow-y: auto;
+      display: none;
+    }
+    .loading {
+      color: #ffd700;
+      font-style: italic;
+      text-align: center;
+      padding: 40px;
+    }
+    .history {
+      margin-top: 30px;
+    }
+  </style>
 </head>
 <body>
+  <div class="container">
+    <header>
+      <h1>⚡️ STARK UNIVERSAL AGGREGATOR v2.0</h1>
+      <p class="subtitle">Скрытые корреляции • Лаговые зависимости • Edge раньше рынка</p>
+    </header>
 
-<div class="hdr">
-  <div class="hdr-left">
-    <div class="hdr-icon">⚡</div>
-    <div>
-      <div class="hdr-logo">STARK AI AGENT</div>
-      <div class="hdr-sub">8-УРОВНЕВЫЙ АЛГОРИТМ · ВЕБ-ПОИСК · МЕТОД АЛЕКСЕЯ · ПРЕДВОСХИЩЕНИЕ</div>
+    <div class="quick-buttons">
+      <span class="quick-btn" onclick="quickAnalyze('NKE')">NKE</span>
+      <span class="quick-btn" onclick="quickAnalyze('CCJ')">CCJ</span>
+      <span class="quick-btn" onclick="quickAnalyze('JD')">JD</span>
+      <span class="quick-btn" onclick="quickAnalyze('VST')">VST</span>
+      <span class="quick-btn" onclick="quickAnalyze('UEC')">UEC</span>
+      <span class="quick-btn" onclick="quickAnalyze('BTC')">BTC</span>
+      <span class="quick-btn" onclick="quickAnalyze('SBER')">SBER</span>
+      <span class="quick-btn" onclick="quickAnalyze('TSLA')">TSLA</span>
     </div>
-  </div>
-  <div class="status-badge"><span class="status-dot"></span><span class="status-text">AGENT ONLINE</span></div>
-</div>
 
-<div class="keys-section">
-  <div class="keys-row">
-    <span class="key-label">CRAZYROUTER API KEY</span>
-    <input type="password" id="crKeyInput" class="key-input" placeholder="sk-xxxxxxxxxxxxxxxx">
-    <button class="key-btn" onclick="saveCRKey()">СОХРАНИТЬ</button>
-    <span id="crKeyStatus" class="key-status"></span>
-  </div>
-  <div class="keys-row">
-    <span class="key-label">TAVILY API KEY</span>
-    <input type="password" id="tvKeyInput" class="key-input" placeholder="tvly-xxxxxxxxxxxxxxxx">
-    <button class="key-btn" onclick="saveTVKey()">СОХРАНИТЬ</button>
-    <span id="tvKeyStatus" class="key-status"></span>
-  </div>
-</div>
+    <div class="controls">
+      <input type="text" id="tickerInput" placeholder="Введи любой тикер или название (NKE, Bitcoin, Сбер, HYPE...)" />
+      <button onclick="startAnalysis()">⚡ АНАЛИЗИРОВАТЬ</button>
+    </div>
 
-<div class="main">
-  <div class="input-card">
-    <div class="input-row">
-      <div class="ticker-wrap">
-        <div class="input-label">Тикер</div>
-        <input type="text" id="tickerInput" class="ticker-input" placeholder="NKE" maxlength="6">
-      </div>
-      <div class="hypo-wrap">
-        <div class="input-label">Твоя гипотеза (необязательно)</div>
-        <textarea id="contextInput" class="hypo-input" placeholder="Например: вижу корреляцию с нефтью, компания на дне цикла..."></textarea>
-      </div>
-      <button class="analyze-btn" id="analyzeBtn" onclick="analyze()">⚡ АНАЛИЗ</button>
+    <div id="result" class="result"></div>
+
+    <div class="history">
+      <h3>История анализов (последние 5)</h3>
+      <div id="historyList"></div>
     </div>
   </div>
 
-  <div class="quick">
-    <span class="quick-label">БЫСТРЫЙ ВЫБОР:</span>
-    <button class="q-btn" onclick="setTicker('NKE')">NKE</button>
-    <button class="q-btn" onclick="setTicker('CCJ')">CCJ</button>
-    <button class="q-btn" onclick="setTicker('CEG')">CEG</button>
-    <button class="q-btn" onclick="setTicker('PBR')">PBR</button>
-    <button class="q-btn" onclick="setTicker('VST')">VST</button>
-    <button class="q-btn" onclick="setTicker('UEC')">UEC</button>
-    <button class="q-btn" onclick="setTicker('OKLO')">OKLO</button>
-    <button class="q-btn" onclick="setTicker('NOK')">NOK</button>
-    <button class="q-btn" onclick="setTicker('FCX')">FCX</button>
-    <button class="q-btn" onclick="setTicker('RKLB')">RKLB</button>
-    <button class="q-btn" onclick="setTicker('SBER')">SBER</button>
-    <button class="q-btn" onclick="setTicker('SVCB')">SVCB</button>
-    <button class="q-btn" onclick="setTicker('FLNC')">FLNC</button>
-  </div>
+  <script>
+    let history = [];
 
-  <div id="errorBox" class="error-box"></div>
-
-  <div id="loading" class="loading">
-    <div class="load-title">⚡ STARK АНАЛИЗИРУЕТ...</div>
-    <div class="steps">
-      <div class="step" id="s1"><span>🌐</span> Веб-поиск актуальных данных</div>
-      <div class="step" id="s2"><span>📰</span> Новости и инсайдеры</div>
-      <div class="step" id="s3"><span>🔗</span> Скрытые корреляции</div>
-      <div class="step" id="s4"><span>📊</span> Фундаментал и мультипликаторы</div>
-      <div class="step" id="s5"><span>📈</span> Техника PDH/PDL</div>
-      <div class="step" id="s6"><span>⏰</span> Катализаторы до 2028</div>
-      <div class="step" id="s7"><span>🛡️</span> Риск-менеджмент Герчик</div>
-      <div class="step" id="s8"><span>🎯</span> Финальный вердикт STARK</div>
-    </div>
-  </div>
-
-  <div id="result" class="result"></div>
-</div>
-
-<script>
-function saveCRKey() {
-  const key = document.getElementById('crKeyInput').value.trim();
-  if (!key) { setCRStatus('❌ Введи ключ', 'var(--red)'); return; }
-  localStorage.setItem('crazyrouter_key', key);
-  setCRStatus('✅ Сохранён', 'var(--green)');
-}
-function saveTVKey() {
-  const key = document.getElementById('tvKeyInput').value.trim();
-  if (!key) { setTVStatus('❌ Введи ключ', 'var(--red)'); return; }
-  localStorage.setItem('tavily_key', key);
-  setTVStatus('✅ Сохранён', 'var(--green)');
-}
-function setCRStatus(msg, color) { const el = document.getElementById('crKeyStatus'); el.textContent = msg; el.style.color = color; }
-function setTVStatus(msg, color) { const el = document.getElementById('tvKeyStatus'); el.textContent = msg; el.style.color = color; }
-function setTicker(t) { document.getElementById('tickerInput').value = t; }
-function showError(msg) { const el = document.getElementById('errorBox'); el.textContent = '⚠ ' + msg; el.classList.add('show'); }
-function hideError() { document.getElementById('errorBox').classList.remove('show'); }
-async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-function extractStr(val) {
-  if (!val) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'object') return val.name || val.label || val.title || val.value || val.text || val.description || JSON.stringify(val);
-  return String(val);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('tickerInput').addEventListener('keydown', e => { if (e.key === 'Enter') analyze(); });
-  const cr = localStorage.getItem('crazyrouter_key');
-  const tv = localStorage.getItem('tavily_key');
-  if (cr) { setCRStatus('✅ Сохранён', 'var(--green)'); document.getElementById('crKeyInput').value = cr; }
-  if (tv) { setTVStatus('✅ Сохранён', 'var(--green)'); document.getElementById('tvKeyInput').value = tv; }
-});
-
-async function analyze() {
-  const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
-  const context = document.getElementById('contextInput').value.trim();
-  const crKey = localStorage.getItem('crazyrouter_key');
-
-  hideError();
-  if (!ticker) { showError('Введи тикер'); return; }
-  if (!crKey) { showError('Сохрани Crazyrouter API ключ'); return; }
-
-  document.getElementById('analyzeBtn').disabled = true;
-  document.getElementById('result').classList.remove('show');
-  document.getElementById('result').innerHTML = '';
-  document.getElementById('loading').classList.add('show');
-
-  const steps = ['s1','s2','s3','s4','s5','s6','s7','s8'];
-  steps.forEach(s => document.getElementById(s).className = 'step');
-  document.getElementById('s1').className = 'step active';
-  document.getElementById('s2').className = 'step active';
-
-  // Yahoo Finance — реальная цена прямо сейчас
-  let rawData = '';
-  let yahooData = '';
-  try {
-    const ry = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'price', ticker })
-    });
-    const dy = await ry.json();
-    if (dy.price) {
-      yahooData = `РЕАЛЬНЫЕ ДАННЫЕ YAHOO FINANCE (прямо сейчас):
-Текущая цена: $${dy.price}
-Предыдущее закрытие: $${dy.prev}
-52W High: $${dy.high52}
-52W Low: $${dy.low52}
-Market Cap: $${dy.marketCap ? (dy.marketCap/1e9).toFixed(1) + 'B' : 'N/A'}`;
-      rawData = yahooData;
+    async function startAnalysis() {
+      const input = document.getElementById('tickerInput').value.trim().toUpperCase();
+      if (!input) return alert('Введите тикер или название!');
+      analyze(input);
     }
-  } catch(e) {}
 
-  // Firecrawl — инсайдеры с OpenInsider
-  try {
-    const ri = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'insiders', ticker })
-    });
-    const di = await ri.json();
-    if (di.result) rawData += '\n\nИНСАЙДЕРЫ OPENINSIDER:\n' + di.result.slice(0, 400);
-  } catch(e) {}
+    function quickAnalyze(ticker) {
+      document.getElementById('tickerInput').value = ticker;
+      analyze(ticker);
+    }
 
-  document.getElementById('s1').className = 'step done';
-  document.getElementById('s2').className = 'step done';
+    async function analyze(ticker) {
+      const resultDiv = document.getElementById('result');
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = `<p class="loading">⚡️ STARK сканирует рынок... Ищем скрытые корреляции для ${ticker} (15–30 сек)</p>`;
 
-  for (let i = 2; i < steps.length - 1; i++) {
-    document.getElementById(steps[i]).className = 'step active';
-    await sleep(400);
-    document.getElementById(steps[i]).className = 'step done';
-  }
-  document.getElementById(steps[steps.length-1]).className = 'step active';
+      try {
+        // Получаем цену
+        const priceRes = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'price', ticker })
+        });
+        const priceData = await priceRes.json();
 
-  const prompt = `Ты — STARK AI. Сделай полный анализ акции ${ticker} по методу Алексея.
+        // Главный анализ
+        const analyzeRes = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            action: 'analyze', 
+            ticker: ticker,
+            priceData: priceData 
+          })
+        });
 
-АКТУАЛЬНЫЕ ДАННЫЕ (получены прямо сейчас — используй ТОЛЬКО эти цифры для price/priceNum/week52Low/week52High/marketCap):
-${rawData || 'Нет реальных данных — используй web_search'}
+        const data = await analyzeRes.json();
+        
+        resultDiv.innerHTML = data.text || `<pre>${JSON.stringify(data, null, 2)}</pre>`;
 
-КРИТИЧНО: priceNum в JSON должен быть ТОЧНО равен цене из YAHOO FINANCE выше. Не используй данные из своей памяти для цены.
-
-${context ? 'Гипотеза инвестора: ' + context : ''}
-
-ВАЖНО: Верни СТРОГО валидный JSON без markdown, без текста вокруг. Только JSON, ничего больше.
-correlationChain — ТОЛЬКО массив строк, не объектов.
-insiders: [{"name":"Имя","role":"CEO","type":"buy","amount":"$500K","shares":"10000","date":"15 янв 2026"}]
-events: [{"date":"25 июн 2026","text":"Описание","urgent":false}]
-chartEvents: [{"date":"2024","price":85,"type":"peak","label":"ATH","driver":"Причина"}]
-correlationChain: ["строка1","строка2","строка3"]
-
-anticipationNarrative — что рынок не видит прямо сейчас (строка)
-anticipationInd1 — опережающий индикатор 1: название + описание + лаг (строка)
-anticipationInd2 — опережающий индикатор 2: название + описание + лаг (строка)
-anticipationInd3 — опережающий индикатор 3: название + описание + лаг (строка)
-anticipationMethod — скрытая корреляция одной строкой
-
-JSON шаблон — заполни ВСЕ поля реальными данными:
-{"ticker":"${ticker}","name":"","sector":"","exchange":"","price":"$0","priceNum":0,"change":"0%","marketCap":"","pe":"","dividend":"","week52Low":"","week52High":"","week52LowNum":0,"week52HighNum":0,"atHigh":"","verdict":"НАБЛЮДАТЬ","verdictEn":"watch","confidence":"СРЕДНЯЯ","rr":"2:1","support":"","entry":"","resistance":"","target1":"","target1Pct":"","target1Period":"","target2":"","target2Pct":"","target2Period":"","target3":"","target3Pct":"","target3Period":"","webDataSummary":"","correlation":"","correlationChain":[],"insiders":[],"events":[],"bullCase":"","bearCase":"","verdict_text":"","stopLoss":"","macro":"","chartEvents":[],"anticipationNarrative":"","anticipationInd1":"","anticipationInd2":"","anticipationInd3":"","anticipationMethod":""}`;
-
-  try {
-    const res = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'analyze', prompt })
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-
-    const text = data.text || '';
-    console.log('RAW:', text.slice(0, 400));
-
-    let stock;
-    try {
-      // Агрессивная чистка markdown блоков
-      const cleaned = text
-        .replace(/```json/gi, '')
-        .replace(/```/g, '')
-        .trim();
-
-      // Method 1: прямой парсинг
-      try { stock = JSON.parse(cleaned); } catch(e) {}
-
-      // Method 2: найти { } в очищенном тексте
-      if (!stock) {
-        const start = cleaned.indexOf('{');
-        const end = cleaned.lastIndexOf('}');
-        if (start !== -1 && end !== -1) {
-          try { stock = JSON.parse(cleaned.slice(start, end + 1)); } catch(e) {}
-        }
+        // Сохраняем в историю
+        history.unshift({ ticker, time: new Date().toLocaleTimeString(), result: data.text?.substring(0, 300) + '...' });
+        if (history.length > 5) history.pop();
+        updateHistory();
+      } catch (e) {
+        resultDiv.innerHTML = `<p style="color:#ff4444">Ошибка: ${e.message}<br>Проверь Crazyrouter и Vercel env.</p>`;
       }
+    }
 
-      // Method 3: найти { } в оригинальном тексте
-      if (!stock) {
-        const start = text.indexOf('{');
-        const end = text.lastIndexOf('}');
-        if (start !== -1 && end !== -1) {
-          try { stock = JSON.parse(text.slice(start, end + 1)); } catch(e) {}
-        }
-      }
-
-      if (!stock) throw new Error('JSON не найден');
-    } catch(e) { throw new Error('Ошибка парсинга — попробуй ещё раз'); }
-
-    steps.forEach(s => document.getElementById(s).className = 'step done');
-    await sleep(400);
-    document.getElementById('loading').classList.remove('show');
-
-    const safe = (v, def='—') => (v !== undefined && v !== null && v !== '') ? v : def;
-
-    let corrChain = Array.isArray(stock.correlationChain) ? stock.correlationChain.map(c => extractStr(c)).filter(Boolean) : [];
-    let insiders = Array.isArray(stock.insiders) ? stock.insiders.map(i => ({
-      name: extractStr(i.name || i.person || ''),
-      role: extractStr(i.role || i.title || ''),
-      type: (i.type || i.signal || 'buy').toString().toLowerCase().includes('buy') ? 'buy' : 'sell',
-      amount: extractStr(i.amount || i.value || ''),
-      shares: extractStr(i.shares || ''),
-      date: extractStr(i.date || '')
-    })) : [];
-    let events = Array.isArray(stock.events) ? stock.events.map(e => ({
-      date: extractStr(e.date || ''),
-      text: extractStr(e.text || e.description || e.event || ''),
-      urgent: !!(e.urgent || e.important)
-    })) : [];
-    let chartEvents = Array.isArray(stock.chartEvents) ? stock.chartEvents.map(e => ({
-      date: extractStr(e.date || ''),
-      price: parseFloat(e.price || 0),
-      type: extractStr(e.type || 'catalyst'),
-      label: extractStr(e.label || ''),
-      driver: extractStr(e.driver || e.description || '')
-    })).filter(e => e.price > 0) : [];
-
-    // Нормализация anticipation — плоские строковые поля
-    const anticipation = {
-      narrative: stock.anticipationNarrative || stock.anticipation?.narrative || '',
-      indicators: [
-        { num: 1, name: 'Индикатор 1', description: stock.anticipationInd1 || '', lag: '' },
-        { num: 2, name: 'Индикатор 2', description: stock.anticipationInd2 || '', lag: '' },
-        { num: 3, name: 'Индикатор 3', description: stock.anticipationInd3 || '', lag: '' }
-      ].filter(i => i.description),
-      method: stock.anticipationMethod || stock.anticipation?.method || ''
-    };
-
-    const norm = {
-      ticker: safe(stock.ticker, ticker),
-      name: safe(stock.name, ticker),
-      sector: safe(stock.sector, 'N/A'),
-      exchange: safe(stock.exchange, 'NYSE'),
-      price: (() => { const p = safe(stock.price, '$0').toString(); return p.includes('$') ? p : '$' + p; })(),
-      priceNum: parseFloat(String(stock.priceNum || stock.price || '0').replace(/[^0-9.]/g,'')) || 0,
-      change: safe(stock.change, '0%'),
-      marketCap: safe(stock.marketCap, 'N/A'),
-      pe: safe(stock.pe, 'N/A'),
-      dividend: safe(stock.dividend, '0%'),
-      week52Low: safe(stock.week52Low, '0'),
-      week52High: safe(stock.week52High, '0'),
-      week52LowNum: parseFloat(String(stock.week52LowNum || '0').replace(/[^0-9.]/g,'')) || 0,
-      week52HighNum: parseFloat(String(stock.week52HighNum || '1').replace(/[^0-9.]/g,'')) || 1,
-      atHigh: safe(stock.atHigh, 'N/A'),
-      verdict: safe(stock.verdict, 'НАБЛЮДАТЬ'),
-      verdictEn: safe(stock.verdictEn, 'watch'),
-      confidence: safe(stock.confidence, 'СРЕДНЯЯ'),
-      rr: safe(stock.rr, '2:1'),
-      support: safe(stock.support, '—'),
-      entry: safe(stock.entry, '—'),
-      resistance: safe(stock.resistance, '—'),
-      target1: safe(stock.target1, '—'), target1Pct: safe(stock.target1Pct, ''), target1Period: safe(stock.target1Period, ''),
-      target2: safe(stock.target2, '—'), target2Pct: safe(stock.target2Pct, ''), target2Period: safe(stock.target2Period, ''),
-      target3: safe(stock.target3, '—'), target3Pct: safe(stock.target3Pct, ''), target3Period: safe(stock.target3Period, ''),
-      webDataSummary: safe(stock.webDataSummary, ''),
-      correlation: safe(stock.correlation, 'Нет данных'),
-      correlationChain: corrChain, insiders, events, chartEvents,
-      bullCase: safe(stock.bullCase, 'Нет данных'),
-      bearCase: safe(stock.bearCase, 'Нет данных'),
-      verdict_text: safe(stock.verdict_text, 'Нет данных'),
-      stopLoss: safe(stock.stopLoss, '—'),
-      macro: safe(stock.macro, ''),
-      anticipation
-    };
-
-    renderResult(norm);
-  } catch(e) {
-    document.getElementById('loading').classList.remove('show');
-    showError(e.message);
-    steps.forEach(s => document.getElementById(s).className = 'step');
-  } finally {
-    document.getElementById('analyzeBtn').disabled = false;
-  }
-}
-
-function renderResult(s) {
-  const verdictClass = {'buy':'verdict-buy','watch':'verdict-watch','wait':'verdict-wait','sell':'verdict-sell'}[s.verdictEn] || 'verdict-watch';
-  const lo = s.week52LowNum || 0, hi = s.week52HighNum || 1, cur = s.priceNum || (lo+hi)/2;
-  const pct = Math.min(100, Math.max(0, ((cur-lo)/(hi-lo))*100));
-
-  const insidersHtml = s.insiders.length ? s.insiders.map(i => `
-    <div class="insider-item">
-      <div><div class="insider-name">${i.name || '—'}</div><div class="insider-role">${i.role || '—'}</div></div>
-      <div class="insider-amount ${i.type === 'buy' ? 'insider-buy' : 'insider-sell'}">${i.type === 'buy' ? '▲ ПОКУПКА' : '▼ ПРОДАЖА'} ${i.amount || ''} ${i.shares ? '('+i.shares+' акц.)' : ''}</div>
-      <div class="insider-date">${i.date || '—'}</div>
-    </div>`).join('') : '<div style="font-size:12px;color:var(--dim)">Нет данных по инсайдерам за 6 месяцев</div>';
-
-  const eventsHtml = s.events.length ? s.events.map(e => `
-    <div class="event-item">
-      <div class="event-date">${e.date || '—'}</div>
-      <div class="event-text">${e.text || '—'}${e.urgent ? '<span class="event-tag tag-urgent">СРОЧНО</span>' : '<span class="event-tag tag-catalyst">КАТАЛИЗАТОР</span>'}</div>
-    </div>`).join('') : '<div style="font-size:12px;color:var(--dim)">Нет данных</div>';
-
-  const chainHtml = s.correlationChain.map((c, i, arr) =>
-    `<span class="corr-node">${c}</span>${i < arr.length-1 ? '<span class="corr-arrow">→</span>' : ''}`).join('');
-
-  // Anticipation block
-  const ant = s.anticipation || {};
-  const indicatorsHtml = (ant.indicators || []).map(ind => `
-    <div class="indicator-item">
-      <div class="indicator-num">${ind.num || ''}</div>
-      <div class="indicator-body">
-        <div class="indicator-name">${ind.name || ''}</div>
-        <div class="indicator-desc">${ind.description || ''}</div>
-        ${ind.lag ? `<span class="indicator-lag">ЛАГ: ${ind.lag}</span>` : ''}
-      </div>
-    </div>`).join('');
-
-  const anticipationHtml = (ant.narrative || ant.indicators?.length) ? `
-    <div class="anticipation-section">
-      <div class="anticipation-title">🔮 ПРЕДВОСХИЩЕНИЕ — ЧТО РЫНОК ЕЩЁ НЕ ВИДИТ</div>
-      ${ant.narrative ? `<div class="anticipation-text">${ant.narrative}</div>` : ''}
-      ${indicatorsHtml ? `<div class="indicator-list">${indicatorsHtml}</div>` : ''}
-      ${ant.method ? `<div class="method-line">💡 МЕТОД АЛЕКСЕЯ: ${ant.method}</div>` : ''}
-    </div>` : '';
-
-  document.getElementById('result').innerHTML = `
-    <div class="stock-hdr-card">
-      <div>
-        <div class="stock-name">${s.ticker}</div>
-        <div class="stock-full">${s.name}</div>
-        <div class="stock-sector">${s.sector} · ${s.exchange}</div>
-      </div>
-      <div class="stock-price-block">
-        <div class="stock-price">${s.price}</div>
-        <div class="stock-change ${s.change?.includes('+') ? 'pos' : 'neg'}">${s.change}</div>
-        <div><span class="verdict-badge ${verdictClass}">${s.verdict}</span></div>
-        <div class="rr-badge">R:R ${s.rr} · ${s.confidence} уверенность</div>
-      </div>
-    </div>
-
-    <div class="metrics">
-      <div class="metric"><div class="metric-label">МКТ КАП</div><div class="metric-val">${s.marketCap}</div></div>
-      <div class="metric"><div class="metric-label">P/E</div><div class="metric-val">${s.pe}</div></div>
-      <div class="metric"><div class="metric-label">ДИВИДЕНД</div><div class="metric-val">${s.dividend}</div></div>
-      <div class="metric"><div class="metric-label">52W LOW</div><div class="metric-val">${s.week52Low}</div></div>
-      <div class="metric"><div class="metric-label">52W HIGH</div><div class="metric-val">${s.week52High}</div></div>
-      <div class="metric"><div class="metric-label">ATH</div><div class="metric-val">${s.atHigh}</div></div>
-      <div class="metric"><div class="metric-label">СТОП</div><div class="metric-val" style="color:var(--red)">${s.stopLoss}</div></div>
-      <div class="metric"><div class="metric-label">БИРЖА</div><div class="metric-val">${s.exchange}</div></div>
-    </div>
-
-    <div class="price-bar-card">
-      <div class="card-title">52-Недельный диапазон</div>
-      <div class="bar-track">
-        <div class="bar-fill" style="width:${pct}%"></div>
-        <div class="bar-marker" style="left:${pct}%"></div>
-      </div>
-      <div class="bar-labels"><span>${s.week52Low}</span><span style="color:var(--gold);font-weight:700">СЕЙЧАС ${s.price}</span><span>${s.week52High}</span></div>
-      <div class="levels-row">
-        <div class="level-item"><div class="level-label">Поддержка</div><div class="level-val lvl-sup">${s.support}</div></div>
-        <div class="level-item"><div class="level-label">Точка входа</div><div class="level-val lvl-entry">${s.entry}</div></div>
-        <div class="level-item"><div class="level-label">Сопротивление</div><div class="level-val lvl-res">${s.resistance}</div></div>
-      </div>
-    </div>
-
-    <div class="targets">
-      <div class="target"><div class="target-label">Цель 1</div><div class="target-price">${s.target1}</div><div class="target-pct">${s.target1Pct}</div><div class="target-period">${s.target1Period}</div></div>
-      <div class="target"><div class="target-label">Цель 2</div><div class="target-price">${s.target2}</div><div class="target-pct">${s.target2Pct}</div><div class="target-period">${s.target2Period}</div></div>
-      <div class="target"><div class="target-label">Цель 3</div><div class="target-price">${s.target3}</div><div class="target-pct">${s.target3Pct}</div><div class="target-period">${s.target3Period}</div></div>
-    </div>
-
-    <div class="section-card">
-      <div class="section-title">🔗 Скрытая корреляция — Метод Алексея</div>
-      <div class="corr-text">${s.correlation}</div>
-      <div class="corr-chain">${chainHtml || '<span style="color:var(--dim);font-size:12px">Нет данных</span>'}</div>
-    </div>
-
-    <div class="section-card">
-      <div class="section-title">👔 Инсайдеры и умные деньги — SEC Form 4</div>
-      ${insidersHtml}
-    </div>
-
-    <div class="section-card">
-      <div class="section-title">⏰ События и катализаторы до 2028</div>
-      ${eventsHtml}
-    </div>
-
-    <div class="cases">
-      <div class="case-item"><div class="case-title bull">▲ Бычий кейс</div><div class="case-text">${s.bullCase}</div></div>
-      <div class="case-item"><div class="case-title bear">▼ Медвежий кейс</div><div class="case-text">${s.bearCase}</div></div>
-    </div>
-
-    <div class="verdict-section">
-      <div class="verdict-title">🎯 Вердикт STARK — 8 уровней</div>
-      <div class="verdict-text">${s.verdict_text}</div>
-      <div style="margin-top:10px;font-size:12px;color:#92400E">${s.macro}</div>
-      <div class="verdict-phrase">ВОТ ТАК ЗАКАЛЯЕТСЯ ХАРАКТЕР.</div>
-    </div>
-
-    ${anticipationHtml}
-
-    <div class="chart-section">
-      <div class="card-title">📈 История цены — ключевые события и драйверы</div>
-      <div class="chart-wrap">
-        <canvas id="priceChart"></canvas>
-        <div class="chart-tooltip" id="chartTooltip">
-          <div class="tt-date" id="ttDate"></div>
-          <div class="tt-price" id="ttPrice"></div>
-          <div class="tt-driver" id="ttDriver"></div>
+    function updateHistory() {
+      const list = document.getElementById('historyList');
+      list.innerHTML = history.map(item => `
+        <div style="background:#1a1a1a; padding:12px; margin:8px 0; border-radius:8px; border-left:3px solid #00ff9d;">
+          <strong>${item.ticker}</strong> — ${item.time}
         </div>
-      </div>
-      <div class="chart-events-list" id="chartEventsList"></div>
-    </div>`;
-
-  document.getElementById('result').classList.add('show');
-  document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
-  setTimeout(() => drawChart(s.chartEvents || []), 100);
-}
-
-function drawChart(events) {
-  const canvas = document.getElementById('priceChart');
-  if (!canvas || !events.length) return;
-  const ctx = canvas.getContext('2d');
-  const wrap = canvas.parentElement;
-  canvas.width = wrap.offsetWidth; canvas.height = wrap.offsetHeight;
-  const W = canvas.width, H = canvas.height;
-  const pad = { top: 20, right: 20, bottom: 40, left: 55 };
-  const prices = events.map(e => e.price);
-  const minP = Math.min(...prices) * 0.9, maxP = Math.max(...prices) * 1.1;
-  const typeColor = { peak: '#B8960C', crash: '#C0392B', catalyst: '#1E7E4E', current: '#2563EB' };
-  const xOf = i => pad.left + (i / (events.length - 1)) * (W - pad.left - pad.right);
-  const yOf = p => pad.top + (1 - (p - minP) / (maxP - minP)) * (H - pad.top - pad.bottom);
-
-  // Grid
-  ctx.strokeStyle = '#E5E7EB'; ctx.lineWidth = 1;
-  for (let i = 0; i <= 4; i++) {
-    const y = pad.top + (i / 4) * (H - pad.top - pad.bottom);
-    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
-    const val = maxP - (i / 4) * (maxP - minP);
-    ctx.fillStyle = '#9CA3AF'; ctx.font = '10px Inter, sans-serif';
-    ctx.fillText('$' + val.toFixed(0), 4, y + 4);
-  }
-
-  // Gradient fill
-  const grad = ctx.createLinearGradient(0, pad.top, 0, H - pad.bottom);
-  grad.addColorStop(0, 'rgba(184,150,12,0.12)');
-  grad.addColorStop(1, 'rgba(184,150,12,0)');
-  ctx.beginPath();
-  ctx.moveTo(xOf(0), yOf(events[0].price));
-  events.forEach((e, i) => ctx.lineTo(xOf(i), yOf(e.price)));
-  ctx.lineTo(xOf(events.length - 1), H - pad.bottom);
-  ctx.lineTo(xOf(0), H - pad.bottom);
-  ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
-
-  // Line
-  ctx.beginPath(); ctx.strokeStyle = '#B8960C'; ctx.lineWidth = 2.5;
-  events.forEach((e, i) => i === 0 ? ctx.moveTo(xOf(i), yOf(e.price)) : ctx.lineTo(xOf(i), yOf(e.price)));
-  ctx.stroke();
-
-  // Dots
-  events.forEach((e, i) => {
-    const x = xOf(i), y = yOf(e.price), color = typeColor[e.type] || '#9CA3AF';
-    ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2);
-    ctx.fillStyle = '#fff'; ctx.fill();
-    ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.stroke();
-    ctx.fillStyle = color; ctx.font = 'bold 10px Inter, sans-serif';
-    ctx.fillText(e.label, Math.max(pad.left, Math.min(W - pad.right - 40, x - 20)), y - 13);
-    ctx.fillStyle = '#9CA3AF'; ctx.font = '9px Inter, sans-serif';
-    ctx.fillText(e.date, Math.max(pad.left, x - 18), H - pad.bottom + 16);
-  });
-
-  // Hover
-  const tooltip = document.getElementById('chartTooltip');
-  canvas.addEventListener('mousemove', ev => {
-    const rect = canvas.getBoundingClientRect();
-    const mx = (ev.clientX - rect.left) * (W / rect.width);
-    let closest = null, minDist = 999;
-    events.forEach((e, i) => { const d = Math.abs(xOf(i) - mx); if (d < minDist) { minDist = d; closest = { e, i }; } });
-    if (closest && minDist < 40) {
-      document.getElementById('ttDate').textContent = closest.e.date;
-      document.getElementById('ttPrice').textContent = '$' + closest.e.price;
-      document.getElementById('ttDriver').textContent = closest.e.driver;
-      tooltip.style.left = Math.min(ev.clientX - rect.left + 12, rect.width - 230) + 'px';
-      tooltip.style.top = Math.max(0, ev.clientY - rect.top - 60) + 'px';
-      tooltip.style.display = 'block';
-    } else { tooltip.style.display = 'none'; }
-  });
-  canvas.addEventListener('mouseleave', () => tooltip.style.display = 'none');
-
-  // Events list
-  const typeColor2 = { peak: 'ev-peak', crash: 'ev-crash', catalyst: 'ev-catalyst', current: 'ev-current' };
-  const list = document.getElementById('chartEventsList');
-  if (list) list.innerHTML = events.map(e => `
-    <div class="chart-event-item">
-      <div class="ev-dot ${typeColor2[e.type] || 'ev-catalyst'}"></div>
-      <div class="ev-date">${e.date}</div>
-      <div class="ev-label">${e.label}</div>
-      <div class="ev-driver">${e.driver}</div>
-    </div>`).join('');
-}
-</script>
+      `).join('');
+    }
+  </script>
 </body>
 </html>
