@@ -1,125 +1,94 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>STARK AI AGENT v3.1 — АКТУАЛЬНЫЕ ДАННЫЕ</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
-  
-  body {
-    background: #F2F3F5;
-    color: #1F2937;
-    font-family: 'Inter', sans-serif;
-    margin: 0;
-    padding: 20px;
-  }
-  .container {
-    max-width: 1000px;
-    margin: auto;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    overflow: hidden;
-  }
-  .header {
-    background: linear-gradient(135deg, #1F2937, #374151);
-    color: white;
-    padding: 25px 30px;
-    text-align: center;
-  }
-  h1 { margin: 0; font-size: 28px; }
-  .input-area {
-    padding: 25px;
-    display: flex;
-    gap: 12px;
-    background: #F8FAFC;
-    border-bottom: 1px solid #E2E8F0;
-  }
-  input {
-    flex: 1;
-    padding: 14px;
-    border: 1px solid #CBD5E1;
-    border-radius: 8px;
-    font-size: 16px;
-  }
-  button {
-    padding: 14px 28px;
-    background: #C9A84C;
-    color: black;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  #result {
-    padding: 25px;
-    min-height: 400px;
-    white-space: pre-wrap;
-    font-size: 14px;
-    line-height: 1.6;
-    background: #FAFBFC;
-  }
-</style>
-</head>
-<body>
-<div class="container">
-  <div class="header">
-    <h1>STARK AI AGENT v3.1</h1>
-    <p>Скрытые корреляции • Предвосхищение • Актуальные данные</p>
-  </div>
-  
-  <div class="input-area">
-    <input type="text" id="ticker" placeholder="Введи тикер (VST, CCJ, NKE, SBER...)" />
-    <button onclick="getPrice()">ЦЕНА</button>
-    <button onclick="analyzeTicker()">ПОЛНЫЙ АНАЛИЗ</button>
-  </div>
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  <div id="result">Готов к работе. Введи тикер и нажми кнопку.</div>
-</div>
-
-<script>
-async function getPrice() {
-  const ticker = document.getElementById('ticker').value.trim().toUpperCase();
-  if (!ticker) return alert('Введи тикер');
-  
-  const res = await fetch('/api/analyze', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ action: 'price', ticker })
-  });
-  const data = await res.json();
-  document.getElementById('result').innerHTML = `<strong style="color:#15803d;font-size:18px;">${ticker}: $${data.price || '—'} (обновлено сейчас)</strong>`;
-}
-
-async function analyzeTicker() {
-  const ticker = document.getElementById('ticker').value.trim().toUpperCase();
-  if (!ticker) return alert('Введи тикер');
-
-  const resultDiv = document.getElementById('result');
-  resultDiv.innerHTML = '<strong>Запрашиваю самые свежие данные...</strong>';
-
-  const prompt = `
-Сейчас ${new Date().toLocaleDateString('ru-RU')}. Используй web_search для максимально актуальной информации на сегодня.
-
-Тикер: ${ticker}
-
-Проведи полный STARK-анализ. Обязательно найди текущую цену, последние новости и катализаторы.
-Верни ТОЛЬКО чистый JSON без лишнего текста.
-`;
+  const { action, ticker, prompt, query } = req.body;
+  const crKey = process.env.CRAZYROUTER_KEY;
+  const tvKey = process.env.TAVILY_KEY;
 
   try {
-    const res = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ action: 'analyze', ticker, prompt })
-    });
-    const data = await res.json();
-    resultDiv.textContent = data.text || JSON.stringify(data, null, 2);
+    if (action === 'price') {
+      const r = await fetch(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`,
+        { headers: { 'User-Agent': 'Mozilla/5.0' } }
+      );
+      const data = await r.json();
+      const meta = data?.chart?.result?.[0]?.meta;
+      if (!meta) return res.json({ price: null });
+      return res.json({ price: meta.regularMarketPrice, prev: meta.chartPreviousClose, high52: meta.fiftyTwoWeekHigh, low52: meta.fiftyTwoWeekLow, marketCap: meta.marketCap });
+    }
+
+    if (action === 'search') {
+      if (!tvKey) return res.json({ result: '' });
+      const r = await fetch('https://api.tavily.com/search', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ api_key: tvKey, query: query || '', search_depth: 'basic', max_results: 5, include_answer: true })
+      });
+      const data = await r.json();
+      return res.json({ result: data.answer || (data.results || []).map(x => x.title + ': ' + x.content).join('\n\n') });
+    }
+
+    if (action === 'analyze') {
+      if (!crKey) return res.status(500).json({ error: 'No API key' });
+      const r1 = await fetch('https://crazyrouter.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${crKey}`,
+          'anthropic-version': '2023-06-01',
+          'anthropic-beta': 'web-search-2025-03-05'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-5',
+          max_tokens: 4000,
+          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      const d1 = await r1.json();
+      const hasToolUse = (d1.content || []).some(b => b.type === 'tool_use');
+      if (hasToolUse) {
+        const toolResults = (d1.content || [])
+          .filter(b => b.type === 'tool_use')
+          .map(b => ({
+            type: 'tool_result',
+            tool_use_id: b.id,
+            content: b.input ? JSON.stringify(b.input) : 'search executed'
+          }));
+        const r2 = await fetch('https://crazyrouter.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${crKey}`,
+            'anthropic-version': '2023-06-01',
+            'anthropic-beta': 'web-search-2025-03-05'
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-5',
+            max_tokens: 4000,
+            tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+            messages: [
+              { role: 'user', content: prompt },
+              { role: 'assistant', content: d1.content },
+              { role: 'user', content: toolResults }
+            ]
+          })
+        });
+        const d2 = await r2.json();
+        if (d2.error) return res.status(500).json({ error: d2.error.message });
+        const text = (d2.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+        return res.json({ text });
+      }
+      if (d1.error) return res.status(500).json({ error: d1.error.message });
+      const text = (d1.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+      return res.json({ text });
+    }
+
+    return res.status(400).json({ error: 'Unknown action' });
   } catch (e) {
-    resultDiv.textContent = 'Ошибка соединения: ' + e.message;
+    return res.status(500).json({ error: e.message });
   }
 }
-</script>
-</body>
-</html>
