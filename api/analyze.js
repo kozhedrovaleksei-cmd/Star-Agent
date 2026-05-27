@@ -49,23 +49,22 @@ export default async function handler(req, res) {
 
   try {
     if (action === 'price') {
-      // Пробуем Yahoo Finance
+      // Берём цену через Tavily — реальные данные
       try {
-        const r = await fetch(
-          `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`,
-          { headers: { 'User-Agent': 'Mozilla/5.0' } }
-        );
-        const data = await r.json();
-        const meta = data?.chart?.result?.[0]?.meta;
-        if (meta && meta.regularMarketPrice) {
-          return res.json({
-            price: meta.regularMarketPrice,
-            prev: meta.chartPreviousClose,
-            high52: meta.fiftyTwoWeekHigh,
-            low52: meta.fiftyTwoWeekLow,
-            marketCap: meta.marketCap
-          });
-        }
+        const priceData = await tavilySearch(`${ticker} stock price today 2026`);
+        // Ищем цену вида $44.80 или 44.80
+        const match = priceData.match(/\$\s*([\d]{1,4}\.[\d]{1,2})|(?:^|\s)([\d]{2,4}\.[\d]{1,2})(?:\s|$)/);
+        const price = match ? parseFloat(match[1] || match[2]) : null;
+        // Ищем 52W High/Low
+        const highMatch = priceData.match(/52.week high[^\d]*([\d]+\.[\d]+)/i);
+        const lowMatch = priceData.match(/52.week low[^\d]*([\d]+\.[\d]+)/i);
+        return res.json({
+          price,
+          prev: null,
+          high52: highMatch ? parseFloat(highMatch[1]) : null,
+          low52: lowMatch ? parseFloat(lowMatch[1]) : null,
+          marketCap: null
+        });
       } catch(e) {}
       return res.json({ price: null });
     }
