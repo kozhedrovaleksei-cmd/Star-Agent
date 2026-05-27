@@ -1,32 +1,28 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
-from datetime import datetime, timedelta
-import time
+import plotly.graph_objects as go   # ← Это было пропущено
+from datetime import datetime
 
 st.set_page_config(page_title="STARK AI AGENT", layout="wide", page_icon="⚡")
-st.title("⚡ STARK AI AGENT v3.2 — 8-Уровневый Анализ")
+st.title("⚡ STARK AI AGENT v3.3 — 8-Уровневый Анализ")
 st.caption("Мировой уровень • Метод Алексея • Скрытые корреляции")
 
-# Улучшенное кэширование
-@st.cache_data(ttl=600)  # 10 минут
+@st.cache_data(ttl=720)  # 12 минут
 def get_stock_data(ticker_str):
     try:
         ticker = yf.Ticker(ticker_str)
         hist = ticker.history(period="2y")
         info = ticker.info
         if hist.empty:
-            raise Exception("Empty history")
+            raise Exception("No data")
         return hist, info
     except:
-        # Fallback данные
+        # Fallback
         hist = pd.DataFrame({
-            'Open': [44.5], 'High': [45.2], 'Low': [44.1], 'Close': [44.85]
+            'Open': [44.5], 'High': [45.3], 'Low': [44.1], 'Close': [44.94]
         }, index=[datetime.now()])
-        info = {
-            'currentPrice': 44.85, 'marketCap': 66500000000,
-            'forwardPE': 23.4, 'dividendYield': 0.0365
-        }
+        info = {'currentPrice': 44.94, 'marketCap': 66600000000, 'forwardPE': 24.6, 'dividendYield': 0.0365}
         return hist, info
 
 col1, col2 = st.columns([1, 3])
@@ -49,7 +45,7 @@ if st.button("🚀 ЗАПУСТИТЬ 8-УРОВНЕВЫЙ STARK АНАЛИЗ", 
             price = info.get('currentPrice') or hist['Close'][-1]
             
             st.success(f"✅ {ticker_input} — Анализ завершён • {datetime.now().strftime('%H:%M:%S')}")
-            
+
             tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
                 "📊 Обзор", "🔗 Скрытые Корреляции", "📈 DCF + Цели", 
                 "🔮 Предвосхищение", "👔 Инсайдеры", "🎯 Финальный Вердикт"
@@ -64,16 +60,15 @@ if st.button("🚀 ЗАПУСТИТЬ 8-УРОВНЕВЫЙ STARK АНАЛИЗ", 
                     st.metric("Forward P/E", f"{info.get('forwardPE', 'N/A')}")
                     st.metric("Dividend Yield", f"{info.get('dividendYield', 0)*100:.2f}%")
                 
-                if len(hist) > 5:
-                    fig = go.Figure(data=[go.Candlestick(x=hist.index, open=hist['Open'], high=hist['High'], low=hist['Low'], close=hist['Close'])])
-                    fig.update_layout(title=f"{ticker_input} — 2-летняя динамика", height=520)
-                    st.plotly_chart(fig, use_container_width=True)
+                fig = go.Figure(data=[go.Candlestick(x=hist.index, open=hist['Open'], high=hist['High'], low=hist['Low'], close=hist['Close'])])
+                fig.update_layout(title=f"{ticker_input} — 2-летняя динамика", height=520)
+                st.plotly_chart(fig, use_container_width=True)
 
             with tab2:
                 st.subheader("🔗 Скрытая Корреляция — Метод Алексея")
-                st.info("**Главный риск:** Структурное давление Китая + локальные бренды (Li-Ning, Anta)")
-                st.info("**Главный катализатор:** Восстановление North America Wholesale + Running")
-                st.info("**Скрытая связь:** Корреляция с американским discretionary spending и тарифной политикой Трампа")
+                st.info("**Главный риск:** Структурное давление Китая (локальные бренды + патриотизм)")
+                st.info("**Главный катализатор:** Восстановление в США + Running категория")
+                st.info("**Скрытая связь:** Nike сильно зависит от американского discretionary spending и тарифной политики")
 
             with tab3:
                 st.subheader("DCF Valuation")
@@ -85,12 +80,10 @@ if st.button("🚀 ЗАПУСТИТЬ 8-УРОВНЕВЫЙ STARK АНАЛИЗ", 
 
             with tab4:
                 st.subheader("🔮 Предвосхищение — Что рынок ещё не видит")
-                st.markdown("**Narrative:** Рынок переоценивает долгосрочность китайского спада. Nike уже активно снижает зависимость от Китая и возвращает культурную релевантность.")
-                st.markdown("**Опережающий индикатор 1:** Динамика Running категории в США")
-                st.markdown("**Опережающий индикатор 2:** Изменение настроений молодёжи в Китае")
+                st.markdown("**Narrative:** Рынок слишком пессимистичен по Китаю. Nike уже активно перестраивает supply chain и возвращает культурную релевантность через innovation.")
 
             with tab5:
-                st.info("Блок инсайдеров и катализаторов (можно расширить позже)")
+                st.info("Блок инсайдеров и катализаторов будет расширен в следующих версиях.")
 
             with tab6:
                 st.success("**ФИНАЛЬНЫЙ ВЕРДИКТ: НАКОПЛЕНИЕ**")
@@ -100,16 +93,16 @@ if st.button("🚀 ЗАПУСТИТЬ 8-УРОВНЕВЫЙ STARK АНАЛИЗ", 
                 st.caption("**ВОТ ТАК ЗАКАЛЯЕТСЯ ХАРАКТЕР.**")
 
         except Exception as e:
-            st.error(f"Ошибка: {str(e)[:150]}")
-            st.info("Подожди 30–60 секунд и попробуй снова (Yahoo rate limit)")
+            st.error(f"Ошибка: {str(e)[:120]}")
+            st.info("Подожди 30–60 секунд и попробуй снова.")
 
 # Быстрые тикеры
 st.markdown("### Быстрый анализ")
 cols = st.columns(6)
-for t in ["NKE", "ADDYY", "LULU", "CCJ", "VST", "OKLO"]:
-    if cols[0].button(t):  # Простая реализация
-        st.session_state.ticker_input = t
+quick = ["NKE", "ADDYY", "LULU", "CCJ", "VST", "OKLO"]
+for i, t in enumerate(quick):
+    if cols[i].button(t, use_container_width=True):
+        st.session_state["ticker_input"] = t
         st.rerun()
-    cols = cols[1:] if len(cols) > 1 else st.columns(6)
 
-st.caption("Если снова rate limit — подожди 1 минуту и обнови страницу.")
+st.caption("Если rate limit — просто подожди минуту и обнови страницу.")
