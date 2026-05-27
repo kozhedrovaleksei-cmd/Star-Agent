@@ -49,13 +49,11 @@ export default async function handler(req, res) {
 
   try {
     if (action === 'price') {
-      // Берём цену через Tavily — реальные данные
+      // Цена через Tavily
       try {
         const priceData = await tavilySearch(`${ticker} stock price today 2026`);
-        // Ищем цену вида $44.80 или 44.80
-        const match = priceData.match(/\$\s*([\d]{1,4}\.[\d]{1,2})|(?:^|\s)([\d]{2,4}\.[\d]{1,2})(?:\s|$)/);
-        const price = match ? parseFloat(match[1] || match[2]) : null;
-        // Ищем 52W High/Low
+        const match = priceData.match(/\$\s*([\d]{1,4}\.[\d]{1,2})/);
+        const price = match ? parseFloat(match[1]) : null;
         const highMatch = priceData.match(/52.week high[^\d]*([\d]+\.[\d]+)/i);
         const lowMatch = priceData.match(/52.week low[^\d]*([\d]+\.[\d]+)/i);
         return res.json({
@@ -77,13 +75,25 @@ export default async function handler(req, res) {
     if (action === 'analyze') {
       if (!crKey) return res.status(500).json({ error: 'No API key' });
 
-      // ШАГ 1: 4 параллельных поиска через Tavily — реальные данные 2026
-      const [news, insiders, catalysts, correlations] = await Promise.all([
+      // 4 параллельных поиска через Tavily
+      const results = await Promise.allSettled([
         tavilySearch(`${ticker} stock price today May 2026`),
         tavilySearch(`${ticker} insider buying SEC Form 4 2026`),
         tavilySearch(`${ticker} earnings news catalyst May 2026`),
         tavilySearch(`${ticker} suppliers leading indicators correlation 2026`)
       ]);
+
+      const news       = results[0].status === 'fulfilled' ? results[0].value : '';
+      const insiders   = results[1].status === 'fulfilled' ? results[1].value : '';
+      const catalysts  = results[2].status === 'fulfilled' ? results[2].value : '';
+      const correlations = results[3].status === 'fulfilled' ? results[3].value : '';
+
+      // Извлекаем цену из Tavily прямо здесь
+      let currentPrice = '';
+      if (news) {
+        const m = news.match(/\$\s*([\d]{1,4}\.[\d]{1,2})/);
+        if (m) currentPrice = m[1];
+      }
 
       const rawData = `
 === ЦЕНА И РЫНОК (май 2026) ===
@@ -99,13 +109,17 @@ ${catalysts || 'нет данных'}
 ${correlations || 'нет данных'}
 `.trim();
 
-      // ШАГ 2: Claude анализирует реальные данные и возвращает JSON
+      const priceInstruction = currentPrice
+        ? `\n\nВАЖНО: Текущая цена ${ticker} = $${currentPrice} (из веб-поиска май 2026). Используй именно эту цену в полях price ("$${currentPrice}") и priceNum (${currentPrice}). НЕ используй другую цену.`
+        : '';
+
       const analysisPrompt = `${prompt}
 
 РЕАЛЬНЫЕ ДАННЫЕ ИЗ ВЕБ-ПОИСКА (май 2026):
 ${rawData}
+${priceInstruction}
 
-КРИТИЧНО: Используй ТОЛЬКО данные выше. Все цены, события, инсайдеры — только из этих данных за 2026 год. Не используй данные старше января 2026. Если в разделе "ЦЕНА И РЫНОК" есть цена — используй именно её в полях price и priceNum.`;
+КРИТИЧНО: Используй ТОЛЬКО данные выше. Все цены, события, инсайдеры — только из этих данных за 2026 год.`;
 
       const text = await callClaude([{ role: 'user', content: analysisPrompt }], 4000);
       return res.json({ text });
