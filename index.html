@@ -500,13 +500,24 @@ JSON шаблон — заполни ВСЕ поля реальными данн
       method: stock.anticipationMethod || stock.anticipation?.method || ''
     };
 
+    // Берём реальную цену через Tavily (action: price)
+    let realPrice = 0;
+    try {
+      const rp = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'price', ticker })
+      });
+      const dp = await rp.json();
+      if (dp.price) realPrice = parseFloat(dp.price);
+    } catch(e) {}
+
     const norm = {
       ticker: safe(stock.ticker, ticker),
       name: safe(stock.name, ticker),
       sector: safe(stock.sector, 'N/A'),
       exchange: safe(stock.exchange, 'NYSE'),
-      price: (() => { const p = safe(stock.price, '$0').toString(); return p.includes('$') ? p : '$' + p; })(),
-      priceNum: parseFloat(String(stock.priceNum || stock.price || '0').replace(/[^0-9.]/g,'')) || 0,
+      price: realPrice ? '$' + realPrice.toFixed(2) : (() => { const p = safe(stock.price, '$0').toString(); return p.includes('$') ? p : '$' + p; })(),
+      priceNum: realPrice || parseFloat(String(stock.priceNum || stock.price || '0').replace(/[^0-9.]/g,'')) || 0,
       change: safe(stock.change, '0%'),
       marketCap: safe(stock.marketCap, 'N/A'),
       pe: safe(stock.pe, 'N/A'),
