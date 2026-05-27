@@ -3,180 +3,70 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>⚡️ STARK UNIVERSAL AGGREGATOR</title>
+  <title>⚡️ STARK UNIVERSAL AGGREGATOR v2.0</title>
   <style>
-    body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: #0a0a0a;
-      color: #00ff9d;
-      margin: 0;
-      padding: 20px;
-      line-height: 1.6;
-    }
-    .container { max-width: 1200px; margin: 0 auto; }
-    header { text-align: center; margin-bottom: 30px; }
-    h1 { color: #00ff9d; margin: 0; font-size: 2.4em; }
-    .subtitle { color: #00cc7a; font-size: 1.1em; }
-
-    .controls {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 25px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    input {
-      flex: 1;
-      min-width: 300px;
-      padding: 16px 20px;
-      font-size: 18px;
-      background: #1a1a1a;
-      border: 2px solid #00ff9d;
-      color: white;
-      border-radius: 10px;
-    }
-    button {
-      padding: 16px 36px;
-      background: #00ff9d;
-      color: #000;
-      font-weight: bold;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 17px;
-      white-space: nowrap;
-    }
-    button:hover { background: #00e68a; transform: scale(1.03); }
-
-    .quick-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-    .quick-btn {
-      padding: 8px 18px;
-      background: #1f1f1f;
-      border: 1px solid #00ff9d;
-      color: #00ff9d;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    .quick-btn:hover { background: #00ff9d; color: #000; }
-
-    .result {
-      background: #111;
-      padding: 30px;
-      border-radius: 12px;
-      border: 1px solid #00ff9d;
-      white-space: pre-wrap;
-      font-size: 15.5px;
-      max-height: 75vh;
-      overflow-y: auto;
-      display: none;
-    }
-    .loading {
-      color: #ffd700;
-      font-style: italic;
-      text-align: center;
-      padding: 40px;
-    }
-    .history {
-      margin-top: 30px;
-    }
+    body {font-family: 'Segoe UI', sans-serif; background:#0a0a0a; color:#00ff9d; margin:0; padding:20px;}
+    .container {max-width:1200px; margin:auto;}
+    h1 {color:#00ff9d; text-align:center;}
+    .controls {display:flex; gap:12px; margin:20px 0; flex-wrap:wrap;}
+    input {flex:1; padding:18px; font-size:18px; background:#111; border:2px solid #00ff9d; color:white; border-radius:12px;}
+    button {padding:18px 40px; background:#00ff9d; color:#000; font-weight:bold; border:none; border-radius:12px; cursor:pointer;}
+    .quick {display:flex; gap:8px; flex-wrap:wrap; margin:15px 0;}
+    .quick button {padding:8px 16px; background:#1a1a1a; border:1px solid #00ff9d; color:#00ff9d;}
+    .result {background:#111; padding:25px; border-radius:12px; border:1px solid #00ff9d; margin-top:20px; white-space:pre-wrap; max-height:70vh; overflow:auto; display:none;}
   </style>
 </head>
 <body>
   <div class="container">
-    <header>
-      <h1>⚡️ STARK UNIVERSAL AGGREGATOR v2.0</h1>
-      <p class="subtitle">Скрытые корреляции • Лаговые зависимости • Edge раньше рынка</p>
-    </header>
+    <h1>⚡️ STARK UNIVERSAL AGGREGATOR v2.0</h1>
+    <p style="text-align:center; color:#00cc7a;">Скрытые корреляции • Edge раньше рынка</p>
 
-    <div class="quick-buttons">
-      <span class="quick-btn" onclick="quickAnalyze('NKE')">NKE</span>
-      <span class="quick-btn" onclick="quickAnalyze('CCJ')">CCJ</span>
-      <span class="quick-btn" onclick="quickAnalyze('JD')">JD</span>
-      <span class="quick-btn" onclick="quickAnalyze('VST')">VST</span>
-      <span class="quick-btn" onclick="quickAnalyze('UEC')">UEC</span>
-      <span class="quick-btn" onclick="quickAnalyze('BTC')">BTC</span>
-      <span class="quick-btn" onclick="quickAnalyze('SBER')">SBER</span>
-      <span class="quick-btn" onclick="quickAnalyze('TSLA')">TSLA</span>
+    <div class="quick">
+      <button onclick="analyzeQuick('NKE')">NKE</button>
+      <button onclick="analyzeQuick('CCJ')">CCJ</button>
+      <button onclick="analyzeQuick('JD')">JD</button>
+      <button onclick="analyzeQuick('VST')">VST</button>
+      <button onclick="analyzeQuick('BTC')">BTC</button>
+      <button onclick="analyzeQuick('SBER')">SBER</button>
     </div>
 
     <div class="controls">
-      <input type="text" id="tickerInput" placeholder="Введи любой тикер или название (NKE, Bitcoin, Сбер, HYPE...)" />
-      <button onclick="startAnalysis()">⚡ АНАЛИЗИРОВАТЬ</button>
+      <input type="text" id="ticker" placeholder="NKE или Bitcoin или Сбер..." />
+      <button onclick="startAnalyze()">⚡ АНАЛИЗИРОВАТЬ</button>
     </div>
 
     <div id="result" class="result"></div>
-
-    <div class="history">
-      <h3>История анализов (последние 5)</h3>
-      <div id="historyList"></div>
-    </div>
   </div>
 
   <script>
-    let history = [];
-
-    async function startAnalysis() {
-      const input = document.getElementById('tickerInput').value.trim().toUpperCase();
-      if (!input) return alert('Введите тикер или название!');
-      analyze(input);
+    async function startAnalyze() {
+      const ticker = document.getElementById('ticker').value.trim();
+      if (!ticker) return alert("Введи тикер!");
+      analyze(ticker);
     }
 
-    function quickAnalyze(ticker) {
-      document.getElementById('tickerInput').value = ticker;
+    function analyzeQuick(ticker) {
+      document.getElementById('ticker').value = ticker;
       analyze(ticker);
     }
 
     async function analyze(ticker) {
-      const resultDiv = document.getElementById('result');
-      resultDiv.style.display = 'block';
-      resultDiv.innerHTML = `<p class="loading">⚡️ STARK сканирует рынок... Ищем скрытые корреляции для ${ticker} (15–30 сек)</p>`;
+      const resDiv = document.getElementById('result');
+      resDiv.style.display = 'block';
+      resDiv.innerHTML = `<p style="color:#ffd700">⚡️ STARK анализирует ${ticker}... (15-35 сек)</p>`;
 
       try {
-        // Получаем цену
-        const priceRes = await fetch('/api/analyze', {
+        const response = await fetch('/api/analyze', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'price', ticker })
-        });
-        const priceData = await priceRes.json();
-
-        // Главный анализ
-        const analyzeRes = await fetch('/api/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            action: 'analyze', 
-            ticker: ticker,
-            priceData: priceData 
-          })
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ action: 'analyze', ticker: ticker })
         });
 
-        const data = await analyzeRes.json();
-        
-        resultDiv.innerHTML = data.text || `<pre>${JSON.stringify(data, null, 2)}</pre>`;
-
-        // Сохраняем в историю
-        history.unshift({ ticker, time: new Date().toLocaleTimeString(), result: data.text?.substring(0, 300) + '...' });
-        if (history.length > 5) history.pop();
-        updateHistory();
-      } catch (e) {
-        resultDiv.innerHTML = `<p style="color:#ff4444">Ошибка: ${e.message}<br>Проверь Crazyrouter и Vercel env.</p>`;
+        const data = await response.json();
+        resDiv.innerHTML = data.text || `<pre>${JSON.stringify(data)}</pre>`;
+      } catch (err) {
+        resDiv.innerHTML = `<p style="color:#ff4444">Ошибка: ${err.message}<br>Проверь Environment Variables на Vercel.</p>`;
       }
-    }
-
-    function updateHistory() {
-      const list = document.getElementById('historyList');
-      list.innerHTML = history.map(item => `
-        <div style="background:#1a1a1a; padding:12px; margin:8px 0; border-radius:8px; border-left:3px solid #00ff9d;">
-          <strong>${item.ticker}</strong> — ${item.time}
-        </div>
-      `).join('');
     }
   </script>
 </body>
