@@ -5,25 +5,77 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>STARK AI AGENT v3.1 — АКТУАЛЬНЫЕ ДАННЫЕ</title>
 <style>
-  body { font-family: 'Inter', system-ui, sans-serif; background: #0F0F0F; color: #E0E0E0; margin: 0; padding: 20px; }
-  .container { max-width: 1100px; margin: auto; }
-  h1 { color: #C9A84C; }
-  input, button, textarea { padding: 12px; margin: 8px 0; border-radius: 4px; }
-  button { background: #C9A84C; color: black; font-weight: bold; cursor: pointer; }
-  #result { background: #1A1A1A; padding: 20px; border-radius: 8px; white-space: pre-wrap; margin-top: 20px; }
-  .price { color: #4CAF7D; font-weight: bold; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+  
+  body {
+    background: #F2F3F5;
+    color: #1F2937;
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 20px;
+  }
+  .container {
+    max-width: 1000px;
+    margin: auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+  .header {
+    background: linear-gradient(135deg, #1F2937, #374151);
+    color: white;
+    padding: 25px 30px;
+    text-align: center;
+  }
+  h1 { margin: 0; font-size: 28px; }
+  .input-area {
+    padding: 25px;
+    display: flex;
+    gap: 12px;
+    background: #F8FAFC;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  input {
+    flex: 1;
+    padding: 14px;
+    border: 1px solid #CBD5E1;
+    border-radius: 8px;
+    font-size: 16px;
+  }
+  button {
+    padding: 14px 28px;
+    background: #C9A84C;
+    color: black;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  #result {
+    padding: 25px;
+    min-height: 400px;
+    white-space: pre-wrap;
+    font-size: 14px;
+    line-height: 1.6;
+    background: #FAFBFC;
+  }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>STARK AI AGENT v3.1</h1>
-  <p>Актуальные данные • Скрытые корреляции • Предвосхищение</p>
+  <div class="header">
+    <h1>STARK AI AGENT v3.1</h1>
+    <p>Скрытые корреляции • Предвосхищение • Актуальные данные</p>
+  </div>
+  
+  <div class="input-area">
+    <input type="text" id="ticker" placeholder="Введи тикер (VST, CCJ, NKE, SBER...)" />
+    <button onclick="getPrice()">ЦЕНА</button>
+    <button onclick="analyzeTicker()">ПОЛНЫЙ АНАЛИЗ</button>
+  </div>
 
-  <input type="text" id="ticker" placeholder="Тикер (VST, CCJ, NKE...)" style="width:300px;">
-  <button onclick="analyzeTicker()">АНАЛИЗИРОВАТЬ</button>
-  <button onclick="getPrice()">Текущая Цена</button>
-
-  <div id="result"></div>
+  <div id="result">Готов к работе. Введи тикер и нажми кнопку.</div>
 </div>
 
 <script>
@@ -33,11 +85,11 @@ async function getPrice() {
   
   const res = await fetch('/api/analyze', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({ action: 'price', ticker })
   });
   const data = await res.json();
-  document.getElementById('result').innerHTML = `<strong class="price">${ticker}: $${data.price || '—'}</strong>`;
+  document.getElementById('result').innerHTML = `<strong style="color:#15803d;font-size:18px;">${ticker}: $${data.price || '—'} (обновлено сейчас)</strong>`;
 }
 
 async function analyzeTicker() {
@@ -45,41 +97,27 @@ async function analyzeTicker() {
   if (!ticker) return alert('Введи тикер');
 
   const resultDiv = document.getElementById('result');
-  resultDiv.textContent = 'Анализирую актуальные данные...';
-
-  const currentDate = new Date().toISOString().split('T')[0];
+  resultDiv.innerHTML = '<strong>Запрашиваю самые свежие данные...</strong>';
 
   const prompt = `
-Сейчас ${currentDate}. Ищи САМЫЕ СВЕЖИЕ данные на сегодня через web_search.
+Сейчас ${new Date().toLocaleDateString('ru-RU')}. Используй web_search для максимально актуальной информации на сегодня.
 
 Тикер: ${ticker}
 
-Проведи полный STARK анализ по 8 уровням.
-Обязательно используй web_search для:
-- Текущей цены и последних движений
-- Свежих новостей (последние 7 дней)
-- Инсайдеров (SEC Form 4)
-- Катализаторов с датами
-
-Верни ТОЛЬКО чистый JSON. Никакого текста до или после.
+Проведи полный STARK-анализ. Обязательно найди текущую цену, последние новости и катализаторы.
+Верни ТОЛЬКО чистый JSON без лишнего текста.
 `;
 
   try {
     const res = await fetch('/api/analyze', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        action: 'analyze', 
-        ticker: ticker,
-        prompt: prompt 
-      })
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ action: 'analyze', ticker, prompt })
     });
-
     const data = await res.json();
     resultDiv.textContent = data.text || JSON.stringify(data, null, 2);
-    
   } catch (e) {
-    resultDiv.textContent = 'Ошибка: ' + e.message;
+    resultDiv.textContent = 'Ошибка соединения: ' + e.message;
   }
 }
 </script>
