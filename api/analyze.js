@@ -257,7 +257,7 @@ body { background: var(--bg); color: var(--text); font-family: 'JetBrains Mono',
   <div id="loading" class="loading">
     <div class="load-title">⚡ STARK АНАЛИЗИРУЕТ...</div>
     <div class="steps">
-      <div class="step" id="s1"><span>🌐</span> Веб-поиск актуальных данных</div>
+      <div class="step" id="s1"><span>🌐</span> Веб-поиск актуальных данных (Tavily)</div>
       <div class="step" id="s2"><span>📰</span> Поиск новостей и инсайдеров</div>
       <div class="step" id="s3"><span>🔗</span> Скрытые корреляции и лаговые зависимости</div>
       <div class="step" id="s4"><span>📊</span> Фундаментал и мультипликаторы</div>
@@ -299,16 +299,31 @@ document.addEventListener('DOMContentLoaded', () => {
   if (tv) { setTVStatus('✅ СОХРАНЁН', 'var(--green)'); document.getElementById('tvKeyInput').value = tv; }
 });
 
-// ─── Универсальный экстрактор строки из поля объекта ──────────────────────
-function extractStr(val) {
-  if (!val) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'object') {
-    // Попробуем распространённые поля
-    return val.name || val.label || val.title || val.value || val.text || val.description || JSON.stringify(val);
+async function getYahooPrice(ticker) {
+  try {
+    const res = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'price', ticker })
+    });
+    const data = await res.json();
+    if (data.price) return data;
+  } catch(e) {}
+  return null;
+}
+
+async function tavilySearch(query, apiKey) {
+  try {
+    const res = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'search', query, tavilyKey: apiKey || localStorage.getItem('tavily_key') || '' })
+    });
+    const data = await res.json();
+    return data.result || '';
+  } catch(e) {
+    return '';
   }
-  return String(val);
 }
 
 async function analyze() {
@@ -328,19 +343,19 @@ async function analyze() {
   const steps = ['s1','s2','s3','s4','s5','s6','s7','s8'];
   steps.forEach(s => document.getElementById(s).className = 'step');
 
+  // STEP 1 — получить данные
   document.getElementById('s1').className = 'step active';
   document.getElementById('s2').className = 'step active';
 
-  const dataPrompt = `Используй web_search tool чтобы найти актуальные данные по акции ${ticker} прямо сейчас (май 2026).
-Поищи: "${ticker} stock price today 2026", "${ticker} insider buying SEC Form 4 2026", "${ticker} earnings date 2026".
-Нужно:
+  const dataPrompt = `Найди актуальные данные по акции ${ticker} (май 2026). Нужно:
 1. Текущая цена и изменение за год
 2. Market Cap, P/E, дивиденд
 3. 52W High и 52W Low
 4. Последние новости (1-2 предложения)
 5. Инсайдерские покупки CEO/CFO из SEC Form 4 за последние 6 месяцев
 6. Ближайшие события (отчёты, дивиденды)
-Отвечай кратко, только факты.`;
+
+Отвечай кратко, только факты, на русском языке.`;
 
   let rawData = '';
   try {
@@ -351,34 +366,28 @@ async function analyze() {
     });
     const d1 = await r1.json();
     rawData = d1.text || '';
-    console.log('RAW DATA FROM STEP1:', rawData.slice(0, 300));
-  } catch(e) { console.error('Step1 error:', e); }
+  } catch(e) {}
 
   document.getElementById('s1').className = 'step done';
   document.getElementById('s2').className = 'step done';
 
+  // Animate remaining steps
   for (let i = 2; i < steps.length - 1; i++) {
     document.getElementById(steps[i]).className = 'step active';
-    await sleep(400);
+    await sleep(500);
     document.getElementById(steps[i]).className = 'step done';
   }
   document.getElementById(steps[steps.length-1]).className = 'step active';
 
+  // STEP 2 — STARK анализ на основе данных
   const prompt = `Ты — STARK AI. Сделай полный анализ акции ${ticker}.
 
-АКТУАЛЬНЫЕ ДАННЫЕ (найдены через веб-поиск только что):
+АКТУАЛЬНЫЕ ДАННЫЕ (найдены только что):
 ${rawData || 'Используй свои знания'}
 
 ${context ? 'Гипотеза инвестора: ' + context : ''}
 
-ВАЖНО: Верни СТРОГО валидный JSON без markdown, без текста вокруг. Все строковые поля — только строки. Массивы correlationChain — ТОЛЬКО строки (не объекты). Массивы insiders и events — объекты с конкретными полями ниже.
-
-Формат insiders: [{"name":"Имя Фамилия","role":"CEO/CFO/Director","type":"buy","amount":"$500K","shares":"10000","date":"15 янв 2026"}]
-Формат events: [{"date":"25 июн 2026","text":"Описание события","urgent":false}]
-Формат chartEvents: [{"date":"2024","price":85,"type":"peak","label":"ATH","driver":"Причина роста"}]
-Формат correlationChain: ["элемент1","элемент2","элемент3"]
-
-JSON шаблон:
+Верни СТРОГО валидный JSON без markdown, без текста вокруг:
 {"ticker":"${ticker}","name":"","sector":"","exchange":"","price":"$0","priceNum":0,"change":"0%","marketCap":"","pe":"","dividend":"","week52Low":"","week52High":"","week52LowNum":0,"week52HighNum":0,"atHigh":"","verdict":"НАБЛЮДАТЬ","verdictEn":"watch","confidence":"СРЕДНЯЯ","rr":"2:1","support":"","entry":"","resistance":"","target1":"","target1Pct":"","target1Period":"","target2":"","target2Pct":"","target2Period":"","target3":"","target3Pct":"","target3Period":"","webDataSummary":"","correlation":"","correlationChain":[],"insiders":[],"events":[],"bullCase":"","bearCase":"","verdict_text":"","stopLoss":"","macro":"","chartEvents":[]}`;
 
   try {
@@ -392,12 +401,16 @@ JSON шаблон:
     if (data.error) throw new Error(data.error || 'API Error');
 
     const text = data.text || '';
-    console.log('RAW JSON TEXT:', text.slice(0, 600));
 
     let stock;
     try {
+      // Strip markdown code blocks
       const cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+
+      // Method 1: parse cleaned directly
       try { stock = JSON.parse(cleaned); } catch(e) {}
+
+      // Method 2: find { } in cleaned
       if (!stock) {
         const start = cleaned.indexOf('{');
         const end = cleaned.lastIndexOf('}');
@@ -405,78 +418,47 @@ JSON шаблон:
           try { stock = JSON.parse(cleaned.slice(start, end + 1)); } catch(e) {}
         }
       }
+
+      // Method 3: original text fallback
+      if (!stock) {
+        const start = text.indexOf('{');
+        const end = text.lastIndexOf('}');
+        if (start !== -1 && end !== -1) {
+          try { stock = JSON.parse(text.slice(start, end + 1)); } catch(e) {}
+        }
+      }
+
       if (!stock) throw new Error('JSON не найден');
+
     } catch(e) {
       throw new Error('Ошибка парсинга — попробуй ещё раз');
     }
-
-    console.log('PARSED STOCK:', JSON.stringify(stock).slice(0, 400));
 
     steps.forEach(s => document.getElementById(s).className = 'step done');
     await sleep(400);
     document.getElementById('loading').classList.remove('show');
 
+    // DEBUG — посмотреть что вернул Claude
+    console.log('RAW TEXT:', text.slice(0, 500));
+    console.log('PARSED STOCK:', JSON.stringify(stock).slice(0, 500));
+
+    // Normalize
     const safe = (v, def='—') => (v !== undefined && v !== null && v !== '') ? v : def;
-
-    // ─── Нормализация correlationChain — всегда массив строк ───────────
-    let corrChain = [];
-    if (Array.isArray(stock.correlationChain)) {
-      corrChain = stock.correlationChain.map(c => extractStr(c)).filter(Boolean);
-    }
-
-    // ─── Нормализация insiders — унификация полей ───────────────────────
-    let insiders = [];
-    if (Array.isArray(stock.insiders)) {
-      insiders = stock.insiders.map(i => ({
-        name: extractStr(i.name || i.person || i.insider || ''),
-        role: extractStr(i.role || i.title || i.position || ''),
-        type: (i.type || i.signal || i.action || 'buy').toString().toLowerCase().includes('buy') ? 'buy' : 'sell',
-        amount: extractStr(i.amount || i.value || i.sum || ''),
-        shares: extractStr(i.shares || i.quantity || ''),
-        date: extractStr(i.date || i.transactionDate || '')
-      }));
-    }
-
-    // ─── Нормализация events ────────────────────────────────────────────
-    let events = [];
-    if (Array.isArray(stock.events)) {
-      events = stock.events.map(e => ({
-        date: extractStr(e.date || e.when || ''),
-        text: extractStr(e.text || e.description || e.event || e.title || ''),
-        urgent: !!(e.urgent || e.important)
-      }));
-    }
-
-    // ─── Нормализация chartEvents ───────────────────────────────────────
-    let chartEvents = [];
-    if (Array.isArray(stock.chartEvents)) {
-      chartEvents = stock.chartEvents.map(e => ({
-        date: extractStr(e.date || ''),
-        price: parseFloat(e.price || e.value || 0),
-        type: extractStr(e.type || 'catalyst'),
-        label: extractStr(e.label || e.title || ''),
-        driver: extractStr(e.driver || e.description || e.reason || '')
-      })).filter(e => e.price > 0);
-    }
-
     const norm = {
       ticker: safe(stock.ticker, ticker),
       name: safe(stock.name, stock.company || stock.fullName || ticker),
       sector: safe(stock.sector, stock.industry || 'N/A'),
       exchange: safe(stock.exchange, 'NYSE'),
-      price: (() => {
-        const p = safe(stock.price, stock.currentPrice || stock.lastPrice || '$0').toString();
-        return p.includes('$') ? p : '$' + p;
-      })(),
-      priceNum: parseFloat(String(stock.priceNum || stock.price || '0').replace(/[^0-9.]/g,'')) || 0,
+      price: safe(stock.price, stock.currentPrice || stock.lastPrice || '$0').toString().includes('$') ? safe(stock.price, '$0').toString() : '$' + safe(stock.price, '0').toString(),
+      priceNum: parseFloat(stock.priceNum || stock.price?.replace(/[^0-9.]/g,'')) || 0,
       change: safe(stock.change, stock.priceChange || '0%'),
       marketCap: safe(stock.marketCap, stock.mktCap || 'N/A'),
       pe: safe(stock.pe, stock.peRatio || stock.p_e || 'N/A'),
       dividend: safe(stock.dividend, stock.dividendYield || '0%'),
       week52Low: safe(stock.week52Low, stock['52wLow'] || '0'),
       week52High: safe(stock.week52High, stock['52wHigh'] || '0'),
-      week52LowNum: parseFloat(String(stock.week52LowNum || stock['52wLow'] || '0').replace(/[^0-9.]/g,'')) || 0,
-      week52HighNum: parseFloat(String(stock.week52HighNum || stock['52wHigh'] || '1').replace(/[^0-9.]/g,'')) || 1,
+      week52LowNum: parseFloat(stock.week52LowNum || stock['52wLow']) || 0,
+      week52HighNum: parseFloat(stock.week52HighNum || stock['52wHigh']) || 1,
       atHigh: safe(stock.atHigh, stock.allTimeHigh || stock.ath || 'N/A'),
       verdict: safe(stock.verdict, 'НАБЛЮДАТЬ'),
       verdictEn: safe(stock.verdictEn, 'watch'),
@@ -487,27 +469,27 @@ JSON шаблон:
       resistance: safe(stock.resistance, '0'),
       target1: safe(stock.target1, '0'),
       target1Pct: safe(stock.target1Pct, '+0%'),
-      target1Period: safe(stock.target1Period, '3-6 мес'),
+      target1Period: safe(stock.target1Period, '6-12 мес'),
       target2: safe(stock.target2, '0'),
       target2Pct: safe(stock.target2Pct, '+0%'),
-      target2Period: safe(stock.target2Period, '6-12 мес'),
+      target2Period: safe(stock.target2Period, '12-24 мес'),
       target3: safe(stock.target3, '0'),
       target3Pct: safe(stock.target3Pct, '+0%'),
-      target3Period: safe(stock.target3Period, '12-24 мес'),
+      target3Period: safe(stock.target3Period, '2026-2028'),
       webDataSummary: safe(stock.webDataSummary, stock.summary || ''),
       correlation: safe(stock.correlation, stock.hiddenCorrelation || 'Нет данных'),
-      correlationChain: corrChain,
-      insiders: insiders,
-      events: events,
+      correlationChain: Array.isArray(stock.correlationChain) ? stock.correlationChain : [],
+      insiders: Array.isArray(stock.insiders) ? stock.insiders : [],
+      events: Array.isArray(stock.events) ? stock.events : [],
       bullCase: safe(stock.bullCase, stock.bull || 'Нет данных'),
       bearCase: safe(stock.bearCase, stock.bear || 'Нет данных'),
       verdict_text: safe(stock.verdict_text, stock.verdictText || stock.analysis || 'Нет данных'),
       stopLoss: safe(stock.stopLoss, stock.stop || '0'),
       macro: safe(stock.macro, stock.macroContext || ''),
-      chartEvents: chartEvents
+      chartEvents: Array.isArray(stock.chartEvents) ? stock.chartEvents : []
     };
 
-    renderResult(norm);
+    renderResult(norm, false);
 
   } catch(e) {
     document.getElementById('loading').classList.remove('show');
@@ -518,33 +500,36 @@ JSON шаблон:
   }
 }
 
-function renderResult(s) {
+function renderResult(s, hasWeb) {
   const verdictClass = {'buy':'verdict-buy','watch':'verdict-watch','wait':'verdict-wait','sell':'verdict-sell'}[s.verdictEn] || 'verdict-watch';
-  const lo = s.week52LowNum || 0;
-  const hi = s.week52HighNum || 1;
-  const cur = s.priceNum || (lo+hi)/2;
+  const lo = parseFloat(s.week52LowNum) || 0;
+  const hi = parseFloat(s.week52HighNum) || 1;
+  const cur = parseFloat(s.priceNum) || (lo+hi)/2;
   const pct = Math.min(100, Math.max(0, ((cur-lo)/(hi-lo))*100));
 
-  const insidersHtml = s.insiders.length ? s.insiders.map(i => `
+  const insidersHtml = (s.insiders||[]).map(i=>`
     <div class="insider-item">
-      <div><div class="insider-name">${i.name || '—'}</div><div class="insider-role">${i.role || '—'}</div></div>
-      <div class="insider-amount ${i.type === 'buy' ? 'insider-buy' : 'insider-sell'}">${i.type === 'buy' ? 'ПОКУПКА' : 'ПРОДАЖА'} ${i.amount || ''} ${i.shares ? '(' + i.shares + ' акций)' : ''}</div>
-      <div class="insider-date">${i.date || '—'}</div>
-    </div>`).join('')
-    : '<div style="font-size:11px;color:var(--dim)">Нет данных по инсайдерам за последние 6 месяцев</div>';
+      <div><div class="insider-name">${i.name}</div><div class="insider-role">${i.role}</div></div>
+      <div class="insider-amount ${i.signal==='buy'?'insider-buy':'insider-sell'}">${i.action} ${i.amount}</div>
+      <div class="insider-date">${i.date}</div>
+    </div>`).join('') || '<div style="font-size:11px;color:var(--dim)">Нет данных по инсайдерам</div>';
 
-  const eventsHtml = s.events.length ? s.events.map(e => `
+  const eventsHtml = (s.events||[]).map(e=>`
     <div class="event-item">
-      <div class="event-date">${e.date || '—'}</div>
-      <div class="event-text">${e.text || '—'}${e.urgent ? '<span class="event-tag tag-urgent">СРОЧНО</span>' : '<span class="event-tag tag-catalyst">КАТАЛИЗАТОР</span>'}</div>
-    </div>`).join('')
-    : '<div style="font-size:11px;color:var(--dim)">Нет данных о событиях</div>';
+      <div class="event-date">${e.date}</div>
+      <div class="event-text">${e.text}${e.urgent?'<span class="event-tag tag-urgent">СРОЧНО</span>':'<span class="event-tag tag-catalyst">КАТАЛИЗАТОР</span>'}</div>
+    </div>`).join('') || '<div style="font-size:11px;color:var(--dim)">Нет данных</div>';
 
-  const chainHtml = s.correlationChain.map((c, i, arr) =>
-    `<span class="corr-node">${c}</span>${i < arr.length-1 ? '<span class="corr-arrow">→</span>' : ''}`
-  ).join('');
+  const chainHtml = (s.correlationChain||[]).map((c,i,arr)=>`<span class="corr-node">${c}</span>${i<arr.length-1?'<span class="corr-arrow">→</span>':''}`).join('');
+
+  const webHtml = hasWeb && s.webDataSummary ? `
+    <div class="web-data">
+      <div class="web-data-title">🌐 АКТУАЛЬНЫЕ ДАННЫЕ ИЗ ИНТЕРНЕТА (май 2026)</div>
+      <div class="web-data-text">${s.webDataSummary}</div>
+    </div>` : '';
 
   document.getElementById('result').innerHTML = `
+    ${webHtml}
     <div class="stock-hdr">
       <div>
         <div class="stock-name">${s.ticker}</div>
@@ -553,7 +538,7 @@ function renderResult(s) {
       </div>
       <div class="stock-price-block">
         <div class="stock-price">${s.price}</div>
-        <div class="stock-change ${s.change && s.change.includes('+') ? 'pos' : 'neg'}">${s.change}</div>
+        <div class="stock-change ${s.change?.includes('+')?'pos':'neg'}">${s.change}</div>
         <div><span class="verdict-badge ${verdictClass}">${s.verdict}</span></div>
         <div style="font-size:10px;color:var(--dim);margin-top:6px">R:R ${s.rr} · ${s.confidence} уверенность</div>
       </div>
@@ -589,7 +574,7 @@ function renderResult(s) {
     <div class="corr-section">
       <div class="corr-title">🔗 СКРЫТАЯ КОРРЕЛЯЦИЯ — МЕТОД АЛЕКСЕЯ</div>
       <div class="corr-text">${s.correlation}</div>
-      <div class="corr-chain">${chainHtml || '<span style="color:var(--dim);font-size:11px">Нет данных</span>'}</div>
+      <div class="corr-chain">${chainHtml}</div>
     </div>
     <div class="insiders-section">
       <div class="insiders-title">👔 ИНСАЙДЕРЫ И УМНЫЕ ДЕНЬГИ — SEC FORM 4</div>
@@ -624,6 +609,8 @@ function renderResult(s) {
 
   document.getElementById('result').classList.add('show');
   document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
+
+  // Draw chart after DOM update
   setTimeout(() => drawChart(s.chartEvents || []), 100);
 }
 
@@ -640,12 +627,15 @@ function drawChart(events) {
   const prices = events.map(e => e.price);
   const minP = Math.min(...prices) * 0.9;
   const maxP = Math.max(...prices) * 1.1;
+
   const typeColor = { peak: '#C9A84C', crash: '#E05252', catalyst: '#4CAF7D', current: '#4A9EFF' };
 
   const xOf = (i) => pad.left + (i / (events.length - 1)) * (W - pad.left - pad.right);
   const yOf = (p) => pad.top + (1 - (p - minP) / (maxP - minP)) * (H - pad.top - pad.bottom);
 
-  ctx.strokeStyle = '#1A1A1A'; ctx.lineWidth = 1;
+  // Background grid
+  ctx.strokeStyle = '#1A1A1A';
+  ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
     const y = pad.top + (i / 4) * (H - pad.top - pad.bottom);
     ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
@@ -654,6 +644,7 @@ function drawChart(events) {
     ctx.fillText('$' + val.toFixed(0), 4, y + 4);
   }
 
+  // Gradient fill
   const grad = ctx.createLinearGradient(0, pad.top, 0, H - pad.bottom);
   grad.addColorStop(0, 'rgba(201,168,76,0.2)');
   grad.addColorStop(1, 'rgba(201,168,76,0)');
@@ -663,41 +654,66 @@ function drawChart(events) {
   ctx.lineTo(xOf(events.length - 1), H - pad.bottom);
   ctx.lineTo(xOf(0), H - pad.bottom);
   ctx.closePath();
-  ctx.fillStyle = grad; ctx.fill();
+  ctx.fillStyle = grad;
+  ctx.fill();
 
-  ctx.beginPath(); ctx.strokeStyle = '#C9A84C'; ctx.lineWidth = 2;
+  // Line
+  ctx.beginPath();
+  ctx.strokeStyle = '#C9A84C';
+  ctx.lineWidth = 2;
   events.forEach((e, i) => i === 0 ? ctx.moveTo(xOf(i), yOf(e.price)) : ctx.lineTo(xOf(i), yOf(e.price)));
   ctx.stroke();
 
+  // Event dots + labels
   events.forEach((e, i) => {
     const x = xOf(i), y = yOf(e.price);
     const color = typeColor[e.type] || '#888';
-    ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2);
-    ctx.fillStyle = color; ctx.fill();
-    ctx.strokeStyle = '#080808'; ctx.lineWidth = 2; ctx.stroke();
-    ctx.fillStyle = color; ctx.font = 'bold 10px JetBrains Mono, monospace';
-    ctx.fillText(e.label, Math.max(pad.left, Math.min(W - pad.right - 40, x - 20)), y - 12);
-    ctx.fillStyle = '#444'; ctx.font = '9px JetBrains Mono, monospace';
+    ctx.beginPath();
+    ctx.arc(x, y, 6, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = '#080808';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = color;
+    ctx.font = 'bold 10px JetBrains Mono, monospace';
+    const labelX = Math.max(pad.left, Math.min(W - pad.right - 40, x - 20));
+    ctx.fillText(e.label, labelX, y - 12);
+
+    // Date below
+    ctx.fillStyle = '#444';
+    ctx.font = '9px JetBrains Mono, monospace';
     ctx.fillText(e.date, Math.max(pad.left, x - 18), H - pad.bottom + 16);
   });
 
+  // Hover
   const tooltip = document.getElementById('chartTooltip');
   canvas.addEventListener('mousemove', (ev) => {
     const rect = canvas.getBoundingClientRect();
     const mx = (ev.clientX - rect.left) * (W / rect.width);
     let closest = null, minDist = 999;
-    events.forEach((e, i) => { const d = Math.abs(xOf(i) - mx); if (d < minDist) { minDist = d; closest = { e, i }; } });
+    events.forEach((e, i) => {
+      const d = Math.abs(xOf(i) - mx);
+      if (d < minDist) { minDist = d; closest = { e, i }; }
+    });
     if (closest && minDist < 40) {
       document.getElementById('ttDate').textContent = closest.e.date;
       document.getElementById('ttPrice').textContent = '$' + closest.e.price;
       document.getElementById('ttDriver').textContent = closest.e.driver;
-      tooltip.style.left = Math.min(ev.clientX - rect.left + 12, rect.width - 250) + 'px';
-      tooltip.style.top = Math.max(0, ev.clientY - rect.top - 60) + 'px';
+      const tx = Math.min(ev.clientX - rect.left + 12, rect.width - 250);
+      const ty = Math.max(0, ev.clientY - rect.top - 60);
+      tooltip.style.left = tx + 'px';
+      tooltip.style.top = ty + 'px';
       tooltip.style.display = 'block';
-    } else { tooltip.style.display = 'none'; }
+    } else {
+      tooltip.style.display = 'none';
+    }
   });
   canvas.addEventListener('mouseleave', () => tooltip.style.display = 'none');
 
+  // Events list
   const typeColor2 = { peak: 'ev-peak', crash: 'ev-crash', catalyst: 'ev-catalyst', current: 'ev-current' };
   const list = document.getElementById('chartEventsList');
   if (list) {
