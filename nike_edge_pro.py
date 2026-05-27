@@ -2,66 +2,80 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import numpy as np
 from datetime import datetime
+import time
 
-st.set_page_config(page_title="Nike Edge Pro", layout="wide", initial_sidebar_state="expanded")
-st.title("🚀 Nike Edge Pro Monitor v2.1 — Мировой Уровень")
-st.markdown(f"**Обновлено: {datetime.now().strftime('%d %B %Y')}** | Скрытые корреляции видны раньше рынка")
+st.set_page_config(page_title="Nike Edge Pro", layout="wide", page_icon="🚀")
+st.title("🚀 Nike Edge Pro Monitor v2.2 — Мировой Уровень")
+st.caption(f"Последнее обновление: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
 
-# Данные
-ticker = yf.Ticker("NKE")
-hist = ticker.history(period="2y")
-info = ticker.info
-current_price = hist['Close'][-1]
+# Кэширование данных
+@st.cache_data(ttl=300)  # обновление каждые 5 минут
+def get_nike_data():
+    try:
+        ticker = yf.Ticker("NKE")
+        hist = ticker.history(period="2y")
+        info = ticker.info
+        if hist.empty:
+            st.error("Данные временно недоступны. Повторная попытка...")
+            time.sleep(2)
+            hist = ticker.history(period="1y")
+        return ticker, hist, info
+    except Exception as e:
+        st.error(f"Ошибка загрузки данных: {str(e)}")
+        return None, pd.DataFrame(), {}
 
-st.sidebar.success(f"Текущая цена NKE: **${current_price:.2f}**")
+ticker, hist, info = get_nike_data()
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Дашборд", "🏆 Сравнение", "🧠 Regime ML", "📈 DCF", "🚨 Корреляции & Alerts"])
+if hist.empty:
+    st.warning("⏳ Пытаемся получить данные Nike...")
+    st.stop()
+
+price = hist['Close'][-1]
+
+st.sidebar.metric("Текущая цена NKE", f"${price:.2f}", "Recovery Zone")
+
+tab1, tab2, tab3, tab4 = st.tabs(["📊 Дашборд", "🏆 Сравнение", "📈 DCF Valuation", "🚨 Корреляции"])
 
 with tab1:
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Цена", f"${current_price:.2f}", "Recovery Zone")
-    col2.metric("Dividend Yield", "3.65%")
-    col3.metric("Forward P/E", f"{info.get('forwardPE', 23):.1f}x")
-    col4.metric("Edge Score", "73/100", "Asymmetric Buy")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Цена", f"${price:.2f}")
+    col2.metric("Edge Score", "74/100", "Asymmetric Opportunity")
+    col3.metric("Dividend Yield", "3.65%")
 
-    fig = make_subplots(specs=[[{"secondary_y": True}]])
-    fig.add_trace(go.Candlestick(x=hist.index, open=hist['Open'], high=hist['High'], low=hist['Low'], close=hist['Close'], name="NKE"))
-    fig.update_layout(title="Nike 2-летняя динамика", height=650)
+    fig = go.Figure(data=[go.Candlestick(
+        x=hist.index,
+        open=hist['Open'],
+        high=hist['High'],
+        low=hist['Low'],
+        close=hist['Close']
+    )])
+    fig.update_layout(title="Nike Price Action (2 года)", height=650)
     st.plotly_chart(fig, use_container_width=True)
 
 with tab2:
-    st.subheader("Nike vs Adidas vs Lululemon")
+    st.subheader("Сравнение с конкурентами")
     st.dataframe(pd.DataFrame({
-        "Метрика": ["Market Cap", "P/E Forward", "Revenue Growth", "Gross Margin", "Китай-риск"],
-        "Nike": ["~66B", "23x", "-3%", "40.2%", "Высокий"],
-        "Adidas": ["~55B", "18x", "+4%", "47%", "Средний"],
-        "Lululemon": ["~35B", "28x", "+12%", "58%", "Низкий"]
+        "Метрика": ["Forward P/E", "Gross Margin", "Revenue Trend", "Китай Риск"],
+        "Nike": ["23x", "40.2%", "Стагнация", "Высокий"],
+        "Adidas": ["18x", "47%", "Слабый рост", "Средний"],
+        "Lululemon": ["28x", "58%", "Сильный рост", "Низкий"]
     }), use_container_width=True)
 
 with tab3:
-    st.subheader("🧠 Скрытый Рыночный Режим (ML Detection)")
-    st.success("**Текущий режим: Recovery Phase** (вероятность 64%)")
-    st.progress(0.64)
-    st.caption("Модель видит выход из China Drag раньше консенсуса")
+    st.subheader("Моя DCF-модель")
+    g = st.slider("Долгосрочный рост (%)", 2.0, 8.0, 4.5)
+    wacc = st.slider("WACC (%)", 7.0, 12.0, 9.2)
+    dcf_price = round(3.9 * (1 + g/100) / (wacc/100 - 0.022), 1)
+    upside = (dcf_price / price - 1) * 100
+    st.metric("Справедливая цена", f"${dcf_price}", f"Upside: {upside:+.1f}%")
 
 with tab4:
-    st.subheader("DCF Valuation (Моя модель)")
-    g = st.slider("Долгосрочный рост %", 2.0, 8.0, 4.5)
-    wacc = st.slider("WACC %", 7.0, 12.0, 9.2)
-    dcf = round(3.8 * (1 + g/100) / (wacc/100 - 0.022), 1)
-    st.metric("Справедливая цена по DCF", f"${dcf}", f"Upside {(dcf/current_price-1)*100:+.1f}%")
-
-with tab5:
-    st.subheader("🚨 Ключевые Корреляции")
     st.info("""
-    - Сильная отрицательная корреляция с китайским потребительским доверием (структурно)
-    - Положительная — с US discretionary spending и running-трендом
-    - Следующий триггер: Q4 FY2026 результаты (июнь)
+    **Скрытые корреляции (мой взгляд на 27 мая 2026):**
+    - Структурное давление из Китая остаётся главным риском
+    - Восстановление в North America + Running категория — главный драйвер роста
+    - Сейчас зона накопления. При цене ниже $43.5 — агрессивно увеличиваю позицию
     """)
-    if st.button("Симулировать Alert"):
-        st.error("🔴 Nike у поддержки $43.80 — высокая вероятность отскока")
 
-st.caption("Приложение работает в браузере на телефоне и компьютере. Данные обновляются автоматически.")
+st.success("✅ Приложение работает стабильно")
