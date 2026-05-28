@@ -154,26 +154,62 @@ export default async function handler(req, res) {
         ? ticker + ' MOEX акция цена рублей котировка май 2026'
         : ticker + ' stock price today May 2026';
 
-      const corrQuery = (ticker === 'RUAL')
-        ? 'алюминий LME цена 3M фьючерс USD tonne май 2026 aluminum price LME'
-        : ticker + ' suppliers leading indicators correlation 2026';
+      const corrQuery = ticker + ' suppliers leading indicators correlation 2026';
 
-      // БАГ 3 FIX: отдельный запрос по инсайдерам на русском для MOEX
       const insiderQuery = isMoex
         ? ticker + ' инсайдеры покупка акций мажоритарий 2025 2026 МОЕХ'
         : ticker + ' insider buying SEC Form 4 2025 2026';
+
+      // Словарь опережающих индикаторов для каждого тикера
+      const LEADING_INDICATOR_QUERIES = {
+        // Металлы и сырьё
+        'RUAL': 'aluminum LME price 3M futures today May 2026 USD per tonne',
+        'FCX':  'copper LME spot price futures May 2026 USD per tonne',
+        'NEM':  'gold spot price XAU May 2026 USD per ounce',
+        'GMKN': 'palladium nickel LME price May 2026 USD',
+        'NLMK': 'steel HRC price European market May 2026',
+        'CHMF': 'steel billet price Russia export May 2026',
+        // Энергетика
+        'CEG':  'PJM electricity wholesale price May 2026 nuclear power',
+        'VST':  'ERCOT Texas electricity spot price May 2026',
+        'OKLO': 'nuclear energy policy SMR permits USA 2026',
+        'UEC':  'uranium spot price UX May 2026 USD per pound',
+        'CCJ':  'uranium spot price Cameco contract May 2026 USD per pound',
+        'PBR':  'Brent crude oil price Brazil pre-salt May 2026',
+        'LKOH': 'Brent crude oil price Urals May 2026 USD barrel',
+        'ROSN': 'Brent Urals oil price Russia export May 2026',
+        'NVTK': 'LNG natural gas price Europe TTF May 2026',
+        'GAZP': 'natural gas price Russia Europe TTF May 2026',
+        // Технологии и телеком
+        'NOK':  'Nokia 5G contracts revenue telecom infrastructure 2026',
+        'RKLB': 'rocket launch market satellite commercial contracts 2026',
+        'FLNC': 'battery storage energy grid demand USA 2026',
+        // Потребительский сектор
+        'NKE':  'Nike footwear retail sales consumer spending USA Q2 2026',
+        'TTWO': 'GTA VI release date Take-Two gaming revenue 2026',
+        // Финансы
+        'SBER': 'ключевая ставка ЦБ РФ май 2026 банковский сектор',
+        'SVCB': 'Совкомбанк финансовые результаты прибыль 2026',
+        'TCSG': 'Т-Банк финансовые результаты клиенты 2026',
+        // Дефолтный запрос
+        'DEFAULT': ticker + ' key leading indicator commodity price May 2026'
+      };
+
+      const leadingQuery = LEADING_INDICATOR_QUERIES[ticker.toUpperCase()] || LEADING_INDICATOR_QUERIES['DEFAULT'];
 
       const results = await Promise.allSettled([
         tavilySearch(marketQuery),
         tavilySearch(insiderQuery),
         tavilySearch(ticker + ' earnings news catalyst May 2026'),
-        tavilySearch(corrQuery)
+        tavilySearch(corrQuery),
+        tavilySearch(leadingQuery)
       ]);
 
       const news         = results[0].status === 'fulfilled' ? results[0].value : '';
       const insiders     = results[1].status === 'fulfilled' ? results[1].value : '';
       const catalysts    = results[2].status === 'fulfilled' ? results[2].value : '';
       const correlations = results[3].status === 'fulfilled' ? results[3].value : '';
+      const leadingData  = results[4] && results[4].status === 'fulfilled' ? results[4].value : '';
 
       const extracted = isMoex
         ? extractMoexPrice(news, (ticker||'').toUpperCase())
@@ -192,9 +228,13 @@ export default async function handler(req, res) {
       // БАГ 3 FIX: инструкция по инсайдерам
       const insiderInstruction = '\n\nДЛЯ ПОЛЯ insiders: если есть данные по инсайдерам — заполни name, role, type (buy/sell), amount (например "₽2.5 млрд" или "$500K"), shares (количество акций), date. Если данных нет — верни пустой массив []. НЕ придумывай нулевые значения.';
 
-      const aluminumNote = (ticker === 'RUAL' && correlations)
-        ? '\n\n=== ЦЕНА АЛЮМИНИЯ LME МАЙ 2026 ===\n' + correlations +
-          '\nВАЖНО: В anticipationInd1 используй РЕАЛЬНУЮ цену алюминия LME из данных выше.'
+      // Опережающий индикатор — реальные данные для ПРЕДВОСХИЩЕНИЯ
+      const leadingNote = leadingData
+        ? '\n\n=== ОПЕРЕЖАЮЩИЙ ИНДИКАТОР (РЕАЛЬНЫЕ ДАННЫЕ МАЙ 2026) ===\n' + leadingData +
+          '\n\nКРИТИЧНО для блока ПРЕДВОСХИЩЕНИЕ (anticipationInd1/2/3):' +
+          ' используй ТОЛЬКО реальные данные из блока выше.' +
+          ' Укажи конкретные числа: цены, уровни, даты из этих данных.' +
+          ' НЕ используй данные из памяти — только то что написано выше.'
         : '';
 
       const rawData = [
@@ -202,7 +242,7 @@ export default async function handler(req, res) {
         '=== ИНСАЙДЕРЫ И МАЖОРИТАРИИ (2025-2026) ===', insiders || 'нет данных', '',
         '=== КАТАЛИЗАТОРЫ И СОБЫТИЯ (2026) ===', catalysts || 'нет данных', '',
         '=== КОРРЕЛЯЦИИ И ПОСТАВЩИКИ ===', correlations || 'нет данных',
-        aluminumNote
+        leadingNote
       ].join('\n').trim();
 
       const analysisPrompt = prompt +
