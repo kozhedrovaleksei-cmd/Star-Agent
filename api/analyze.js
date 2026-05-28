@@ -9,8 +9,7 @@ export default async function handler(req, res) {
   const crKey = process.env.CRAZYROUTER_KEY;
   const tvKey = process.env.TAVILY_KEY;
 
-  // Российские тикеры (МОСБИРЖА) — цена в рублях
-  const MOEX_TICKERS = ['SBER','SVCB','RUAL','FLNC','LKOH','GAZP','YNDX','NVTK','ROSN','GMKN','MTSS','VTBR','AFLT','POLY','PLZL','MGNT','ALRS','PHOR','NLMK','CHMF','MAGN','ENPL','RTKM','FEES','HYDR','IRAO','MOEX','TCSG','OZON','VKCO','SPBE'];
+  const MOEX_TICKERS = ['SBER','SVCB','RUAL','FLNC','LKOH','GAZP','YNDX','NVTK','ROSN','GMKN','MTSS','VTBR','AFLT','POLY','PLZL','MGNT','ALRS','PHOR','NLMK','CHMF','MAGN','RTKM','FEES','HYDR','IRAO','MOEX','TCSG','OZON','VKCO'];
   const isMoex = MOEX_TICKERS.includes((ticker || '').toUpperCase());
 
   async function tavilySearch(q) {
@@ -32,12 +31,13 @@ export default async function handler(req, res) {
     } catch(e) { return ''; }
   }
 
-  async function callClaude(messages, maxTokens = 4000) {
+  async function callClaude(messages, maxTokens) {
+    maxTokens = maxTokens || 4000;
     const r = await fetch('https://crazyrouter.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${crKey}`,
+        'Authorization': 'Bearer ' + crKey,
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
@@ -51,8 +51,7 @@ export default async function handler(req, res) {
     return (d.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
   }
 
-  // Универсальное извлечение цены: поддерживает рубли и доллары
-  function extractPrice(text: string, moex: boolean): { price: number|null, high52: number|null, low52: number|null } {
+  function extractPrice(text, moex) {
     if (!text) return { price: null, high52: null, low52: null };
 
     let price = null;
@@ -60,29 +59,24 @@ export default async function handler(req, res) {
     let low52 = null;
 
     if (moex) {
-      // Рублёвая цена: ищем числа без $ или с ₽/руб
-      // Примеры: "785.92 rubles", "785,92 ₽", "цена 785.92", "trading at 786"
+      // Рублёвые паттерны
       const rubPatterns = [
-        /(?:₽|руб|rub|ruble)[^\d]*([\d\s]{2,6}[.,][\d]{1,2})/i,
-        /([\d\s]{2,6}[.,][\d]{1,2})\s*(?:₽|руб|rub|ruble)/i,
-        /(?:price|цена|trading at|стоимость)[^\d]*([\d]{2,6}[.,][\d]{1,2})/i,
-        /(?:price|цена|close|last)[^\d$€£]*([\d]{2,6}(?:\.\d{1,2})?)/i,
+        /(?:₽|руб|rub|ruble)[^\d]*([\d\s]{1,6}[.,][\d]{1,2})/i,
+        /([\d\s]{1,6}[.,][\d]{1,2})\s*(?:₽|руб|rub|ruble)/i,
+        /(?:price|цена|trading at|стоимость|last|close)[^\d$€£]*([\d]{2,6}(?:[.,]\d{1,2})?)/i,
       ];
-      for (const p of rubPatterns) {
-        const m = text.match(p);
+      for (let i = 0; i < rubPatterns.length; i++) {
+        const m = text.match(rubPatterns[i]);
         if (m) {
           const v = parseFloat(m[1].replace(/\s/g, '').replace(',', '.'));
-          // Для RUAL разумный диапазон: 20-200 руб
-          if (v > 5 && v < 10000) { price = v; break; }
+          if (v > 5 && v < 100000) { price = v; break; }
         }
       }
-      // 52W для рублёвых акций
-      const h = text.match(/52.week high[^\d]*([\d]+[.,][\d]*)/i) || text.match(/максимум[^\d]*([\d]+[.,][\d]*)/i);
-      const l = text.match(/52.week low[^\d]*([\d]+[.,][\d]*)/i) || text.match(/минимум[^\d]*([\d]+[.,][\d]*)/i);
+      const h = text.match(/52.week high[^\d]*([\d]+[.,][\d]*)/i) || text.match(/52.{0,5}high[^\d]*([\d]+[.,][\d]*)/i);
+      const l = text.match(/52.week low[^\d]*([\d]+[.,][\d]*)/i) || text.match(/52.{0,5}low[^\d]*([\d]+[.,][\d]*)/i);
       if (h) high52 = parseFloat(h[1].replace(',', '.'));
       if (l) low52 = parseFloat(l[1].replace(',', '.'));
     } else {
-      // Долларовая цена
       const m = text.match(/\$\s*([\d]{1,5}\.[\d]{1,2})/);
       if (m) price = parseFloat(m[1]);
       const h = text.match(/52.week high[^\d$]*([\d]+\.[\d]+)/i);
@@ -91,13 +85,9 @@ export default async function handler(req, res) {
       if (l) low52 = parseFloat(l[1]);
     }
 
-    // ВАЛИДАЦИЯ 52W диапазона: текущая цена не может быть вне диапазона
-    if (price && high52 && price > high52) {
-      high52 = price * 1.05; // расширяем если цена выше
-    }
-    if (price && low52 && price < low52) {
-      low52 = price * 0.95;
-    }
+    // Валидация: цена не может быть вне 52W диапазона
+    if (price !== null && high52 !== null && price > high52) high52 = Math.round(price * 1.05 * 100) / 100;
+    if (price !== null && low52 !== null && price < low52) low52 = Math.round(price * 0.95 * 100) / 100;
 
     return { price, high52, low52 };
   }
@@ -105,8 +95,10 @@ export default async function handler(req, res) {
   try {
     if (action === 'price') {
       try {
-        const currency = isMoex ? 'рублей MOEX Московская биржа' : 'USD stock price';
-        const priceData = await tavilySearch(`${ticker} ${currency} today 2026`);
+        const searchQ = isMoex
+          ? ticker + ' акция цена рублей MOEX Московская биржа 2026'
+          : ticker + ' stock price today 2026';
+        const priceData = await tavilySearch(searchQ);
         const extracted = extractPrice(priceData, isMoex);
         return res.json({
           price: extracted.price,
@@ -128,20 +120,19 @@ export default async function handler(req, res) {
     if (action === 'analyze') {
       if (!crKey) return res.status(500).json({ error: 'No API key' });
 
-      // Запросы адаптированы под тип рынка
       const marketQuery = isMoex
-        ? `${ticker} акция цена рублей MOEX май 2026`
-        : `${ticker} stock price today May 2026`;
+        ? ticker + ' акция цена рублей MOEX май 2026'
+        : ticker + ' stock price today May 2026';
 
-      const aluminumQuery = isMoex && ticker === 'RUAL'
-        ? `алюминий LME цена 3M фьючерс май 2026 USD per tonne`
-        : `${ticker} suppliers leading indicators correlation 2026`;
+      const corrQuery = (ticker === 'RUAL')
+        ? 'алюминий LME цена 3M фьючерс USD tonne май 2026 aluminum price'
+        : ticker + ' suppliers leading indicators correlation 2026';
 
       const results = await Promise.allSettled([
         tavilySearch(marketQuery),
-        tavilySearch(`${ticker} insider buying SEC Form 4 2026`),
-        tavilySearch(`${ticker} earnings news catalyst May 2026`),
-        tavilySearch(aluminumQuery)
+        tavilySearch(ticker + ' insider buying SEC Form 4 2026'),
+        tavilySearch(ticker + ' earnings news catalyst May 2026'),
+        tavilySearch(corrQuery)
       ]);
 
       const news        = results[0].status === 'fulfilled' ? results[0].value : '';
@@ -149,45 +140,42 @@ export default async function handler(req, res) {
       const catalysts   = results[2].status === 'fulfilled' ? results[2].value : '';
       const correlations = results[3].status === 'fulfilled' ? results[3].value : '';
 
-      // Извлекаем цену с учётом типа рынка
       const extracted = extractPrice(news, isMoex);
       const currentPrice = extracted.price;
       const currencySymbol = isMoex ? '₽' : '$';
 
       const priceInstruction = currentPrice
-        ? `\n\nВАЖНО: Текущая цена ${ticker} = ${currencySymbol}${currentPrice} (из веб-поиска май 2026, ${isMoex ? 'РУБЛИ - МОСБИРЖА' : 'USD - NYSE/NASDAQ'}). 
-Используй именно эту цену в полях price ("${currencySymbol}${currentPrice}") и priceNum (${currentPrice}). 
-${isMoex ? 'Все цены в РУБЛЯХ, не в долларах. Биржа: MOEX.' : ''}
-НЕ используй другую цену.`
+        ? '\n\nВАЖНО: Текущая цена ' + ticker + ' = ' + currencySymbol + currentPrice +
+          ' (из веб-поиска май 2026, ' + (isMoex ? 'РУБЛИ - МОСБИРЖА' : 'USD') + ').' +
+          ' Используй именно эту цену в полях price ("' + currencySymbol + currentPrice + '") и priceNum (' + currentPrice + ').' +
+          (isMoex ? ' Все цены в РУБЛЯХ ₽, не в долларах. exchange: "MOEX".' : '') +
+          ' НЕ используй другую цену.'
         : '';
 
-      // Для RUAL — добавляем данные по алюминию LME отдельно
       const aluminumNote = (ticker === 'RUAL' && correlations)
-        ? `\n\n=== ЦЕНА АЛЮМИНИЯ LME (РЕАЛЬНЫЕ ДАННЫЕ МАЙ 2026) ===\n${correlations}\nВАЖНО: В блоке ПРЕДВОСХИЩЕНИЕ (anticipationInd1) используй РЕАЛЬНУЮ цену алюминия LME из данных выше, не выдумывай.`
+        ? '\n\n=== ЦЕНА АЛЮМИНИЯ LME МАЙ 2026 (РЕАЛЬНЫЕ ДАННЫЕ) ===\n' + correlations +
+          '\nВАЖНО: В поле anticipationInd1 используй РЕАЛЬНУЮ цену алюминия LME из данных выше.'
         : '';
 
-      const rawData = `
-=== ЦЕНА И РЫНОК (май 2026) ===
-${news || 'нет данных'}
+      const rawData = [
+        '=== ЦЕНА И РЫНОК (май 2026) ===',
+        news || 'нет данных',
+        '',
+        '=== ИНСАЙДЕРЫ SEC FORM 4 (2026) ===',
+        insiders || 'нет данных',
+        '',
+        '=== КАТАЛИЗАТОРЫ И СОБЫТИЯ (2026) ===',
+        catalysts || 'нет данных',
+        '',
+        '=== ПОСТАВЩИКИ И КОРРЕЛЯЦИИ (2026) ===',
+        correlations || 'нет данных',
+        aluminumNote
+      ].join('\n').trim();
 
-=== ИНСАЙДЕРЫ SEC FORM 4 (2026) ===
-${insiders || 'нет данных'}
-
-=== КАТАЛИЗАТОРЫ И СОБЫТИЯ (2026) ===
-${catalysts || 'нет данных'}
-
-=== ПОСТАВЩИКИ И КОРРЕЛЯЦИИ (2026) ===
-${correlations || 'нет данных'}
-${aluminumNote}`.trim();
-
-      const analysisPrompt = `${prompt}
-
-РЕАЛЬНЫЕ ДАННЫЕ ИЗ ВЕБ-ПОИСКА (май 2026):
-${rawData}
-${priceInstruction}
-
-КРИТИЧНО: Используй ТОЛЬКО данные выше. Все цены, события, инсайдеры — только из этих данных за 2026 год.
-${isMoex ? `БИРЖА МОСБИРЖА: цена в РУБЛЯХ (₽), не в долларах. exchange: "MOEX"` : ''}`;
+      const analysisPrompt = prompt + '\n\nРЕАЛЬНЫЕ ДАННЫЕ ИЗ ВЕБ-ПОИСКА (май 2026):\n' + rawData +
+        priceInstruction +
+        '\n\nКРИТИЧНО: Используй ТОЛЬКО данные выше. Все цены и события — только из этих данных за 2026 год.' +
+        (isMoex ? '\nБИРЖА МОСБИРЖА: цена в РУБЛЯХ (₽), не в долларах. Поле exchange: "MOEX".' : '');
 
       const text = await callClaude([{ role: 'user', content: analysisPrompt }], 4000);
       return res.json({ text });
