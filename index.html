@@ -339,7 +339,13 @@ function saveTVKey() {
 function setCRStatus(msg, color) { const el = document.getElementById('crKeyStatus'); el.textContent = msg; el.style.color = color; }
 function setTVStatus(msg, color) { const el = document.getElementById('tvKeyStatus'); el.textContent = msg; el.style.color = color; }
 function setTicker(t) { document.getElementById('tickerInput').value = t; }
-function showError(msg) { const el = document.getElementById('errorBox'); el.textContent = '⚠ ' + msg; el.classList.add('show'); }
+function showError(msg) {
+  const el = document.getElementById('errorBox');
+  const text = (typeof msg === 'string') ? msg : (msg && msg.message) ? msg.message : JSON.stringify(msg);
+  el.textContent = '⚠ ' + text;
+  el.classList.add('show');
+  console.error('STARK ERROR:', msg);
+}
 function hideError() { document.getElementById('errorBox').classList.remove('show'); }
 async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -427,7 +433,8 @@ JSON шаблон — заполни ВСЕ поля реальными данн
       body: JSON.stringify({ action: 'analyze', ticker, prompt })
     });
     const data = await res.json();
-    if (data.error) throw new Error(data.error);
+    console.log('API response:', JSON.stringify(data).slice(0, 300));
+    if (data.error) throw new Error(typeof data.error === 'string' ? data.error : (data.error.message || JSON.stringify(data.error)));
 
     const text = data.text || '';
     console.log('RAW:', text.slice(0, 400));
@@ -495,6 +502,7 @@ JSON шаблон — заполни ВСЕ поля реальными данн
         body: JSON.stringify({ action: 'price', ticker })
       });
       const dp = await rp.json();
+      console.log('Price response:', JSON.stringify(dp));
       if (dp.price) realPrice = parseFloat(dp.price);
       if (dp.high52) realHigh52 = parseFloat(dp.high52);
       if (dp.low52) realLow52 = parseFloat(dp.low52);
@@ -553,8 +561,9 @@ JSON шаблон — заполни ВСЕ поля реальными данн
 
     renderResult(norm);
   } catch(e) {
+    console.error('STARK CATCH:', e);
     document.getElementById('loading').classList.remove('show');
-    showError(e.message);
+    showError(e.message || e.toString() || 'Неизвестная ошибка — проверь консоль (F12)');
     steps.forEach(s => document.getElementById(s).className = 'step');
   } finally {
     document.getElementById('analyzeBtn').disabled = false;
