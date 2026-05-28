@@ -40,72 +40,102 @@ export default async function handler(req, res) {
         'Authorization': 'Bearer ' + crKey,
         'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: maxTokens,
-        messages
-      })
+      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: maxTokens, messages })
     });
     const d = await r.json();
-    if (d.error) throw new Error(d.error.message);
+    if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
     return (d.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
   }
 
-  function extractPrice(text, moex) {
+  // БАГ 1 FIX: извлечение рублёвой цены MOEX
+  // RUAL торгуется ~30-80 руб, SBER ~280-340, LKOH ~6000-8000
+  // Tavily часто возвращает HKD цену для RUAL (~1.8 HKD) — фильтруем
+  function extractMoexPrice(text, tickerName) {
     if (!text) return { price: null, high52: null, low52: null };
+
+    // Диапазоны разумных цен для известных тикеров в рублях
+    const PRICE_RANGES = {
+      'RUAL': [15, 150],
+      'SBER': [150, 500],
+      'SVCB': [8, 30],
+      'FLNC': [50, 300],
+      'GAZP': [100, 400],
+      'LKOH': [4000, 10000],
+      'GMKN': [10000, 25000],
+      'NVTK': [800, 2000],
+    };
+    const range = PRICE_RANGES[tickerName] || [1, 100000];
 
     let price = null;
     let high52 = null;
     let low52 = null;
 
-    if (moex) {
-      // Рублёвые паттерны
-      const rubPatterns = [
-        /(?:₽|руб|rub|ruble)[^\d]*([\d\s]{1,6}[.,][\d]{1,2})/i,
-        /([\d\s]{1,6}[.,][\d]{1,2})\s*(?:₽|руб|rub|ruble)/i,
-        /(?:price|цена|trading at|стоимость|last|close)[^\d$€£]*([\d]{2,6}(?:[.,]\d{1,2})?)/i,
-      ];
-      for (let i = 0; i < rubPatterns.length; i++) {
-        const m = text.match(rubPatterns[i]);
-        if (m) {
-          const v = parseFloat(m[1].replace(/\s/g, '').replace(',', '.'));
-          if (v > 5 && v < 100000) { price = v; break; }
-        }
+    // Ищем числа рядом с рублёвыми маркерами
+    const rubPatterns = [
+      // "47.50 ₽" или "₽ 47.50"
+      /(?:₽|руб\.?|RUB)\s*([\d\s]{1,8}[.,]?\d{0,2})/gi,
+      /([\d\s]{1,8}[.,]\d{1,2})\s*(?:₽|руб\.?|RUB)/gi,
+      // "цена: 47.50" или "price: 47.50" или "торгуется по 47"
+      /(?:цена|стоимость|котировка|торгуется по|last price|close)[:\s]+([0-9]{2,6}[.,]?[0-9]{0,2})/gi,
+      // просто число в разумном диапазоне после тикера
+      new RegExp(tickerName + '[^0-9]{1,30}([0-9]{2,6}[.,][0-9]{1,2})', 'i'),
+    ];
+
+    for (let i = 0; i < rubPatterns.length; i++) {
+      const matches = [...text.matchAll(rubPatterns[i])];
+      for (const m of matches) {
+        const v = parseFloat(m[1].replace(/\s/g, '').replace(',', '.'));
+        if (v >= range[0] && v <= range[1]) { price = v; break; }
       }
-      const h = text.match(/52.week high[^\d]*([\d]+[.,][\d]*)/i) || text.match(/52.{0,5}high[^\d]*([\d]+[.,][\d]*)/i);
-      const l = text.match(/52.week low[^\d]*([\d]+[.,][\d]*)/i) || text.match(/52.{0,5}low[^\d]*([\d]+[.,][\d]*)/i);
-      if (h) high52 = parseFloat(h[1].replace(',', '.'));
-      if (l) low52 = parseFloat(l[1].replace(',', '.'));
-    } else {
-      const m = text.match(/\$\s*([\d]{1,5}\.[\d]{1,2})/);
-      if (m) price = parseFloat(m[1]);
-      const h = text.match(/52.week high[^\d$]*([\d]+\.[\d]+)/i);
-      const l = text.match(/52.week low[^\d$]*([\d]+\.[\d]+)/i);
-      if (h) high52 = parseFloat(h[1]);
-      if (l) low52 = parseFloat(l[1]);
+      if (price) break;
     }
 
-    // Валидация: цена не может быть вне 52W диапазона
-    if (price !== null && high52 !== null && price > high52) high52 = Math.round(price * 1.05 * 100) / 100;
-    if (price !== null && low52 !== null && price < low52) low52 = Math.round(price * 0.95 * 100) / 100;
+    // 52W диапазон
+    const h52 = text.match(/52.{0,10}(?:high|max|макс)[^\d]*([\d]+[.,][\d]*)/i);
+    const l52 = text.match(/52.{0,10}(?:low|min|мин)[^\d]*([\d]+[.,][\d]*)/i);
+    if (h52) { const v = parseFloat(h52[1].replace(',','.')); if (v >= range[0] && v <= range[1]*1.5) high52 = v; }
+    if (l52) { const v = parseFloat(l52[1].replace(',','.')); if (v >= range[0]*0.5 && v <= range[1]) low52 = v; }
 
+    // Валидация слайдера: цена всегда внутри диапазона
+    if (price && high52 && price > high52) high52 = Math.round(price * 1.08 * 100) / 100;
+    if (price && low52 && price < low52) low52 = Math.round(price * 0.92 * 100) / 100;
+    // Если нет диапазона — строим вокруг цены
+    if (price && !high52) high52 = Math.round(price * 1.3 * 100) / 100;
+    if (price && !low52) low52 = Math.round(price * 0.7 * 100) / 100;
+
+    return { price, high52, low52 };
+  }
+
+  function extractUsdPrice(text) {
+    if (!text) return { price: null, high52: null, low52: null };
+    const m = text.match(/\$\s*([\d]{1,5}\.[\d]{1,2})/);
+    const price = m ? parseFloat(m[1]) : null;
+    const h = text.match(/52.week high[^\d$]*([\d]+\.[\d]+)/i);
+    const l = text.match(/52.week low[^\d$]*([\d]+\.[\d]+)/i);
+    let high52 = h ? parseFloat(h[1]) : null;
+    let low52 = l ? parseFloat(l[1]) : null;
+    if (price && high52 && price > high52) high52 = Math.round(price * 1.08 * 100) / 100;
+    if (price && low52 && price < low52) low52 = Math.round(price * 0.92 * 100) / 100;
+    if (price && !high52) high52 = Math.round(price * 1.3 * 100) / 100;
+    if (price && !low52) low52 = Math.round(price * 0.7 * 100) / 100;
     return { price, high52, low52 };
   }
 
   try {
     if (action === 'price') {
       try {
+        // БАГ 1 FIX: для RUAL используем очень специфичный запрос на русском
         const searchQ = isMoex
-          ? ticker + ' акция цена рублей MOEX Московская биржа 2026'
+          ? ticker + ' MOEX акция цена рублей сегодня котировка'
           : ticker + ' stock price today 2026';
         const priceData = await tavilySearch(searchQ);
-        const extracted = extractPrice(priceData, isMoex);
+        const extracted = isMoex
+          ? extractMoexPrice(priceData, (ticker||'').toUpperCase())
+          : extractUsdPrice(priceData);
         return res.json({
           price: extracted.price,
-          prev: null,
           high52: extracted.high52,
           low52: extracted.low52,
-          marketCap: null,
           currency: isMoex ? 'RUB' : 'USD'
         });
       } catch(e) {}
@@ -121,61 +151,65 @@ export default async function handler(req, res) {
       if (!crKey) return res.status(500).json({ error: 'No API key' });
 
       const marketQuery = isMoex
-        ? ticker + ' акция цена рублей MOEX май 2026'
+        ? ticker + ' MOEX акция цена рублей котировка май 2026'
         : ticker + ' stock price today May 2026';
 
       const corrQuery = (ticker === 'RUAL')
-        ? 'алюминий LME цена 3M фьючерс USD tonne май 2026 aluminum price'
+        ? 'алюминий LME цена 3M фьючерс USD tonne май 2026 aluminum price LME'
         : ticker + ' suppliers leading indicators correlation 2026';
+
+      // БАГ 3 FIX: отдельный запрос по инсайдерам на русском для MOEX
+      const insiderQuery = isMoex
+        ? ticker + ' инсайдеры покупка акций мажоритарий 2025 2026 МОЕХ'
+        : ticker + ' insider buying SEC Form 4 2025 2026';
 
       const results = await Promise.allSettled([
         tavilySearch(marketQuery),
-        tavilySearch(ticker + ' insider buying SEC Form 4 2026'),
+        tavilySearch(insiderQuery),
         tavilySearch(ticker + ' earnings news catalyst May 2026'),
         tavilySearch(corrQuery)
       ]);
 
-      const news        = results[0].status === 'fulfilled' ? results[0].value : '';
-      const insiders    = results[1].status === 'fulfilled' ? results[1].value : '';
-      const catalysts   = results[2].status === 'fulfilled' ? results[2].value : '';
+      const news         = results[0].status === 'fulfilled' ? results[0].value : '';
+      const insiders     = results[1].status === 'fulfilled' ? results[1].value : '';
+      const catalysts    = results[2].status === 'fulfilled' ? results[2].value : '';
       const correlations = results[3].status === 'fulfilled' ? results[3].value : '';
 
-      const extracted = extractPrice(news, isMoex);
+      const extracted = isMoex
+        ? extractMoexPrice(news, (ticker||'').toUpperCase())
+        : extractUsdPrice(news);
       const currentPrice = extracted.price;
       const currencySymbol = isMoex ? '₽' : '$';
 
       const priceInstruction = currentPrice
         ? '\n\nВАЖНО: Текущая цена ' + ticker + ' = ' + currencySymbol + currentPrice +
-          ' (из веб-поиска май 2026, ' + (isMoex ? 'РУБЛИ - МОСБИРЖА' : 'USD') + ').' +
-          ' Используй именно эту цену в полях price ("' + currencySymbol + currentPrice + '") и priceNum (' + currentPrice + ').' +
-          (isMoex ? ' Все цены в РУБЛЯХ ₽, не в долларах. exchange: "MOEX".' : '') +
-          ' НЕ используй другую цену.'
+          ' (из веб-поиска май 2026, ' + (isMoex ? 'РУБЛИ МОСБИРЖА' : 'USD') + ').' +
+          ' Используй ТОЛЬКО эту цену: price="' + currencySymbol + currentPrice + '", priceNum=' + currentPrice + '.' +
+          (isMoex ? ' ВСЕ цены в РУБЛЯХ ₽. exchange="MOEX".' : '') +
+          ' НЕ используй другие числа как цену акции.'
         : '';
 
+      // БАГ 3 FIX: инструкция по инсайдерам
+      const insiderInstruction = '\n\nДЛЯ ПОЛЯ insiders: если есть данные по инсайдерам — заполни name, role, type (buy/sell), amount (например "₽2.5 млрд" или "$500K"), shares (количество акций), date. Если данных нет — верни пустой массив []. НЕ придумывай нулевые значения.';
+
       const aluminumNote = (ticker === 'RUAL' && correlations)
-        ? '\n\n=== ЦЕНА АЛЮМИНИЯ LME МАЙ 2026 (РЕАЛЬНЫЕ ДАННЫЕ) ===\n' + correlations +
-          '\nВАЖНО: В поле anticipationInd1 используй РЕАЛЬНУЮ цену алюминия LME из данных выше.'
+        ? '\n\n=== ЦЕНА АЛЮМИНИЯ LME МАЙ 2026 ===\n' + correlations +
+          '\nВАЖНО: В anticipationInd1 используй РЕАЛЬНУЮ цену алюминия LME из данных выше.'
         : '';
 
       const rawData = [
-        '=== ЦЕНА И РЫНОК (май 2026) ===',
-        news || 'нет данных',
-        '',
-        '=== ИНСАЙДЕРЫ SEC FORM 4 (2026) ===',
-        insiders || 'нет данных',
-        '',
-        '=== КАТАЛИЗАТОРЫ И СОБЫТИЯ (2026) ===',
-        catalysts || 'нет данных',
-        '',
-        '=== ПОСТАВЩИКИ И КОРРЕЛЯЦИИ (2026) ===',
-        correlations || 'нет данных',
+        '=== ЦЕНА И РЫНОК (май 2026) ===', news || 'нет данных', '',
+        '=== ИНСАЙДЕРЫ И МАЖОРИТАРИИ (2025-2026) ===', insiders || 'нет данных', '',
+        '=== КАТАЛИЗАТОРЫ И СОБЫТИЯ (2026) ===', catalysts || 'нет данных', '',
+        '=== КОРРЕЛЯЦИИ И ПОСТАВЩИКИ ===', correlations || 'нет данных',
         aluminumNote
       ].join('\n').trim();
 
-      const analysisPrompt = prompt + '\n\nРЕАЛЬНЫЕ ДАННЫЕ ИЗ ВЕБ-ПОИСКА (май 2026):\n' + rawData +
-        priceInstruction +
-        '\n\nКРИТИЧНО: Используй ТОЛЬКО данные выше. Все цены и события — только из этих данных за 2026 год.' +
-        (isMoex ? '\nБИРЖА МОСБИРЖА: цена в РУБЛЯХ (₽), не в долларах. Поле exchange: "MOEX".' : '');
+      const analysisPrompt = prompt +
+        '\n\nРЕАЛЬНЫЕ ДАННЫЕ ИЗ ВЕБ-ПОИСКА (май 2026):\n' + rawData +
+        priceInstruction + insiderInstruction +
+        '\n\nКРИТИЧНО: Используй ТОЛЬКО данные выше. Все цены — только из этих данных.' +
+        (isMoex ? '\nБИРЖА МОСБИРЖА: цена РУБЛИ (₽). exchange="MOEX".' : '');
 
       const text = await callClaude([{ role: 'user', content: analysisPrompt }], 4000);
       return res.json({ text });
@@ -183,6 +217,6 @@ export default async function handler(req, res) {
 
     return res.status(400).json({ error: 'Unknown action' });
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: e.message || String(e) });
   }
 }
