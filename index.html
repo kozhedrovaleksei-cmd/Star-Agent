@@ -572,8 +572,12 @@ JSON шаблон — заполни ВСЕ поля реальными данн
 
 function renderResult(s) {
   const verdictClass = {'buy':'verdict-buy','watch':'verdict-watch','wait':'verdict-wait','sell':'verdict-sell'}[s.verdictEn] || 'verdict-watch';
-  const lo = s.week52LowNum || 0, hi = s.week52HighNum || 1, cur = s.priceNum || (lo+hi)/2;
-  const pct = hi > lo ? Math.min(100, Math.max(0, ((cur-lo)/(hi-lo))*100)) : 50;
+  let lo = s.week52LowNum || 0, hi = s.week52HighNum || 1, cur = s.priceNum || (lo+hi)/2;
+  // БАГ 2 FIX: расширяем диапазон если цена вне него
+  if (cur > hi) hi = Math.round(cur * 1.08 * 100) / 100;
+  if (cur < lo && lo > 0) lo = Math.round(cur * 0.92 * 100) / 100;
+  if (hi <= lo) hi = lo + 1;
+  const pct = Math.min(97, Math.max(3, ((cur-lo)/(hi-lo))*100));
 
   const insidersHtml = s.insiders.length ? s.insiders.map(i => `
     <div class="insider-item">
