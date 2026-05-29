@@ -197,10 +197,15 @@ export default async function handler(req, res) {
 
       const leadingQuery = LEADING_INDICATOR_QUERIES[ticker.toUpperCase()] || LEADING_INDICATOR_QUERIES['DEFAULT'];
 
+      // Отдельный запрос на ПОДТВЕРЖДЁННУЮ дату ближайшего отчёта/событий
+      const catalystQuery = isMoex
+        ? ticker + ' дата отчёта МСФО РСБУ 2026 дивиденды календарь событий точная дата'
+        : ticker + ' next earnings date confirmed report calendar 2026 dividend ex-date catalyst';
+
       const results = await Promise.allSettled([
         tavilySearch(marketQuery),
         tavilySearch(insiderQuery),
-        tavilySearch(ticker + ' earnings news catalyst May 2026'),
+        tavilySearch(catalystQuery),
         tavilySearch(corrQuery),
         tavilySearch(leadingQuery)
       ]);
@@ -227,6 +232,15 @@ export default async function handler(req, res) {
 
       // БАГ 3 FIX: инструкция по инсайдерам
       const insiderInstruction = '\n\nДЛЯ ПОЛЯ insiders: если есть данные по инсайдерам — заполни name, role, type (buy/sell), amount (например "₽2.5 млрд" или "$500K"), shares (количество акций), date. Если данных нет — верни пустой массив []. НЕ придумывай нулевые значения.';
+
+      // ДАТЫ — строгое правило против выдуманных/устаревших дат
+      const dateInstruction =
+        '\n\n=== ДАТЫ (КРИТИЧНО ДЛЯ ТОЧНОСТИ) ===' +
+        '\nСегодня 29 мая 2026.' +
+        ' В полях events.date и insiders.date указывай ТОЛЬКО конкретные подтверждённые даты из веб-данных выше (формат "15 июн 2026").' +
+        ' Если точной даты в данных НЕТ — поставь date="" или "дата не подтверждена". НИКОГДА не выдумывай и не угадывай даты.' +
+        ' Прошедшие события (раньше 29 мая 2026) НЕ включай как будущие катализаторы и НЕ помечай urgent=true.' +
+        ' urgent=true — только для подтверждённых будущих событий в пределах ~30 дней.';
 
       // Базовая инструкция ПРЕДВОСХИЩЕНИЯ — для ЛЮБОГО тикера (есть он в словаре или нет)
       const anticipationInstruction =
@@ -255,7 +269,7 @@ export default async function handler(req, res) {
 
       const analysisPrompt = prompt +
         '\n\nРЕАЛЬНЫЕ ДАННЫЕ ИЗ ВЕБ-ПОИСКА (май 2026):\n' + rawData +
-        priceInstruction + insiderInstruction + anticipationInstruction +
+        priceInstruction + insiderInstruction + anticipationInstruction + dateInstruction +
         '\n\nКРИТИЧНО: Используй ТОЛЬКО данные выше. Все цены — только из этих данных.' +
         (isMoex ? '\nБИРЖА МОСБИРЖА: цена РУБЛИ (₽). exchange="MOEX".' : '');
 
