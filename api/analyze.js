@@ -147,6 +147,30 @@ export default async function handler(req, res) {
       return res.json({ result });
     }
 
+    // Распознавание тикера по тикеру ИЛИ названию компании (русский/английский)
+    if (action === 'resolve') {
+      const raw = (ticker || '').trim();
+      if (!raw) return res.json({ ticker: '', name: '' });
+      if (!crKey) return res.json({ ticker: raw.toUpperCase(), name: '' });
+      try {
+        const r = await callClaude([{ role: 'user', content:
+          'Определи биржевой тикер по вводу пользователя (это тикер ИЛИ название компании на русском/английском): "' + raw + '".\n' +
+          'Правила:\n' +
+          '- Российские компании → тикер MOEX (Сбербанк→SBER, Совкомбанк→SVCB, Лукойл→LKOH, Газпром→GAZP, Норникель→GMKN, Яндекс→YDEX, Новатэк→NVTK).\n' +
+          '- Иностранные компании → тикер основной биржи (Nike→NKE, Найк→NKE, Apple→AAPL, Эппл→AAPL, Tesla→TSLA, Тесла→TSLA).\n' +
+          '- Если ввод УЖЕ корректный биржевой тикер — верни его без изменений.\n' +
+          '- Ответь СТРОГО одной строкой JSON без markdown: {"ticker":"XXX","name":"Полное название"}.\n' +
+          '- Если определить невозможно — {"ticker":"' + raw.toUpperCase() + '","name":""}.' }], 80);
+        const clean = (r || '').replace(/```json|```/g, '').trim();
+        const m = clean.match(/\{[\s\S]*\}/);
+        const obj = m ? JSON.parse(m[0]) : {};
+        const t = String(obj.ticker || raw).toUpperCase().replace(/[^A-Z0-9.]/g, '');
+        return res.json({ ticker: t || raw.toUpperCase(), name: obj.name || '' });
+      } catch (e) {
+        return res.json({ ticker: raw.toUpperCase(), name: '' });
+      }
+    }
+
     if (action === 'analyze') {
       if (!crKey) return res.status(500).json({ error: 'No API key' });
 
@@ -157,8 +181,8 @@ export default async function handler(req, res) {
       const corrQuery = ticker + ' suppliers leading indicators correlation 2026';
 
       const insiderQuery = isMoex
-        ? ticker + ' инсайдеры покупка акций мажоритарий 2025 2026 МОЕХ'
-        : ticker + ' insider buying SEC Form 4 2025 2026';
+        ? ticker + ' инсайдеры крупный акционер сделки покупка продажа дата 2025 2026 МосБиржа раскрытие'
+        : ticker + ' insider transactions Form 4 SEC OpenInsider buy sell date shares 2025 2026';
 
       // Словарь опережающих индикаторов для каждого тикера
       const LEADING_INDICATOR_QUERIES = {
@@ -230,17 +254,17 @@ export default async function handler(req, res) {
           ' НЕ используй другие числа как цену акции.'
         : '';
 
-      // БАГ 3 FIX: инструкция по инсайдерам
-      const insiderInstruction = '\n\nДЛЯ ПОЛЯ insiders: если есть данные по инсайдерам — заполни name, role, type (buy/sell), amount (например "₽2.5 млрд" или "$500K"), shares (количество акций), date. Если данных нет — верни пустой массив []. НЕ придумывай нулевые значения.';
+      // БАГ 3 FIX: инструкция по инсайдерам — только реальные сделки с датой
+      const insiderInstruction = '\n\nПОЛЕ insiders: бери ТОЛЬКО реальные сделки из веб-данных (Form 4 / OpenInsider / официальные раскрытия). Для каждой: name, role, type (buy/sell), amount, shares, date — точная дата сделки из Form 4 (формат "15 июн 2026"); если сделка есть в данных, но точной даты нет — укажи хотя бы месяц ("июн 2026"). НЕ показывай сделку, которой НЕТ в веб-данных. Нет подтверждённых сделок с источником — верни []. НИКОГДА не выдумывай инсайдеров, даты, суммы и количество акций.';
 
-      // ДАТЫ — строгое правило против выдуманных/устаревших дат
+      // ДАТЫ И СОБЫТИЯ — точность + достаточное количество
       const dateInstruction =
-        '\n\n=== ДАТЫ (КРИТИЧНО ДЛЯ ТОЧНОСТИ) ===' +
+        '\n\n=== СОБЫТИЯ И ДАТЫ (ТОЧНОСТЬ) ===' +
         '\nСегодня 29 мая 2026.' +
-        ' В полях events.date и insiders.date указывай ТОЛЬКО конкретные подтверждённые даты из веб-данных выше (формат "15 июн 2026").' +
-        ' Если точной даты в данных НЕТ — поставь date="" или "дата не подтверждена". НИКОГДА не выдумывай и не угадывай даты.' +
-        ' Прошедшие события (раньше 29 мая 2026) НЕ включай как будущие катализаторы и НЕ помечай urgent=true.' +
-        ' urgent=true — только для подтверждённых будущих событий в пределах ~30 дней.';
+        ' В events дай 4-6 событий: недавние подтверждённые факты (прошедшие отчёты/события с реальными датами — это контекст, urgent=false) И будущие катализаторы.' +
+        ' Даты в events.date и insiders.date — ТОЛЬКО реальные из веб-данных (формат "15 июн 2026").' +
+        ' Если точной даты будущего события в данных нет — напиши "ожидается Q3 2026" и т.п., но НЕ выдумывай конкретное число.' +
+        ' urgent=true — только для подтверждённых будущих событий в пределах ~30 дней. Прошедшие события НИКОГДА не помечай urgent.';
 
       // Базовая инструкция ПРЕДВОСХИЩЕНИЯ — для ЛЮБОГО тикера (есть он в словаре или нет)
       const anticipationInstruction =
