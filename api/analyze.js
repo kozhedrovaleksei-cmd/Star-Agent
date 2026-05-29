@@ -192,7 +192,7 @@ export default async function handler(req, res) {
         'SVCB': 'Совкомбанк финансовые результаты прибыль 2026',
         'TCSG': 'Т-Банк финансовые результаты клиенты 2026',
         // Дефолтный запрос
-        'DEFAULT': ticker + ' key leading indicator commodity price May 2026'
+        'DEFAULT': ticker + ' suppliers supply chain input cost factory orders leading demand indicator May 2026'
       };
 
       const leadingQuery = LEADING_INDICATOR_QUERIES[ticker.toUpperCase()] || LEADING_INDICATOR_QUERIES['DEFAULT'];
@@ -228,13 +228,21 @@ export default async function handler(req, res) {
       // БАГ 3 FIX: инструкция по инсайдерам
       const insiderInstruction = '\n\nДЛЯ ПОЛЯ insiders: если есть данные по инсайдерам — заполни name, role, type (buy/sell), amount (например "₽2.5 млрд" или "$500K"), shares (количество акций), date. Если данных нет — верни пустой массив []. НЕ придумывай нулевые значения.';
 
-      // Опережающий индикатор — реальные данные для ПРЕДВОСХИЩЕНИЯ
+      // Базовая инструкция ПРЕДВОСХИЩЕНИЯ — для ЛЮБОГО тикера (есть он в словаре или нет)
+      const anticipationInstruction =
+        '\n\n=== БЛОК ПРЕДВОСХИЩЕНИЕ — 5 ИНДИКАТОРОВ (ОБЯЗАТЕЛЬНО) ===' +
+        '\nПострой причинно-следственную цепочку ВВЕРХ по поставкам для ' + ticker + ':' +
+        ' поставщики и их заказы, входное сырьё и его цены, загрузка фабрик/OEM-подрядчиков,' +
+        ' законтрактованный пайплайн, опережающие сигналы спроса, регуляторные/тендерные решения.' +
+        ' Эталон логики: заказы тайваньских OEM (Feng Tay, Pou Chen) опережают выручку Nike на 1-2 квартала —' +
+        ' примени ТАКУЮ ЖЕ логику к ' + ticker + '.' +
+        ' Заполни anticipationInd1..anticipationInd5: название индикатора + механизм связи + лаг опережения.' +
+        ' ТОЧНОСТЬ: конкретные числа бери ТОЛЬКО из веб-данных ниже; нет числа — опиши механизм качественно, без выдуманных цифр.';
+
+      // Опережающий индикатор — реальные числа для словарных тикеров
       const leadingNote = leadingData
         ? '\n\n=== ОПЕРЕЖАЮЩИЙ ИНДИКАТОР (РЕАЛЬНЫЕ ДАННЫЕ МАЙ 2026) ===\n' + leadingData +
-          '\n\nКРИТИЧНО для блока ПРЕДВОСХИЩЕНИЕ (anticipationInd1/2/3):' +
-          ' используй ТОЛЬКО реальные данные из блока выше.' +
-          ' Укажи конкретные числа: цены, уровни, даты из этих данных.' +
-          ' НЕ используй данные из памяти — только то что написано выше.'
+          '\nИспользуй эти реальные числа в anticipationInd1..5 где релевантно. НЕ бери данные из памяти.'
         : '';
 
       const rawData = [
@@ -247,11 +255,11 @@ export default async function handler(req, res) {
 
       const analysisPrompt = prompt +
         '\n\nРЕАЛЬНЫЕ ДАННЫЕ ИЗ ВЕБ-ПОИСКА (май 2026):\n' + rawData +
-        priceInstruction + insiderInstruction +
+        priceInstruction + insiderInstruction + anticipationInstruction +
         '\n\nКРИТИЧНО: Используй ТОЛЬКО данные выше. Все цены — только из этих данных.' +
         (isMoex ? '\nБИРЖА МОСБИРЖА: цена РУБЛИ (₽). exchange="MOEX".' : '');
 
-      const text = await callClaude([{ role: 'user', content: analysisPrompt }], 4000);
+      const text = await callClaude([{ role: 'user', content: analysisPrompt }], 5000);
       return res.json({ text });
     }
 
