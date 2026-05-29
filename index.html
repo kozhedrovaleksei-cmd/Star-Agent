@@ -76,11 +76,11 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); min-
 
 .input-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 18px; padding: 24px; margin-bottom: 18px; box-shadow: var(--shadow); }
 .input-row { display: flex; gap: 14px; flex-wrap: wrap; }
-.ticker-wrap { flex: 0 0 140px; }
+.ticker-wrap { flex: 0 0 190px; }
 .input-label { font-size: 11px; color: var(--dim); letter-spacing: 0.06em; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; }
 .ticker-input {
   width: 100%; background: var(--bg4); border: 1px solid var(--border);
-  color: var(--text); font-family: var(--font); font-weight: 600; font-size: 26px;
+  color: var(--text); font-family: var(--font); font-weight: 600; font-size: 22px;
   letter-spacing: -0.01em; padding: 12px 14px; border-radius: 12px; outline: none;
   text-transform: uppercase; transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -274,8 +274,8 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); min-
   <div class="input-card">
     <div class="input-row">
       <div class="ticker-wrap">
-        <div class="input-label">Тикер</div>
-        <input type="text" id="tickerInput" class="ticker-input" placeholder="NKE" maxlength="6">
+        <div class="input-label">Тикер / компания</div>
+        <input type="text" id="tickerInput" class="ticker-input" placeholder="NKE · Nike · Сбербанк">
       </div>
       <div class="hypo-wrap">
         <div class="input-label">Твоя гипотеза (необязательно)</div>
@@ -370,20 +370,32 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function analyze() {
-  const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+  const rawInput = document.getElementById('tickerInput').value.trim();
   const context = document.getElementById('contextInput').value.trim();
   const crKey = localStorage.getItem('crazyrouter_key');
-  const moex = isMoexTicker(ticker);
-  const currSymbol = moex ? '₽' : '$';
 
   hideError();
-  if (!ticker) { showError('Введи тикер'); return; }
+  if (!rawInput) { showError('Введи тикер или название компании'); return; }
   if (!crKey) { showError('Сохрани Crazyrouter API ключ'); return; }
 
   document.getElementById('analyzeBtn').disabled = true;
   document.getElementById('result').classList.remove('show');
   document.getElementById('result').innerHTML = '';
   document.getElementById('loading').classList.add('show');
+
+  // ─── РАСПОЗНАВАНИЕ ТИКЕРА ПО НАЗВАНИЮ КОМПАНИИ (RU/EN) ───
+  let ticker = rawInput.toUpperCase();
+  try {
+    const rr = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'resolve', ticker: rawInput })
+    });
+    const rd = await rr.json();
+    if (rd && rd.ticker) ticker = rd.ticker;
+  } catch (e) {}
+  document.getElementById('tickerInput').value = ticker;
+  const moex = isMoexTicker(ticker);
+  const currSymbol = moex ? '₽' : '$';
 
   const steps = ['s1','s2','s3','s4','s5','s6','s7','s8'];
   steps.forEach(s => document.getElementById(s).className = 'step');
@@ -418,8 +430,8 @@ ${context ? 'Гипотеза инвестора: ' + context : ''}
 ВАЖНО: Верни СТРОГО валидный JSON без markdown, без текста вокруг. Только JSON, ничего больше.
 correlationChain — ТОЛЬКО массив строк, не объектов.
 insiders: [{"name":"Имя","role":"CEO","type":"buy","amount":"${currSymbol}500K","shares":"10000","date":"реальная дата или пусто"}]
-events: [{"date":"реальная дата или пусто","text":"Описание","urgent":false}]
-ДАТЫ: insiders.date и events.date — ТОЛЬКО реальные подтверждённые даты из веб-данных, иначе "". Не выдумывай. Прошедшие события (до 29 мая 2026) не помечай urgent.
+events: [{"date":"реальная дата или пусто","text":"Описание","urgent":false}] — дай 4-6 событий: недавние факты (прошедшие отчёты с реальными датами, urgent=false) + будущие катализаторы
+ДАТЫ: insiders.date и events.date — ТОЛЬКО реальные подтверждённые даты из веб-данных (формат "15 июн 2026"). Нет точной даты будущего события — напиши "ожидается Q3 2026", не выдумывай число. Прошедшие события (до 29 мая 2026) не помечай urgent.
 chartEvents: [{"date":"2024","price":85,"type":"peak","label":"ATH","driver":"Причина"}]
 correlationChain: ["строка1","строка2","строка3"]
 
