@@ -78,7 +78,7 @@ export default async function handler(req, res) {
       // "цена: 47.50" или "price: 47.50" или "торгуется по 47"
       /(?:цена|стоимость|котировка|торгуется по|last price|close)[:\s]+([0-9]{2,6}[.,]?[0-9]{0,2})/gi,
       // просто число в разумном диапазоне после тикера
-      new RegExp(tickerName + '[^0-9]{1,30}([0-9]{2,6}[.,][0-9]{1,2})', 'i'),
+      new RegExp(tickerName + '[^0-9]{1,30}([0-9]{2,6}[.,][0-9]{1,2})', 'gi'),
     ];
 
     for (let i = 0; i < rubPatterns.length; i++) {
