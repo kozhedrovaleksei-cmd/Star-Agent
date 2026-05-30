@@ -8,6 +8,7 @@ export default async function handler(req, res) {
   const { action, ticker, prompt, query } = req.body;
   const crKey = process.env.CRAZYROUTER_KEY;
   const tvKey = process.env.TAVILY_KEY;
+  const fhKey = process.env.FINNHUB_KEY; // Finnhub — живые котировки US
 
   const MOEX_TICKERS = ['SBER','SVCB','RUAL','FLNC','LKOH','GAZP','YNDX','NVTK','ROSN','GMKN','MTSS','VTBR','AFLT','POLY','PLZL','MGNT','ALRS','PHOR','NLMK','CHMF','MAGN','RTKM','FEES','HYDR','IRAO','MOEX','TCSG','OZON','VKCO'];
   const isMoex = MOEX_TICKERS.includes((ticker || '').toUpperCase());
@@ -123,22 +124,66 @@ export default async function handler(req, res) {
 
   try {
     if (action === 'price') {
+      const T = (ticker || '').toUpperCase();
       try {
-        // БАГ 1 FIX: для RUAL используем очень специфичный запрос на русском
+        // 1) MOEX — реальная котировка из MOEX ISS (публичный, без ключа)
+        if (isMoex) {
+          try {
+            const url = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities/'
+              + encodeURIComponent(T) + '.json?iss.meta=off&iss.only=marketdata,securities';
+            const j = await (await fetch(url)).json();
+            const md = j.marketdata || {}, sec = j.securities || {};
+            const mdCol = md.columns || [], mdRow = (md.data || [])[0] || [];
+            const secCol = sec.columns || [], secRow = (sec.data || [])[0] || [];
+            const mg = (n) => { const i = mdCol.indexOf(n); return i >= 0 ? mdRow[i] : null; };
+            const sg = (n) => { const i = secCol.indexOf(n); return i >= 0 ? secRow[i] : null; };
+            let last = mg('LAST');
+            if (last == null) last = mg('MARKETPRICE');
+            if (last == null) last = mg('LCLOSEPRICE');
+            if (last == null) last = sg('PREVPRICE');
+            const prev = sg('PREVPRICE');
+            if (last != null && isFinite(+last) && +last > 0) {
+              const price = +last;
+              let change = null;
+              if (prev != null && isFinite(+prev) && +prev > 0) change = (price - +prev) / +prev * 100;
+              return res.json({
+                price, high52: null, low52: null,
+                change: change != null ? ((change >= 0 ? '+' : '') + change.toFixed(2) + '%') : null,
+                currency: 'RUB', source: 'MOEX ISS'
+              });
+            }
+          } catch (e) {}
+        }
+        // 2) US — реальная котировка из Finnhub
+        if (!isMoex && fhKey) {
+          try {
+            const q = await (await fetch('https://finnhub.io/api/v1/quote?symbol=' + encodeURIComponent(T) + '&token=' + fhKey)).json();
+            if (q && isFinite(+q.c) && +q.c > 0) {
+              let high52 = null, low52 = null;
+              try {
+                const m = await (await fetch('https://finnhub.io/api/v1/stock/metric?symbol=' + encodeURIComponent(T) + '&metric=all&token=' + fhKey)).json();
+                const mm = (m && m.metric) || {};
+                if (isFinite(+mm['52WeekHigh'])) high52 = +mm['52WeekHigh'];
+                if (isFinite(+mm['52WeekLow'])) low52 = +mm['52WeekLow'];
+              } catch (e) {}
+              const change = isFinite(+q.dp) ? ((+q.dp >= 0 ? '+' : '') + (+q.dp).toFixed(2) + '%') : null;
+              return res.json({ price: +q.c, high52, low52, change, currency: 'USD', source: 'Finnhub' });
+            }
+          } catch (e) {}
+        }
+        // 3) ФОЛБЭК — старый путь через Tavily (нет ключа / пусто / ошибка)
         const searchQ = isMoex
-          ? ticker + ' MOEX акция цена рублей сегодня котировка'
-          : ticker + ' stock price today 2026';
+          ? T + ' MOEX акция цена рублей сегодня котировка'
+          : T + ' stock price today 2026';
         const priceData = await tavilySearch(searchQ);
         const extracted = isMoex
-          ? extractMoexPrice(priceData, (ticker||'').toUpperCase())
+          ? extractMoexPrice(priceData, T)
           : extractUsdPrice(priceData);
         return res.json({
-          price: extracted.price,
-          high52: extracted.high52,
-          low52: extracted.low52,
-          currency: isMoex ? 'RUB' : 'USD'
+          price: extracted.price, high52: extracted.high52, low52: extracted.low52,
+          currency: isMoex ? 'RUB' : 'USD', source: 'Tavily fallback'
         });
-      } catch(e) {}
+      } catch (e) {}
       return res.json({ price: null });
     }
 
