@@ -240,6 +240,26 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); min-
 .web-data { background: #e9f9ef; border: 1px solid #b8ebcb; border-radius: 14px; padding: 14px 18px; margin-bottom: 16px; }
 .web-data-title { font-size: 11px; color: var(--green); letter-spacing: 0.06em; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; }
 .web-data-text { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+/* ─── STARK SCORE ─── */
+.sc-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 18px; padding: 22px 24px; margin-bottom: 16px; box-shadow: var(--shadow); display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+.sc-ring { position: relative; width: 120px; height: 120px; flex: 0 0 auto; }
+.sc-ring-val { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.sc-ring-num { font-family: var(--font); font-weight: 700; font-size: 34px; letter-spacing: -0.03em; line-height: 1; }
+.sc-ring-of { font-size: 11px; color: var(--dim2); font-weight: 600; margin-top: 2px; }
+.sc-body { flex: 1; min-width: 260px; }
+.sc-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.sc-tag { font-size: 11px; letter-spacing: 0.06em; font-weight: 600; color: var(--dim); text-transform: uppercase; }
+.sc-badge { font-size: 13px; font-weight: 700; letter-spacing: 0.02em; }
+.sc-expl { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 14px; }
+.sc-expl b { color: var(--text); font-weight: 600; }
+.sc-facs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 22px; }
+.sc-fac-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+.sc-fac-name { font-size: 12px; color: var(--dim); font-weight: 500; }
+.sc-fac-val { font-family: var(--font); font-size: 14px; font-weight: 700; }
+.sc-bar { height: 5px; border-radius: 5px; background: var(--bg3); overflow: hidden; }
+.sc-bar > div { height: 100%; border-radius: 5px; transition: width 0.3s; }
+@media (max-width: 560px) { .sc-facs { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -447,8 +467,16 @@ anticipationInd4 — опережающий индикатор 4 (строка)
 anticipationInd5 — опережающий индикатор 5 (строка)
 anticipationMethod — скрытая корреляция одной строкой
 
+БЛОК STARK SCORE — оцени 6 сигналов по шкале 0–10 (10 = максимально «за», 5 = нейтрально, 0 = сильно «против»). Оценки выводи ТОЛЬКО из веб-данных и анализа выше. Нет данных по сигналу → ставь 5, НЕ завышай. Это объяснимый скоринг, не прогноз.
+- scThesis: сила фундамента/кейса (bullCase/bearCase, оценка, P/E, дивиденды).
+- scAntic: сила опережающего сигнала из блока ПРЕДВОСХИЩЕНИЕ (конкретнее и ближе лаг → выше).
+- scInsider: инсайдеры (крупные датированные покупки CEO/CFO/мажоритариев → выше; продажи → ниже; сделок нет → 5).
+- scMom: позиция в 52W и тренд (у поддержки с разворотом → выше; перегрет у хая → ниже).
+- scRR: качество reward:risk (rr ≥ 3:1 → выше; < 1.5:1 → ниже).
+- scSent: тон новостей из webDataSummary (позитив → выше; негатив → ниже).
+
 JSON шаблон — заполни ВСЕ поля реальными данными:
-{"ticker":"${ticker}","name":"","sector":"","exchange":"${moex ? 'MOEX' : 'NYSE'}","price":"${currSymbol}0","priceNum":0,"change":"0%","marketCap":"","pe":"","dividend":"","week52Low":"","week52High":"","week52LowNum":0,"week52HighNum":0,"atHigh":"","verdict":"НАБЛЮДАТЬ","verdictEn":"watch","confidence":"СРЕДНЯЯ","rr":"2:1","support":"","entry":"","resistance":"","target1":"","target1Pct":"","target1Period":"","target2":"","target2Pct":"","target2Period":"","target3":"","target3Pct":"","target3Period":"","webDataSummary":"","correlation":"","correlationChain":[],"insiders":[],"events":[],"bullCase":"","bearCase":"","verdict_text":"","stopLoss":"","macro":"","chartEvents":[],"anticipationNarrative":"","anticipationInd1":"","anticipationInd2":"","anticipationInd3":"","anticipationInd4":"","anticipationInd5":"","anticipationMethod":""}`;
+{"ticker":"${ticker}","name":"","sector":"","exchange":"${moex ? 'MOEX' : 'NYSE'}","price":"${currSymbol}0","priceNum":0,"change":"0%","marketCap":"","pe":"","dividend":"","week52Low":"","week52High":"","week52LowNum":0,"week52HighNum":0,"atHigh":"","verdict":"НАБЛЮДАТЬ","verdictEn":"watch","confidence":"СРЕДНЯЯ","rr":"2:1","support":"","entry":"","resistance":"","target1":"","target1Pct":"","target1Period":"","target2":"","target2Pct":"","target2Period":"","target3":"","target3Pct":"","target3Period":"","webDataSummary":"","correlation":"","correlationChain":[],"insiders":[],"events":[],"bullCase":"","bearCase":"","verdict_text":"","stopLoss":"","macro":"","chartEvents":[],"anticipationNarrative":"","anticipationInd1":"","anticipationInd2":"","anticipationInd3":"","anticipationInd4":"","anticipationInd5":"","anticipationMethod":"","scThesis":5,"scAntic":5,"scInsider":5,"scMom":5,"scRR":5,"scSent":5}`;
 
   try {
     const res = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
@@ -546,6 +574,17 @@ JSON шаблон — заполни ВСЕ поля реальными данн
     if (finalPriceNum > 0 && high52Num > 0 && finalPriceNum > high52Num) high52Num = Math.round(finalPriceNum * 1.05 * 100) / 100;
     if (finalPriceNum > 0 && low52Num > 0 && finalPriceNum < low52Num) low52Num = Math.round(finalPriceNum * 0.95 * 100) / 100;
 
+    // ─── STARK SCORE (0–10) из ответа Claude ───
+    // parseFloat, не "|| 5" — иначе валидный 0 молча станет 5
+    const scClamp = (v) => { const n = parseFloat(v); return Number.isFinite(n) ? Math.max(0, Math.min(10, n)) : 5; };
+    const starkSub = {
+      thesis: scClamp(stock.scThesis), antic: scClamp(stock.scAntic), insider: scClamp(stock.scInsider),
+      mom: scClamp(stock.scMom), rr: scClamp(stock.scRR), sent: scClamp(stock.scSent)
+    };
+    const STARK_W = { thesis: 25, antic: 25, insider: 15, mom: 15, rr: 10, sent: 10 };
+    const starkWsum = Object.values(STARK_W).reduce((a, b) => a + b, 0);
+    const starkScore = Object.keys(STARK_W).reduce((a, k) => a + (starkSub[k] / 10) * STARK_W[k], 0) / starkWsum * 10;
+
     const norm = {
       ticker: safe(stock.ticker, ticker),
       name: safe(stock.name, ticker),
@@ -581,6 +620,7 @@ JSON шаблон — заполни ВСЕ поля реальными данн
       stopLoss: safe(stock.stopLoss, '—'),
       macro: safe(stock.macro, ''),
       anticipation,
+      starkSub, starkScore, starkW: STARK_W,
       currSymbol
     };
 
@@ -639,6 +679,54 @@ function renderResult(s) {
       ${ant.method?`<div class="method-line">💡 МЕТОД АЛЕКСЕЯ: ${ant.method}</div>`:''}
     </div>` : '';
 
+  const SC_META = [
+    { k:'thesis',  name:'Тезис / фундамент', c:'#0071e3' },
+    { k:'antic',   name:'ПРЕДВОСХИЩЕНИЕ',     c:'#5e5ce6' },
+    { k:'insider', name:'Инсайдеры',          c:'#1d8f4e' },
+    { k:'mom',     name:'Моментум / 52W',     c:'#ff9f0a' },
+    { k:'rr',      name:'Качество R',         c:'#bf6a00' },
+    { k:'sent',    name:'Сентимент',          c:'#d70015' }
+  ];
+  const scTotal = (typeof s.starkScore === 'number' && isFinite(s.starkScore)) ? s.starkScore : null;
+  const scBand = scTotal === null ? { t:'—', c:'var(--dim)' }
+    : scTotal >= 8 ? { t:'СИЛЬНЫЙ СИГНАЛ', c:'var(--green)' }
+    : scTotal >= 6 ? { t:'ИНТЕРЕСНО',      c:'var(--accent)' }
+    : scTotal >= 4 ? { t:'НЕЙТРАЛЬНО',     c:'var(--dim)' }
+    : scTotal >= 2 ? { t:'СЛАБО',          c:'var(--orange)' }
+    :                { t:'ИЗБЕГАТЬ',       c:'var(--red)' };
+  const scSub = s.starkSub || {}, scW = s.starkW || {};
+  const scMaxC = Math.max.apply(null, SC_META.map(m => (scW[m.k] || 0) * 10 / 100)) || 1;
+  const scBars = SC_META.map(m => {
+    const v = scSub[m.k] || 0;
+    const wd = Math.min(100, ((scW[m.k] || 0) * v / 100) / scMaxC * 100);
+    return `<div><div class="sc-fac-top"><span class="sc-fac-name">${m.name}</span><span class="sc-fac-val" style="color:${m.c}">${v.toFixed(1)}</span></div><div class="sc-bar"><div style="width:${wd}%;background:${m.c}"></div></div></div>`;
+  }).join('');
+  const scRank = SC_META.map(m => ({ name:m.name, pull:((scSub[m.k]||0)-5)/10*(scW[m.k]||0) })).sort((a,b)=>b.pull-a.pull);
+  const scUp = scRank[0], scDown = scRank[scRank.length-1];
+  let scExpl = '';
+  if (scTotal !== null) {
+    scExpl = `Балл ${scTotal.toFixed(1)}/10.`;
+    if (scUp && scUp.pull > 0) scExpl += ` Сильнее всего тянет вверх: <b>${scUp.name}</b>.`;
+    if (scDown && scDown.pull < 0) scExpl += ` Главный тормоз: <b>${scDown.name}</b>.`;
+    if ((!scUp || scUp.pull <= 0) && (!scDown || scDown.pull >= 0)) scExpl += ' Сигналы сбалансированы около нейтрали.';
+  }
+  const scCirc = 351.86, scDash = scTotal === null ? scCirc : scCirc * (1 - scTotal / 10);
+  const starkScoreHtml = `
+    <div class="sc-card">
+      <div class="sc-ring">
+        <svg width="120" height="120" viewBox="0 0 128 128">
+          <circle cx="64" cy="64" r="56" fill="none" stroke="#eef0f3" stroke-width="12"/>
+          <circle cx="64" cy="64" r="56" fill="none" stroke="${scBand.c}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${scCirc}" stroke-dashoffset="${scDash}" transform="rotate(-90 64 64)"/>
+        </svg>
+        <div class="sc-ring-val"><div class="sc-ring-num" style="color:${scBand.c}">${scTotal===null?'—':scTotal.toFixed(1)}</div><div class="sc-ring-of">из 10</div></div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-head"><span class="sc-tag">STARK SCORE</span><span class="sc-badge" style="color:${scBand.c}">${scBand.t}</span></div>
+        <div class="sc-expl">${scExpl}</div>
+        <div class="sc-facs">${scBars}</div>
+      </div>
+    </div>`;
+
   document.getElementById('result').innerHTML = `
     <div class="stock-hdr-card">
       <div>
@@ -653,6 +741,8 @@ function renderResult(s) {
         <div class="rr-badge">R:R ${s.rr} · ${s.confidence} уверенность</div>
       </div>
     </div>
+
+    ${starkScoreHtml}
 
     <div class="metrics">
       <div class="metric"><div class="metric-label">МКТ КАП</div><div class="metric-val">${s.marketCap}</div></div>
