@@ -549,6 +549,7 @@ JSON шаблон — заполни ВСЕ поля реальными данн
     let realPrice = 0;
     let realHigh52 = 0;
     let realLow52 = 0;
+    let realChange = '';
     try {
       const rp = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -559,6 +560,7 @@ JSON шаблон — заполни ВСЕ поля реальными данн
       if (dp.price) realPrice = parseFloat(dp.price);
       if (dp.high52) realHigh52 = parseFloat(dp.high52);
       if (dp.low52) realLow52 = parseFloat(dp.low52);
+      if (dp.change) realChange = dp.change;
     } catch(e) {}
 
     // ─── Нормализация цены: приоритет реальным данным ───
@@ -592,7 +594,7 @@ JSON шаблон — заполни ВСЕ поля реальными данн
       exchange: safe(stock.exchange, moex ? 'MOEX' : 'NYSE'),
       price: finalPrice,
       priceNum: finalPriceNum,
-      change: safe(stock.change, '0%'),
+      change: realChange || safe(stock.change, '0%'),
       marketCap: safe(stock.marketCap, 'N/A'),
       pe: safe(stock.pe, 'N/A'),
       dividend: safe(stock.dividend, '0%'),
