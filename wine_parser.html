@@ -60,7 +60,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 <div class="hdr">
   <div>
     <div class="hdr-title">🍾 WINE PRICE MONITOR</div>
-    <div class="hdr-sub">WINESHOPPER vs WINEZONE · CLAUDE WEB SEARCH · СРАВНЕНИЕ ЦЕН</div>
+    <div class="hdr-sub">WINESHOPPER vs WINEZONE · FIRECRAWL · СРАВНЕНИЕ ЦЕН</div>
   </div>
   <a href="https://star-agent-murex.vercel.app" style="font-size:12px;color:var(--dim);text-decoration:none;">← STARK AGENT</a>
 </div>
@@ -71,10 +71,6 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
       <div class="input-group" style="flex:2">
         <label class="input-label">Название шампанского</label>
         <input type="text" id="queryInput" class="search-input" placeholder="Moet Chandon Brut Imperial">
-      </div>
-      <div class="input-group" style="flex:0 0 240px">
-        <label class="input-label">Crazyrouter API Key</label>
-        <input type="password" id="crKey" class="search-input" placeholder="sk-...">
       </div>
       <button class="parse-btn" id="parseBtn" onclick="startSearch()">🔍 НАЙТИ</button>
     </div>
@@ -99,9 +95,6 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 <script>
 const API = 'https://star-agent-murex.vercel.app/api/analyze';
 
-const savedCR = localStorage.getItem('crazyrouter_key');
-if (savedCR) document.getElementById('crKey').value = savedCR;
-
 function setQuery(q) { document.getElementById('queryInput').value = q; }
 
 function setStatus(msg, loading=false) {
@@ -110,40 +103,20 @@ function setStatus(msg, loading=false) {
     : `<span>${msg}</span>`;
 }
 
-async function claudeSearch(champagne, crKey) {
-  const prompt = `Используй web_search tool прямо сейчас и найди актуальные цены на шампанское "${champagne}" на двух сайтах:
-1. wine-shopper.ru
-2. winezone.ru
-
-Поищи: "${champagne} цена wine-shopper.ru" и "${champagne} цена winezone.ru"
-
-После поиска верни ТОЛЬКО валидный JSON без markdown:
-{
-  "wineshopper": [
-    {"name": "полное название", "price": 12345, "volume": "750 мл", "type": "Brut/Rose/etc"}
-  ],
-  "winezone": [
-    {"name": "полное название", "price": 12345, "volume": "750 мл", "type": "Brut/Rose/etc"}
-  ]
-}
-
-Цены только в рублях. Если на сайте не найдено — пустой массив [].
-Только JSON, никакого текста вокруг.`;
-
+// Поиск через бэкенд-экшен 'winescrape' (Firecrawl + Claude на сервере).
+// Клиент шлёт только название — извлечение цен и JSON делает сервер.
+async function claudeSearch(champagne) {
   try {
     const r = await fetch(API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'analyze', prompt })
+      body: JSON.stringify({ action: 'winescrape', query: champagne })
     });
     const d = await r.json();
-    const text = d.text || '';
-    const clean = text.replace(/```json/gi,'').replace(/```/g,'').trim();
-    const start = clean.indexOf('{');
-    const end = clean.lastIndexOf('}');
-    if (start !== -1 && end !== -1) {
-      return JSON.parse(clean.slice(start, end+1));
-    }
+    return {
+      wineshopper: Array.isArray(d.wineshopper) ? d.wineshopper : [],
+      winezone: Array.isArray(d.winezone) ? d.winezone : []
+    };
   } catch(e) {}
   return { wineshopper: [], winezone: [] };
 }
@@ -206,21 +179,17 @@ function renderCompare(ws, wz) {
 
 async function startSearch() {
   const query = document.getElementById('queryInput').value.trim();
-  const crKey = document.getElementById('crKey').value.trim();
 
   if (!query) { setStatus('⚠ Введи название шампанского'); return; }
-  if (!crKey) { setStatus('⚠ Введи Crazyrouter API key'); return; }
-
-  localStorage.setItem('crazyrouter_key', crKey);
 
   const btn = document.getElementById('parseBtn');
   btn.disabled = true;
   document.getElementById('resultsGrid').style.display = 'none';
   document.getElementById('compareSection').style.display = 'none';
 
-  setStatus(`Claude ищет "${query}" на WineShopper и WineZone...`, true);
+  setStatus(`Ищу "${query}" на WineShopper и WineZone через Firecrawl...`, true);
 
-  const data = await claudeSearch(query, crKey);
+  const data = await claudeSearch(query);
 
   const ws = Array.isArray(data.wineshopper) ? data.wineshopper : [];
   const wz = Array.isArray(data.winezone) ? data.winezone : [];
