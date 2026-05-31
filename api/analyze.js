@@ -229,31 +229,49 @@ export default async function handler(req, res) {
       const champagne = (query || '').trim();
       if (!champagne) return res.json({ wineshopper: [], winezone: [] });
 
-      async function fcSearch(domain) {
+      // Прямой scrape конкретной страницы (фолбэк, если search по домену пуст).
+      // waitFor — дать прогрузиться JS/age-gate; proxy auto — против простой анти-бот защиты.
+      async function fcScrape(url) {
+        try {
+          const r = await fetch('https://api.firecrawl.dev/v2/scrape', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + fcKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url, formats: ['markdown'], waitFor: 3500, proxy: 'auto' })
+          });
+          const d = await r.json();
+          const data = d.data || d;
+          return (data && data.markdown) ? data.markdown : '';
+        } catch (e) { return ''; }
+      }
+
+      // Поиск по конкретному домену + scrape выдачи. Если пусто — фолбэк на каталог.
+      async function fcSearch(domain, fallbackUrl) {
+        let out = '';
         try {
           const r = await fetch('https://api.firecrawl.dev/v2/search', {
             method: 'POST',
-            headers: {
-              'Authorization': 'Bearer ' + fcKey,
-              'Content-Type': 'application/json'
-            },
+            headers: { 'Authorization': 'Bearer ' + fcKey, 'Content-Type': 'application/json' },
             body: JSON.stringify({
               query: champagne + ' цена купить',
               limit: 4,
               location: 'Russia',
               includeDomains: [domain],
-              scrapeOptions: { formats: ['markdown'] }
+              scrapeOptions: { formats: ['markdown'], waitFor: 3500, proxy: 'auto' }
             })
           });
           const d = await r.json();
           const web = (d.data && d.data.web) || d.web || [];
-          return web.map(x => (x.markdown || x.description || '')).join('\n\n---\n\n').slice(0, 10000);
-        } catch (e) { return ''; }
+          out = web.map(x => (x.markdown || x.description || '')).join('\n\n---\n\n').slice(0, 10000);
+        } catch (e) {}
+        if ((!out || out.length < 80) && fallbackUrl) {
+          out = (await fcScrape(fallbackUrl)).slice(0, 10000);
+        }
+        return out;
       }
 
       const [wsRaw, wzRaw] = await Promise.all([
-        fcSearch('wine-shopper.ru'),
-        fcSearch('winezone.ru')
+        fcSearch('wine-shopper.ru', null),
+        fcSearch('winezone.ru', 'https://winezone.ru/shampanskoe')
       ]);
 
       const extractPrompt =
@@ -261,7 +279,8 @@ export default async function handler(req, res) {
         '=== WINE-SHOPPER.RU ===\n' + (wsRaw || 'нет данных') + '\n\n' +
         '=== WINEZONE.RU ===\n' + (wzRaw || 'нет данных') + '\n\n' +
         'Извлеки реальные товары с ценами в рублях ТОЛЬКО из текста выше. ' +
-        'НЕ выдумывай ни названия, ни цены. Если по магазину данных нет — пустой массив. ' +
+        'Бери только позиции, релевантные запросу "' + champagne + '" (тот же бренд). ' +
+        'НЕ выдумывай ни названия, ни цены. Если по магазину релевантных данных нет — пустой массив. ' +
         'Ответь СТРОГО валидным JSON без markdown:\n' +
         '{"wineshopper":[{"name":"полное название","price":12345,"volume":"750 мл","type":"Brut"}],"winezone":[]}';
 
@@ -276,8 +295,8 @@ export default async function handler(req, res) {
       if (!Array.isArray(parsed.wineshopper)) parsed.wineshopper = [];
       if (!Array.isArray(parsed.winezone)) parsed.winezone = [];
 
-      // DEBUG: раскомментируй, если карточки пустые — увидишь, что реально пришло из Firecrawl.
-      // wsLen/wzLen === 0 → Firecrawl ничего не нашёл по домену (план Б: убрать includeDomains / scrape по прямому URL).
+      // DEBUG: раскомментируй, если WineZone всё ещё пуст — увидишь, что реально пришло из Firecrawl.
+      // wzLen === 0 → ни search, ни scrape ничего не отдали (анти-бот / age-gate жёстче). ws/wz — первые 400 символов.
       // parsed._debug = { wsLen: wsRaw.length, wzLen: wzRaw.length, ws: wsRaw.slice(0, 400), wz: wzRaw.slice(0, 400) };
 
       return res.json(parsed);
