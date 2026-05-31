@@ -216,6 +216,73 @@ export default async function handler(req, res) {
       }
     }
 
+    // ============================================================
+    // WINE PRICE MONITOR — отдельный путь через Firecrawl.
+    // НЕ использует Tavily. Не трогает analyze / price / resolve / search.
+    // Требует ENV: FIRECRAWL_KEY, CRAZYROUTER_KEY.
+    // ============================================================
+    if (action === 'winescrape') {
+      const fcKey = process.env.FIRECRAWL_KEY;
+      if (!fcKey) return res.status(500).json({ error: 'No FIRECRAWL_KEY' });
+      if (!crKey) return res.status(500).json({ error: 'No CRAZYROUTER_KEY' });
+
+      const champagne = (query || '').trim();
+      if (!champagne) return res.json({ wineshopper: [], winezone: [] });
+
+      async function fcSearch(domain) {
+        try {
+          const r = await fetch('https://api.firecrawl.dev/v2/search', {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer ' + fcKey,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              query: champagne + ' цена купить',
+              limit: 4,
+              location: 'Russia',
+              includeDomains: [domain],
+              scrapeOptions: { formats: ['markdown'] }
+            })
+          });
+          const d = await r.json();
+          const web = (d.data && d.data.web) || d.web || [];
+          return web.map(x => (x.markdown || x.description || '')).join('\n\n---\n\n').slice(0, 10000);
+        } catch (e) { return ''; }
+      }
+
+      const [wsRaw, wzRaw] = await Promise.all([
+        fcSearch('wine-shopper.ru'),
+        fcSearch('winezone.ru')
+      ]);
+
+      const extractPrompt =
+        'Ниже содержимое страниц двух винных магазинов по запросу "' + champagne + '".\n\n' +
+        '=== WINE-SHOPPER.RU ===\n' + (wsRaw || 'нет данных') + '\n\n' +
+        '=== WINEZONE.RU ===\n' + (wzRaw || 'нет данных') + '\n\n' +
+        'Извлеки реальные товары с ценами в рублях ТОЛЬКО из текста выше. ' +
+        'НЕ выдумывай ни названия, ни цены. Если по магазину данных нет — пустой массив. ' +
+        'Ответь СТРОГО валидным JSON без markdown:\n' +
+        '{"wineshopper":[{"name":"полное название","price":12345,"volume":"750 мл","type":"Brut"}],"winezone":[]}';
+
+      let parsed = { wineshopper: [], winezone: [] };
+      try {
+        const text = await callClaude([{ role: 'user', content: extractPrompt }], 2000);
+        const clean = (text || '').replace(/```json|```/g, '').trim();
+        const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
+        if (s !== -1 && e !== -1) parsed = JSON.parse(clean.slice(s, e + 1));
+      } catch (e) {}
+
+      if (!Array.isArray(parsed.wineshopper)) parsed.wineshopper = [];
+      if (!Array.isArray(parsed.winezone)) parsed.winezone = [];
+
+      // DEBUG: раскомментируй, если карточки пустые — увидишь, что реально пришло из Firecrawl.
+      // wsLen/wzLen === 0 → Firecrawl ничего не нашёл по домену (план Б: убрать includeDomains / scrape по прямому URL).
+      // parsed._debug = { wsLen: wsRaw.length, wzLen: wzRaw.length, ws: wsRaw.slice(0, 400), wz: wzRaw.slice(0, 400) };
+
+      return res.json(parsed);
+    }
+
     if (action === 'analyze') {
       if (!crKey) return res.status(500).json({ error: 'No API key' });
 
