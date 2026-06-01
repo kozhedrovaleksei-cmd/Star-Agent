@@ -3,1180 +3,207 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>STARK AI AGENT</title>
+<title>STARK ULTIMATE v5.1 • I AM IRON MAN</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
-* { margin: 0; padding: 0; box-sizing: border-box; }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bebas+Neue&display=swap');
 
 :root {
+  --gold: #D4AF37;
+  --green: #00ff9d;
+  --red: #ff3b5c;
+  --bg: #0a0a0a;
+  --card: #111111;
   --accent: #0071e3;
-  --accent-press: #0077ed;
-  --accent-soft: #eaf2fd;
-  --red: #d70015;
-  --green: #1d8f4e;
-  --orange: #bf6a00;
-  --blue: #0071e3;
-  --bg: #fbfbfd;
-  --bg2: #ffffff;
-  --bg3: #f0f0f3;
-  --bg4: #f5f5f7;
-  --border: #d2d2d7;
-  --border2: #e8e8ed;
-  --text: #1d1d1f;
-  --text2: #424245;
-  --dim: #6e6e73;
-  --dim2: #a1a1a6;
-  --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04);
-  --shadow2: 0 8px 30px rgba(0,0,0,0.10);
-  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", system-ui, sans-serif;
-  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", monospace;
 }
 
-body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
-
-.hdr {
-  padding: 20px 40px;
-  border-bottom: 1px solid var(--border2);
-  display: flex; align-items: center; justify-content: space-between;
-  background: rgba(251,251,253,0.8); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px);
-  position: sticky; top: 0; z-index: 50;
+body {
+  background: var(--bg);
+  color: #e0e0e0;
+  font-family: 'Inter', system-ui, sans-serif;
+  margin: 0;
+  padding: 0;
 }
-.hdr-left { display: flex; align-items: center; gap: 14px; }
-.hdr-icon { width: 34px; height: 34px; background: var(--text); color: #fff; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 17px; }
-.hdr-logo { font-family: var(--font); font-weight: 600; font-size: 21px; letter-spacing: -0.02em; color: var(--text); }
-.hdr-sub { font-size: 12px; color: var(--dim); letter-spacing: 0; margin-top: 1px; }
-.status-badge { display: flex; align-items: center; gap: 6px; background: #e9f9ef; border: 1px solid #b8ebcb; border-radius: 980px; padding: 5px 12px; }
-.status-dot { width: 7px; height: 7px; background: #34c759; border-radius: 50%; animation: pulse 2s infinite; }
-@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(0.9)} }
-.status-text { font-size: 12px; color: #1d8f4e; font-weight: 500; letter-spacing: 0; }
 
-.keys-section { padding: 16px 40px; background: var(--bg4); border-bottom: 1px solid var(--border2); }
-.keys-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
-.keys-row:last-child { margin-bottom: 0; }
-.key-label { font-size: 12px; color: var(--dim); letter-spacing: 0; font-weight: 500; white-space: nowrap; min-width: 180px; }
-.key-input {
-  flex: 1; min-width: 200px;
-  background: var(--bg2); border: 1px solid var(--border);
-  color: var(--text); font-family: var(--mono); font-size: 12px;
-  padding: 9px 13px; border-radius: 10px; outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+.header {
+  background: linear-gradient(135deg, #1a1a00, #0a0a0a);
+  padding: 24px 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 5px solid var(--gold);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
-.key-input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
-.key-btn {
-  background: var(--text); color: #fff; border: none;
-  font-family: var(--font); font-size: 13px; font-weight: 500; letter-spacing: 0;
-  padding: 9px 18px; border-radius: 980px; cursor: pointer; white-space: nowrap;
-  transition: opacity 0.15s;
+
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 46px;
+  letter-spacing: 4px;
+  color: var(--gold);
 }
-.key-btn:hover { opacity: 0.85; }
-.key-status { font-size: 12px; font-weight: 500; }
 
-.main { padding: 32px 40px; max-width: 1080px; margin: 0 auto; }
-
-.input-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 18px; padding: 24px; margin-bottom: 18px; box-shadow: var(--shadow); }
-.input-row { display: flex; gap: 14px; flex-wrap: wrap; }
-.ticker-wrap { flex: 0 0 190px; }
-.input-label { font-size: 11px; color: var(--dim); letter-spacing: 0.06em; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; }
-.ticker-input {
-  width: 100%; background: var(--bg4); border: 1px solid var(--border);
-  color: var(--text); font-family: var(--font); font-weight: 600; font-size: 22px;
-  letter-spacing: -0.01em; padding: 12px 14px; border-radius: 12px; outline: none;
-  text-transform: uppercase; transition: border-color 0.15s, box-shadow 0.15s;
+.status {
+  background: #00ff9d;
+  color: black;
+  padding: 6px 18px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
 }
-.ticker-input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
-.hypo-wrap { flex: 1; min-width: 200px; }
-.hypo-input {
-  width: 100%; background: var(--bg4); border: 1px solid var(--border);
-  color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.5;
-  padding: 12px 15px; border-radius: 12px; outline: none; resize: none; height: 64px;
-  transition: border-color 0.15s, box-shadow 0.15s;
+
+.main {
+  max-width: 1480px;
+  margin: 40px auto;
+  padding: 0 48px;
 }
-.hypo-input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
-.analyze-btn {
-  flex: 0 0 168px;
-  background: var(--accent);
-  color: #fff; border: none; font-family: var(--font); font-weight: 600; font-size: 16px;
-  letter-spacing: 0; border-radius: 12px; cursor: pointer; align-self: flex-end;
-  height: 64px; transition: background 0.15s, transform 0.05s;
+
+.top {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 32px;
 }
-.analyze-btn:hover { background: var(--accent-press); }
-.analyze-btn:active { transform: scale(0.99); }
-.analyze-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.quick { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; align-items: center; }
-.quick-label { font-size: 12px; color: var(--dim); letter-spacing: 0; font-weight: 500; }
-.q-btn {
-  background: var(--bg2); border: 1px solid var(--border); color: var(--text2);
-  font-family: var(--mono); font-size: 12px; padding: 6px 12px;
-  border-radius: 980px; cursor: pointer; font-weight: 500; transition: all 0.15s;
+.big-card {
+  background: var(--card);
+  border-radius: 24px;
+  padding: 36px;
+  flex: 1;
+  border: 1px solid #222;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
 }
-.q-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 
-.error-box {
-  display: none; background: #fff0f0; border: 1px solid #f5c2c2;
-  border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: var(--red);
+.metric {
+  font-size: 58px;
+  font-weight: 700;
+  margin: 8px 0 4px;
 }
-.error-box.show { display: block; }
 
-.loading { display: none; padding: 48px 40px; text-align: center; }
-.loading.show { display: block; }
-.load-title { font-family: var(--font); font-weight: 600; font-size: 20px; letter-spacing: -0.01em; color: var(--text); margin-bottom: 28px; }
-.steps { display: flex; flex-direction: column; gap: 10px; max-width: 420px; margin: 0 auto; }
-.step {
-  display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--dim);
-  padding: 11px 16px; border: 1px solid var(--border2); border-radius: 12px;
-  background: var(--bg2); transition: all 0.3s; text-align: left;
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 24px;
 }
-.step.active { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
-.step.done { color: var(--green); border-color: #b8ebcb; background: #e9f9ef; }
 
-.result { display: none; }
-.result.show { display: block; }
+.card {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 28px;
+  border: 1px solid #222;
+}
 
-.stock-hdr-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 18px; padding: 28px 30px; margin-bottom: 16px; box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 18px; }
-.stock-name { font-family: var(--font); font-weight: 600; font-size: 52px; color: var(--text); letter-spacing: -0.03em; line-height: 1; }
-.stock-full { font-size: 15px; color: var(--dim); margin-top: 6px; letter-spacing: -0.01em; }
-.stock-sector { display: inline-block; background: var(--bg4); border: 1px solid var(--border2); color: var(--dim); font-size: 11px; padding: 4px 10px; border-radius: 980px; margin-top: 10px; letter-spacing: 0.02em; font-weight: 500; }
-.stock-price-block { text-align: right; }
-.stock-price { font-family: var(--font); font-weight: 600; font-size: 44px; color: var(--text); line-height: 1; letter-spacing: -0.02em; }
-.stock-change { font-size: 14px; margin-top: 6px; font-weight: 500; }
-.pos { color: var(--green); } .neg { color: var(--red); }
-.verdict-badge { display: inline-block; font-family: var(--font); font-weight: 600; font-size: 13px; letter-spacing: 0.02em; padding: 7px 16px; border-radius: 980px; margin-top: 10px; }
-.verdict-buy { background: #e9f9ef; color: var(--green); border: 1px solid #b8ebcb; }
-.verdict-watch { background: #fff6e6; color: var(--orange); border: 1px solid #f5dca8; }
-.verdict-wait { background: var(--bg4); color: var(--dim); border: 1px solid var(--border); }
-.verdict-sell { background: #fff0f0; color: var(--red); border: 1px solid #f5c2c2; }
-.rr-badge { font-size: 12px; color: var(--dim); margin-top: 6px; }
-
-.metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)); gap: 10px; margin-bottom: 16px; }
-.metric { background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; padding: 16px 12px; text-align: center; box-shadow: var(--shadow); }
-.metric-label { font-size: 10px; color: var(--dim); letter-spacing: 0.05em; font-weight: 600; margin-bottom: 6px; text-transform: uppercase; }
-.metric-val { font-family: var(--font); font-weight: 600; font-size: 19px; color: var(--text); letter-spacing: -0.01em; }
-
-.price-bar-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 18px; padding: 22px 24px; margin-bottom: 16px; box-shadow: var(--shadow); }
-.card-title { font-size: 11px; color: var(--dim); letter-spacing: 0.06em; font-weight: 600; margin-bottom: 16px; text-transform: uppercase; }
-.bar-track { height: 6px; background: var(--bg3); border-radius: 980px; position: relative; margin: 12px 0 22px; }
-.bar-fill { height: 100%; background: linear-gradient(90deg, #ff3b30, #ff9f0a, #34c759); border-radius: 980px; }
-.bar-marker { position: absolute; top: -7px; width: 20px; height: 20px; background: var(--bg2); border: 3px solid var(--text); border-radius: 50%; transform: translateX(-50%); box-shadow: var(--shadow2); }
-.bar-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--dim); font-weight: 500; }
-.levels-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
-.level-item { text-align: center; padding: 12px; border: 1px solid var(--border2); border-radius: 12px; background: var(--bg4); }
-.level-label { font-size: 10px; color: var(--dim); letter-spacing: 0.05em; font-weight: 600; text-transform: uppercase; }
-.level-val { font-family: var(--font); font-weight: 600; font-size: 19px; margin-top: 4px; letter-spacing: -0.01em; }
-.lvl-sup { color: var(--red); } .lvl-entry { color: var(--accent); } .lvl-res { color: var(--green); }
-
-.targets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
-.target { background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; padding: 16px; text-align: center; box-shadow: var(--shadow); }
-.target-label { font-size: 10px; color: var(--dim); letter-spacing: 0.05em; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; }
-.target-price { font-family: var(--font); font-weight: 600; font-size: 24px; color: var(--green); letter-spacing: -0.02em; }
-.target-pct { font-size: 13px; color: var(--green); margin-top: 4px; font-weight: 500; }
-.target-period { font-size: 11px; color: var(--dim); margin-top: 4px; }
-
-.section-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 18px; padding: 22px 24px; margin-bottom: 16px; box-shadow: var(--shadow); }
-.section-title { font-size: 11px; color: var(--dim); letter-spacing: 0.06em; font-weight: 600; margin-bottom: 16px; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
-.corr-text { font-size: 14px; color: var(--text2); line-height: 1.65; margin-bottom: 14px; }
-.corr-chain { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.corr-node { background: var(--accent-soft); border: 1px solid #cfe3fb; color: #1a4d8f; font-size: 12px; padding: 5px 11px; border-radius: 980px; font-weight: 500; }
-.corr-arrow { color: var(--accent); opacity: 0.5; font-size: 13px; font-weight: 500; }
-
-.insider-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border2); flex-wrap: wrap; gap: 8px; }
-.insider-item:last-child { border-bottom: none; }
-.insider-name { font-size: 14px; color: var(--text); font-weight: 600; letter-spacing: -0.01em; }
-.insider-role { font-size: 12px; color: var(--dim); }
-.insider-amount { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; font-family: var(--font); font-weight: 600; font-size: 15px; letter-spacing: -0.01em; }
-.insider-buy { color: var(--green); } .insider-sell { color: var(--red); }
-.trade-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 980px; letter-spacing: 0; }
-.trade-badge.buy { background: #e9f9ef; color: var(--green); border: 1px solid #b8ebcb; }
-.trade-badge.sell { background: #fff0f0; color: var(--red); border: 1px solid #f5c2c2; }
-.trade-badge .arr { font-size: 11px; line-height: 1; }
-.trade-shares { color: var(--dim); font-size: 12px; font-weight: 500; }
-.insider-date { font-size: 12px; color: var(--dim); }
-
-.event-item { display: flex; gap: 16px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--border2); }
-.event-item:last-child { border-bottom: none; }
-.event-date { font-size: 12px; color: var(--dim); white-space: nowrap; min-width: 96px; font-weight: 500; }
-.event-text { font-size: 14px; color: var(--text2); line-height: 1.5; }
-.event-tag { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 980px; margin-left: 8px; font-weight: 600; letter-spacing: 0.02em; }
-.tag-urgent { background: #fff0f0; color: var(--red); border: 1px solid #f5c2c2; }
-.tag-catalyst { background: #fff6e6; color: var(--orange); border: 1px solid #f5dca8; }
-
-.cases { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-.case-item { background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; padding: 18px; box-shadow: var(--shadow); }
-.case-title { font-size: 11px; letter-spacing: 0.06em; font-weight: 600; margin-bottom: 10px; text-transform: uppercase; }
-.bull { color: var(--green); } .bear { color: var(--red); }
-.case-text { font-size: 13px; color: var(--text2); line-height: 1.65; }
-
-.verdict-section { background: var(--bg2); border: 1px solid var(--border2); border-left: 3px solid var(--accent); border-radius: 18px; padding: 26px; margin-bottom: 16px; box-shadow: var(--shadow); }
-.verdict-title { font-family: var(--font); font-weight: 600; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
-.verdict-text { font-size: 14px; color: var(--text2); line-height: 1.7; }
-.verdict-phrase { margin-top: 18px; font-family: var(--font); font-weight: 600; font-size: 18px; letter-spacing: -0.01em; color: var(--text); }
-
-.anticipation-section { background: var(--accent-soft); border: 1px solid #d4e6fb; border-radius: 18px; padding: 26px; margin-bottom: 16px; box-shadow: var(--shadow); }
-.anticipation-title { font-family: var(--font); font-weight: 600; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
-.anticipation-text { font-size: 14px; color: #1a3a5f; line-height: 1.7; margin-bottom: 18px; }
-.indicator-list { display: flex; flex-direction: column; gap: 10px; }
-.indicator-item { display: flex; gap: 14px; align-items: flex-start; background: rgba(255,255,255,0.75); border: 1px solid #d4e6fb; border-radius: 14px; padding: 14px 16px; }
-.indicator-num { font-family: var(--font); font-weight: 600; font-size: 20px; color: var(--accent); line-height: 1.1; min-width: 26px; letter-spacing: -0.02em; }
-.indicator-body { flex: 1; }
-.indicator-name { font-size: 13px; font-weight: 600; color: #1a3a5f; margin-bottom: 3px; }
-.indicator-desc { font-size: 13px; color: #3a5a82; line-height: 1.55; }
-.indicator-lag { display: inline-block; font-size: 10px; font-weight: 600; background: #d4e6fb; color: var(--accent); border-radius: 980px; padding: 2px 8px; margin-top: 6px; letter-spacing: 0.02em; }
-.method-line { margin-top: 16px; font-size: 13px; color: #1a3a5f; background: rgba(255,255,255,0.75); border: 1px solid #d4e6fb; border-radius: 14px; padding: 12px 16px; }
-
-.chart-section { background: var(--bg2); border: 1px solid var(--border2); border-radius: 18px; padding: 22px 24px; margin-bottom: 16px; box-shadow: var(--shadow); }
-.chart-wrap { position: relative; width: 100%; height: 260px; }
-.chart-tooltip { position: absolute; background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; pointer-events: none; display: none; z-index: 10; max-width: 230px; line-height: 1.6; box-shadow: var(--shadow2); }
-.tt-date { color: var(--accent); font-size: 11px; letter-spacing: 0.02em; margin-bottom: 4px; font-weight: 600; }
-.tt-price { font-family: var(--font); font-weight: 600; font-size: 22px; color: var(--text); letter-spacing: -0.02em; }
-.tt-driver { color: var(--text2); font-size: 12px; margin-top: 4px; }
-.chart-events-list { margin-top: 16px; display: flex; flex-direction: column; gap: 4px; }
-.chart-event-item { display: flex; gap: 12px; align-items: flex-start; font-size: 12px; padding: 8px 0; border-bottom: 1px solid var(--border2); }
-.chart-event-item:last-child { border-bottom: none; }
-.ev-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
-.ev-peak { background: #ff9f0a; }
-.ev-crash { background: var(--red); }
-.ev-catalyst { background: var(--green); }
-.ev-current { background: var(--accent); }
-.ev-date { color: var(--dim); min-width: 66px; font-weight: 500; }
-.ev-label { color: var(--accent); min-width: 84px; font-weight: 600; }
-.ev-driver { color: var(--text2); flex: 1; }
-
-.web-data { background: #e9f9ef; border: 1px solid #b8ebcb; border-radius: 14px; padding: 14px 18px; margin-bottom: 16px; }
-.web-data-title { font-size: 11px; color: var(--green); letter-spacing: 0.06em; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; }
-.web-data-text { font-size: 13px; color: var(--text2); line-height: 1.6; }
-
-/* ─── STARK SCORE ─── */
-.sc-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 18px; padding: 22px 24px; margin-bottom: 16px; box-shadow: var(--shadow); display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
-.sc-ring { position: relative; width: 120px; height: 120px; flex: 0 0 auto; }
-.sc-ring-val { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.sc-ring-num { font-family: var(--font); font-weight: 700; font-size: 34px; letter-spacing: -0.03em; line-height: 1; }
-.sc-ring-of { font-size: 11px; color: var(--dim2); font-weight: 600; margin-top: 2px; }
-.sc-body { flex: 1; min-width: 260px; }
-.sc-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-.sc-tag { font-size: 11px; letter-spacing: 0.06em; font-weight: 600; color: var(--dim); text-transform: uppercase; }
-.sc-badge { font-size: 13px; font-weight: 700; letter-spacing: 0.02em; }
-.sc-expl { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 14px; }
-.sc-expl b { color: var(--text); font-weight: 600; }
-.sc-facs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 22px; }
-.sc-fac-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
-.sc-fac-name { font-size: 12px; color: var(--dim); font-weight: 500; }
-.sc-fac-val { font-family: var(--font); font-size: 14px; font-weight: 700; }
-.sc-bar { height: 5px; border-radius: 5px; background: var(--bg3); overflow: hidden; }
-.sc-bar > div { height: 100%; border-radius: 5px; transition: width 0.3s; }
-@media (max-width: 560px) { .sc-facs { grid-template-columns: 1fr; } }
-/* ─── ВКЛАДКИ ─── */
-.tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
-.tab-btn { background: var(--bg2); border: 1px solid var(--border); color: var(--text2); font-family: var(--font); font-size: 13px; font-weight: 600; padding: 9px 16px; border-radius: 980px; cursor: pointer; transition: all 0.15s; }
-.tab-btn:hover { border-color: var(--accent); color: var(--accent); }
-.tab-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-.tab-panel { display: none; }
-.tab-panel.active { display: block; animation: tabFade 0.25s ease; }
-@keyframes tabFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-.star-toggle { background: none; border: none; cursor: pointer; font-size: 22px; color: var(--orange); vertical-align: middle; padding: 0 4px; line-height: 1; }
-
-/* ─── ВОТЧЛИСТ ─── */
-.wl-empty { text-align: center; color: var(--dim); padding: 56px 10px; font-size: 14px; line-height: 1.6; }
-.wl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-.wl-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); position: relative; cursor: pointer; transition: border-color 0.15s, transform 0.1s; }
-.wl-card:hover { border-color: var(--accent); }
-.wl-card:active { transform: scale(0.99); }
-.wl-tk { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
-.wl-name { font-size: 12px; color: var(--dim); margin-top: 2px; height: 16px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.wl-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 12px; }
-.wl-price { font-size: 16px; font-weight: 600; }
-.wl-score { font-size: 13px; font-weight: 700; padding: 2px 9px; border-radius: 980px; }
-.wl-verdict { font-size: 11px; font-weight: 600; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.03em; }
-.wl-rm { position: absolute; top: 8px; right: 12px; color: var(--dim2); font-size: 18px; cursor: pointer; line-height: 1; }
-.wl-rm:hover { color: var(--red); }
-.wl-ts { font-size: 10px; color: var(--dim2); margin-top: 8px; }
-
-/* ─── СРАВНЕНИЕ ─── */
-.cmp-inputs { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
-.cmp-inputs .ticker-wrap { flex: 1; min-width: 130px; }
-.cmp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-@media (max-width: 560px) { .cmp-grid { grid-template-columns: 1fr; } }
-.cmp-col { background: var(--bg2); border: 1px solid var(--border2); border-radius: 16px; padding: 18px; box-shadow: var(--shadow); }
-.cmp-tk { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
-.cmp-sub { font-size: 12px; color: var(--dim); margin-bottom: 10px; height: 16px; overflow: hidden; }
-.cmp-metric { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border2); font-size: 13px; }
-.cmp-metric:last-child { border-bottom: none; }
-.cmp-metric .lbl { color: var(--dim); }
-.cmp-metric .val { font-weight: 600; text-align: right; }
-.cmp-win { color: var(--green); }
-
-/* ─── САЙЗИНГ ─── */
-.sz-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 16px; padding: 22px; box-shadow: var(--shadow); margin-bottom: 16px; }
-.sz-field { margin-bottom: 14px; }
-.sz-field label { display: block; font-size: 12px; color: var(--dim); font-weight: 600; margin-bottom: 6px; }
-.sz-field input, .sz-field select { width: 100%; background: var(--bg4); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-family: var(--font); font-size: 15px; color: var(--text); outline: none; }
-.sz-field input:focus, .sz-field select:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
-.sz-out { background: var(--accent-soft); border: 1px solid #cfe3fb; border-radius: 14px; padding: 18px; }
-.sz-out-big { font-size: 28px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; margin-bottom: 8px; }
-.sz-out-row { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-top: 1px solid #d8e8fb; }
-.sz-out-row:first-of-type { border-top: none; }
-.sz-note { font-size: 12px; color: var(--dim); line-height: 1.5; margin-top: 12px; }
+.section-title {
+  color: var(--gold);
+  font-size: 21px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--gold);
+}
 </style>
 </head>
 <body>
 
-<div class="hdr">
-  <div class="hdr-left">
-    <div class="hdr-icon">⚡</div>
-    <div>
-      <div class="hdr-logo">STARK AI AGENT</div>
-      <div class="hdr-sub">8-УРОВНЕВЫЙ АЛГОРИТМ · ВЕБ-ПОИСК · МЕТОД АЛЕКСЕЯ · ПРЕДВОСХИЩЕНИЕ</div>
-    </div>
-  </div>
-  <div class="status-badge"><span class="status-dot"></span><span class="status-text">AGENT ONLINE</span></div>
-</div>
-
-<div class="keys-section">
-  <div class="keys-row">
-    <span class="key-label">CRAZYROUTER API KEY</span>
-    <input type="password" id="crKeyInput" class="key-input" placeholder="sk-xxxxxxxxxxxxxxxx">
-    <button class="key-btn" onclick="saveCRKey()">СОХРАНИТЬ</button>
-    <span id="crKeyStatus" class="key-status"></span>
-  </div>
-  <div class="keys-row">
-    <span class="key-label">TAVILY API KEY</span>
-    <input type="password" id="tvKeyInput" class="key-input" placeholder="tvly-xxxxxxxxxxxxxxxx">
-    <button class="key-btn" onclick="saveTVKey()">СОХРАНИТЬ</button>
-    <span id="tvKeyStatus" class="key-status"></span>
+<div class="header">
+  <div class="logo">STARK ULTIMATE</div>
+  <div>
+    <span class="status">● ONLINE</span>
+    <div style="margin-top:6px; font-size:15px;">Алексей • Iron Man Protocol • 29.05.2026</div>
   </div>
 </div>
 
 <div class="main">
-  <nav class="tabs">
-    <button id="tabbtn-analyze" class="tab-btn active" onclick="switchTab('analyze')">🔍 Анализ</button>
-    <button id="tabbtn-watchlist" class="tab-btn" onclick="switchTab('watchlist')">⭐ Вотчлист</button>
-    <button id="tabbtn-compare" class="tab-btn" onclick="switchTab('compare')">⚖️ Сравнение</button>
-    <button id="tabbtn-sizing" class="tab-btn" onclick="switchTab('sizing')">📐 Сайзинг</button>
-  </nav>
-
-  <div id="tab-analyze" class="tab-panel active">
-  <div class="input-card">
-    <div class="input-row">
-      <div class="ticker-wrap">
-        <div class="input-label">Тикер / компания</div>
-        <input type="text" id="tickerInput" class="ticker-input" placeholder="NKE · Nike · Сбербанк">
-      </div>
-      <div class="hypo-wrap">
-        <div class="input-label">Твоя гипотеза (необязательно)</div>
-        <textarea id="contextInput" class="hypo-input" placeholder="Например: вижу корреляцию с нефтью, компания на дне цикла..."></textarea>
-      </div>
-      <button class="analyze-btn" id="analyzeBtn" onclick="analyze()">⚡ АНАЛИЗ</button>
-    </div>
-  </div>
-
-  <div class="quick">
-    <span class="quick-label">БЫСТРЫЙ ВЫБОР:</span>
-    <button class="q-btn" onclick="setTicker('NKE')">NKE</button>
-    <button class="q-btn" onclick="setTicker('CCJ')">CCJ</button>
-    <button class="q-btn" onclick="setTicker('CEG')">CEG</button>
-    <button class="q-btn" onclick="setTicker('PBR')">PBR</button>
-    <button class="q-btn" onclick="setTicker('VST')">VST</button>
-    <button class="q-btn" onclick="setTicker('UEC')">UEC</button>
-    <button class="q-btn" onclick="setTicker('OKLO')">OKLO</button>
-    <button class="q-btn" onclick="setTicker('NOK')">NOK</button>
-    <button class="q-btn" onclick="setTicker('FCX')">FCX</button>
-    <button class="q-btn" onclick="setTicker('RKLB')">RKLB</button>
-    <button class="q-btn" onclick="setTicker('SBER')">SBER</button>
-    <button class="q-btn" onclick="setTicker('SVCB')">SVCB</button>
-    <button class="q-btn" onclick="setTicker('FLNC')">FLNC</button>
-    <button class="q-btn" onclick="setTicker('RUAL')">RUAL</button>
-  </div>
-
-  <div id="errorBox" class="error-box"></div>
-
-  <div id="loading" class="loading">
-    <div class="load-title">⚡ STARK АНАЛИЗИРУЕТ...</div>
-    <div class="steps">
-      <div class="step" id="s1"><span>🌐</span> Веб-поиск актуальных данных</div>
-      <div class="step" id="s2"><span>📰</span> Новости и инсайдеры</div>
-      <div class="step" id="s3"><span>🔗</span> Скрытые корреляции</div>
-      <div class="step" id="s4"><span>📊</span> Фундаментал и мультипликаторы</div>
-      <div class="step" id="s5"><span>📈</span> Техника PDH/PDL</div>
-      <div class="step" id="s6"><span>⏰</span> Катализаторы до 2028</div>
-      <div class="step" id="s7"><span>🛡️</span> Риск-менеджмент Герчик</div>
-      <div class="step" id="s8"><span>🎯</span> Финальный вердикт STARK</div>
-    </div>
-  </div>
-
-  <div id="result" class="result"></div>
-  </div><!-- /tab-analyze -->
-
-  <div id="tab-watchlist" class="tab-panel">
-    <div id="wlContent"></div>
-  </div>
-
-  <div id="tab-compare" class="tab-panel">
-    <div class="input-card">
-      <div class="cmp-inputs">
-        <div class="ticker-wrap">
-          <div class="input-label">Акция A</div>
-          <input type="text" id="cmpA" class="ticker-input" placeholder="CCJ">
+  <div class="top">
+    <div class="big-card">
+      <h2 style="margin:0 0 16px 0; color:var(--gold);">СЕГОДНЯ • 29 МАЯ 2026</h2>
+      <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:24px;">
+        <div>
+          <div style="font-size:13px; opacity:0.7;">ДЕПОЗИТ</div>
+          <div class="metric">450 000 ₽</div>
         </div>
-        <div class="ticker-wrap">
-          <div class="input-label">Акция B</div>
-          <input type="text" id="cmpB" class="ticker-input" placeholder="UEC">
+        <div>
+          <div style="font-size:13px; opacity:0.7;">БЕЗ АЛКОГОЛЯ</div>
+          <div class="metric" style="color:var(--green);">4+ МЕСЯЦА</div>
         </div>
-        <button class="analyze-btn" style="flex:0 0 160px" onclick="runCompare()">⚖️ СРАВНИТЬ</button>
+        <div>
+          <div style="font-size:13px; opacity:0.7;">STREAK ВИМ ХОФ</div>
+          <div class="metric">4 ДНЯ</div>
+        </div>
+        <div>
+          <div style="font-size:13px; opacity:0.7;">КВАЛ ИНВЕСТОР</div>
+          <div class="metric" style="color:var(--green);">Q1 ✓</div>
+        </div>
       </div>
     </div>
-    <div id="cmpError" class="error-box"></div>
-    <div id="cmpLoading" class="loading">
-      <div class="load-title">⚖️ STARK СРАВНИВАЕТ ДВЕ АКЦИИ...</div>
+
+    <div class="big-card">
+      <h2 class="section-title">⚡ БЫСТРЫЙ АНАЛИЗ</h2>
+      <input type="text" id="tickerInput" placeholder="NKE · Nike · Сбербанк · VST" style="width:100%; padding:18px; background:#1a1a1a; border:2px solid var(--gold); color:white; border-radius:14px; font-size:18px;">
+      <button onclick="analyzeAsset()" style="margin-top:16px; width:100%; padding:18px; background:var(--gold); color:black; font-weight:700; border:none; border-radius:14px; font-size:18px;">ЗАПУСТИТЬ АНАЛИЗ</button>
     </div>
-    <div id="cmpResult"></div>
   </div>
 
-  <div id="tab-sizing" class="tab-panel">
-    <div class="sz-card">
-      <div class="sz-field"><label>Размер счёта</label><input type="number" id="szCapital" placeholder="1000000"></div>
-      <div class="sz-field"><label>Риск на сделку, % от счёта</label><input type="number" id="szRisk" value="1" step="0.1"></div>
-      <div class="sz-field"><label>Цена входа</label><input type="number" id="szEntry" placeholder="40.50" step="any"></div>
-      <div class="sz-field"><label>Стоп-лосс</label><input type="number" id="szStop" placeholder="37.00" step="any"></div>
-      <div class="sz-field"><label>STARK Score (0–10) — сила тезиса</label><input type="number" id="szScore" value="5" min="0" max="10" step="0.1"></div>
-      <div class="sz-field"><label>Корзина портфеля</label>
-        <select id="szBucket">
-          <option value="0.3">Спекуляции — 30% счёта</option>
-          <option value="0.4">Среднесрок — 40% счёта</option>
-          <option value="0.3">Долгосрок — 30% счёта</option>
-        </select>
-      </div>
-      <button class="analyze-btn" style="width:100%" onclick="runSizing()">📐 РАССЧИТАТЬ РАЗМЕР</button>
-    </div>
-    <div id="szResult"></div>
+  <div class="grid" id="result">
+    <!-- Дашборд будет заполняться здесь -->
   </div>
 </div>
 
 <script>
-// ─── MOEX тикеры — цена в рублях ───
-const MOEX_TICKERS = ['SBER','SVCB','RUAL','FLNC','LKOH','GAZP','YNDX','NVTK','ROSN','GMKN','MTSS','VTBR','AFLT','POLY','PLZL','MGNT','ALRS','PHOR','NLMK','CHMF','MAGN','RTKM','FEES','HYDR','IRAO','MOEX','TCSG','OZON','VKCO'];
-
-function isMoexTicker(t) { return MOEX_TICKERS.includes((t||'').toUpperCase()); }
-
-function saveCRKey() {
-  const key = document.getElementById('crKeyInput').value.trim();
-  if (!key) { setCRStatus('❌ Введи ключ', 'var(--red)'); return; }
-  localStorage.setItem('crazyrouter_key', key);
-  setCRStatus('✅ Сохранён', 'var(--green)');
-}
-function saveTVKey() {
-  const key = document.getElementById('tvKeyInput').value.trim();
-  if (!key) { setTVStatus('❌ Введи ключ', 'var(--red)'); return; }
-  localStorage.setItem('tavily_key', key);
-  setTVStatus('✅ Сохранён', 'var(--green)');
-}
-function setCRStatus(msg, color) { const el = document.getElementById('crKeyStatus'); el.textContent = msg; el.style.color = color; }
-function setTVStatus(msg, color) { const el = document.getElementById('tvKeyStatus'); el.textContent = msg; el.style.color = color; }
-function setTicker(t) { document.getElementById('tickerInput').value = t; }
-function showError(msg) {
-  const el = document.getElementById('errorBox');
-  const text = (typeof msg === 'string') ? msg : (msg && msg.message) ? msg.message : JSON.stringify(msg);
-  el.textContent = '⚠ ' + text;
-  el.classList.add('show');
-  console.error('STARK ERROR:', msg);
-}
-function hideError() { document.getElementById('errorBox').classList.remove('show'); }
-async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-function extractStr(val) {
-  if (!val) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'object') return val.name || val.label || val.title || val.value || val.text || val.description || JSON.stringify(val);
-  return String(val);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('tickerInput').addEventListener('keydown', e => { if (e.key === 'Enter') analyze(); });
-  const cr = localStorage.getItem('crazyrouter_key');
-  const tv = localStorage.getItem('tavily_key');
-  if (cr) { setCRStatus('✅ Сохранён', 'var(--green)'); document.getElementById('crKeyInput').value = cr; }
-  if (tv) { setTVStatus('✅ Сохранён', 'var(--green)'); document.getElementById('tvKeyInput').value = tv; }
-});
-
-// Тонкая обёртка: UI + анимация. Данные тянет fetchAnalysis().
-async function analyze() {
-  const rawInput = document.getElementById('tickerInput').value.trim();
-  const context = document.getElementById('contextInput').value.trim();
-  const crKey = localStorage.getItem('crazyrouter_key');
-
-  hideError();
-  if (!rawInput) { showError('Введи тикер или название компании'); return; }
-  if (!crKey) { showError('Сохрани Crazyrouter API ключ'); return; }
-
-  document.getElementById('analyzeBtn').disabled = true;
-  document.getElementById('result').classList.remove('show');
-  document.getElementById('result').innerHTML = '';
-  document.getElementById('loading').classList.add('show');
-
-  const steps = ['s1','s2','s3','s4','s5','s6','s7','s8'];
-  steps.forEach(s => document.getElementById(s).className = 'step');
-  document.getElementById('s1').className = 'step active';
-  document.getElementById('s2').className = 'step active';
-  for (let i = 2; i < steps.length - 1; i++) {
-    document.getElementById(steps[i]).className = 'step active';
-    await sleep(300);
-    document.getElementById(steps[i]).className = 'step done';
-  }
-  document.getElementById(steps[steps.length-1]).className = 'step active';
+async function analyzeAsset() {
+  let input = document.getElementById('tickerInput').value.trim() || "NKE";
+  const resultDiv = document.getElementById('result');
+  resultDiv.innerHTML = `<div style="padding:80px; text-align:center; color:var(--gold); font-size:24px;">STARK анализирует ${input}...</div>`;
 
   try {
-    const norm = await fetchAnalysis(rawInput, context);
-    document.getElementById('tickerInput').value = norm.ticker;
-    steps.forEach(s => document.getElementById(s).className = 'step done');
-    await sleep(300);
-    document.getElementById('loading').classList.remove('show');
-    renderResult(norm);
-  } catch (e) {
-    console.error('STARK CATCH:', e);
-    document.getElementById('loading').classList.remove('show');
-    showError(e.message || e.toString() || 'Неизвестная ошибка — проверь консоль (F12)');
-    steps.forEach(s => document.getElementById(s).className = 'step');
-  } finally {
-    document.getElementById('analyzeBtn').disabled = false;
-  }
-}
-
-// Возвращает norm-объект акции. Бросает ошибку при сбое. Без обращения к DOM.
-async function fetchAnalysis(rawInput, context) {
-  context = context || '';
-  // ─── РАСПОЗНАВАНИЕ ТИКЕРА ПО НАЗВАНИЮ КОМПАНИИ (RU/EN) ───
-  let ticker = (rawInput || '').toUpperCase();
-  try {
-    const rr = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'resolve', ticker: rawInput })
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'analyze', ticker: input })
     });
-    const rd = await rr.json();
-    if (rd && rd.ticker) ticker = rd.ticker;
-  } catch (e) {}
-  const moex = isMoexTicker(ticker);
-  const currSymbol = moex ? '₽' : '$';
 
-  // ─── ПРОМПТ С УЧЁТОМ БИРЖИ ───
-  const moexBlock = moex ? `
-КРИТИЧНО — ЭТО РОССИЙСКАЯ АКЦИЯ НА МОСБИРЖЕ:
-- Все цены ТОЛЬКО в РУБЛЯХ (₽), НЕ в долларах
-- price: "₽XX.XX" (например "₽47.50")
-- priceNum: числовое значение в рублях (например 47.50)
-- week52Low, week52High — в рублях (например "₽32.00", "₽58.00")
-- week52LowNum, week52HighNum — числа в рублях
-- support, entry, resistance, target1/2/3, stopLoss — в рублях с символом ₽
-- marketCap — в млрд рублей (например "620 млрд ₽")
-- exchange: "MOEX"
-` : '';
-
-  const prompt = `Ты — STARK AI. Сделай полный анализ акции ${ticker} по методу Алексея.
-
-${moexBlock}
-${context ? 'Гипотеза инвестора: ' + context : ''}
-
-ВАЖНО: Верни СТРОГО валидный JSON без markdown, без текста вокруг. Только JSON, ничего больше.
-correlationChain — ТОЛЬКО массив строк, не объектов.
-insiders: [{"name":"Имя","role":"CEO","type":"buy","amount":"${currSymbol}500K","shares":"10000","date":"реальная дата или пусто"}]
-events: [{"date":"реальная дата или пусто","text":"Описание","urgent":false}] — дай 4-6 событий: недавние факты (прошедшие отчёты с реальными датами, urgent=false) + будущие катализаторы
-ДАТЫ: insiders.date и events.date — ТОЛЬКО реальные подтверждённые даты из веб-данных (формат "15 июн 2026"). Нет точной даты будущего события — напиши "ожидается Q3 2026", не выдумывай число. Прошедшие события (до 29 мая 2026) не помечай urgent.
-chartEvents: [{"date":"2024","price":85,"type":"peak","label":"ATH","driver":"Причина"}]
-correlationChain: ["строка1","строка2","строка3"]
-
-anticipationNarrative — что рынок НЕ видит прямо сейчас: главный неочевидный сдвиг (строка)
-
-БЛОК ПРЕДВОСХИЩЕНИЕ — ключевой. Дай РОВНО 5 опережающих индикаторов. Для ЛЮБОГО инструмента построй причинно-следственную цепочку ВВЕРХ по поставкам: поставщики и их заказы, входное сырьё и его цены, загрузка фабрик/OEM-подрядчиков, законтрактованный пайплайн, опережающие сигналы спроса, регуляторные/тендерные решения. Эталон логики: заказы тайваньских OEM-подрядчиков (Feng Tay, Pou Chen) опережают выручку Nike на 1-2 квартала. Применяй ТАКУЮ ЖЕ логику к ${ticker}.
-Каждый индикатор (строка): НАЗВАНИЕ индикатора + механизм связи с ценой акции + ЛАГ опережения.
-ТОЧНОСТЬ: конкретные числа (цены, объёмы, даты) бери ТОЛЬКО из веб-данных. Нет числа — опиши механизм качественно, без выдуманных цифр.
-anticipationInd1 — опережающий индикатор 1 (строка)
-anticipationInd2 — опережающий индикатор 2 (строка)
-anticipationInd3 — опережающий индикатор 3 (строка)
-anticipationInd4 — опережающий индикатор 4 (строка)
-anticipationInd5 — опережающий индикатор 5 (строка)
-anticipationMethod — скрытая корреляция одной строкой
-
-БЛОК STARK SCORE — оцени 6 сигналов по шкале 0–10 (10 = максимально «за», 5 = нейтрально, 0 = сильно «против»). Оценки выводи ТОЛЬКО из веб-данных и анализа выше. Нет данных по сигналу → ставь 5, НЕ завышай. Это объяснимый скоринг, не прогноз.
-- scThesis: сила фундамента/кейса (bullCase/bearCase, оценка, P/E, дивиденды).
-- scAntic: сила опережающего сигнала из блока ПРЕДВОСХИЩЕНИЕ (конкретнее и ближе лаг → выше).
-- scInsider: инсайдеры (крупные датированные покупки CEO/CFO/мажоритариев → выше; продажи → ниже; сделок нет → 5).
-- scMom: позиция в 52W и тренд (у поддержки с разворотом → выше; перегрет у хая → ниже).
-- scRR: качество reward:risk (rr ≥ 3:1 → выше; < 1.5:1 → ниже).
-- scSent: тон новостей из webDataSummary (позитив → выше; негатив → ниже).
-
-JSON шаблон — заполни ВСЕ поля реальными данными:
-{"ticker":"${ticker}","name":"","sector":"","exchange":"${moex ? 'MOEX' : 'NYSE'}","price":"${currSymbol}0","priceNum":0,"change":"0%","marketCap":"","pe":"","dividend":"","week52Low":"","week52High":"","week52LowNum":0,"week52HighNum":0,"atHigh":"","verdict":"НАБЛЮДАТЬ","verdictEn":"watch","confidence":"СРЕДНЯЯ","rr":"2:1","support":"","entry":"","resistance":"","target1":"","target1Pct":"","target1Period":"","target2":"","target2Pct":"","target2Period":"","target3":"","target3Pct":"","target3Period":"","webDataSummary":"","correlation":"","correlationChain":[],"insiders":[],"events":[],"bullCase":"","bearCase":"","verdict_text":"","stopLoss":"","macro":"","chartEvents":[],"anticipationNarrative":"","anticipationInd1":"","anticipationInd2":"","anticipationInd3":"","anticipationInd4":"","anticipationInd5":"","anticipationMethod":"","scThesis":5,"scAntic":5,"scInsider":5,"scMom":5,"scRR":5,"scSent":5}`;
-
-  // ─── ПРОМПТ С УЧЁТОМ БИРЖИ ─── (выполняем запрос анализа)
-    const res = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'analyze', ticker, prompt })
-    });
     const data = await res.json();
-    console.log('API response:', JSON.stringify(data).slice(0, 300));
-    if (data.error) throw new Error(typeof data.error === 'string' ? data.error : (data.error.message || JSON.stringify(data.error)));
+    let raw = data.text.replace(/```json|```/g, '').trim();
+    let stock = {};
+    try { stock = JSON.parse(raw); } catch(e) { stock.analysis = raw; }
 
-    const text = data.text || '';
-    console.log('RAW:', text.slice(0, 400));
-
-    let stock;
-    try {
-      const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-      try { stock = JSON.parse(cleaned); } catch(e) {}
-      if (!stock) {
-        const start = cleaned.indexOf('{'), end = cleaned.lastIndexOf('}');
-        if (start !== -1 && end !== -1) try { stock = JSON.parse(cleaned.slice(start, end + 1)); } catch(e) {}
-      }
-      if (!stock) {
-        const start = text.indexOf('{'), end = text.lastIndexOf('}');
-        if (start !== -1 && end !== -1) try { stock = JSON.parse(text.slice(start, end + 1)); } catch(e) {}
-      }
-      if (!stock) throw new Error('JSON не найден');
-    } catch(e) { throw new Error('Ошибка парсинга — попробуй ещё раз'); }
-
-    const safe = (v, def='—') => (v !== undefined && v !== null && v !== '') ? v : def;
-
-    let corrChain = Array.isArray(stock.correlationChain) ? stock.correlationChain.map(c => extractStr(c)).filter(Boolean) : [];
-    let insiders = Array.isArray(stock.insiders) ? stock.insiders.map(i => ({
-      name: extractStr(i.name || i.person || ''),
-      role: extractStr(i.role || i.title || ''),
-      type: (i.type || i.signal || 'buy').toString().toLowerCase().includes('buy') ? 'buy' : 'sell',
-      amount: extractStr(i.amount || i.value || ''),
-      shares: extractStr(i.shares || ''),
-      date: extractStr(i.date || '')
-    })) : [];
-    let events = Array.isArray(stock.events) ? stock.events.map(e => ({
-      date: extractStr(e.date || ''),
-      text: extractStr(e.text || e.description || e.event || ''),
-      urgent: !!(e.urgent || e.important)
-    })) : [];
-    let chartEvents = Array.isArray(stock.chartEvents) ? stock.chartEvents.map(e => ({
-      date: extractStr(e.date || ''),
-      price: parseFloat(e.price || 0),
-      type: extractStr(e.type || 'catalyst'),
-      label: extractStr(e.label || ''),
-      driver: extractStr(e.driver || e.description || '')
-    })).filter(e => e.price > 0) : [];
-
-    const anticipation = {
-      narrative: stock.anticipationNarrative || '',
-      indicators: [
-        { num: 1, name: 'Индикатор 1', description: stock.anticipationInd1 || '', lag: '' },
-        { num: 2, name: 'Индикатор 2', description: stock.anticipationInd2 || '', lag: '' },
-        { num: 3, name: 'Индикатор 3', description: stock.anticipationInd3 || '', lag: '' },
-        { num: 4, name: 'Индикатор 4', description: stock.anticipationInd4 || '', lag: '' },
-        { num: 5, name: 'Индикатор 5', description: stock.anticipationInd5 || '', lag: '' }
-      ].filter(i => i.description),
-      method: stock.anticipationMethod || ''
-    };
-
-    // ─── Реальная цена через action:price (с учётом биржи) ───
-    let realPrice = 0;
-    let realHigh52 = 0;
-    let realLow52 = 0;
-    try {
-      const rp = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'price', ticker })
-      });
-      const dp = await rp.json();
-      console.log('Price response:', JSON.stringify(dp));
-      if (dp.price) realPrice = parseFloat(dp.price);
-      if (dp.high52) realHigh52 = parseFloat(dp.high52);
-      if (dp.low52) realLow52 = parseFloat(dp.low52);
-    } catch(e) {}
-
-    // ─── Нормализация цены: приоритет реальным данным ───
-    const finalPriceNum = realPrice || parseFloat(String(stock.priceNum || stock.price || '0').replace(/[^0-9.]/g,'')) || 0;
-    const finalPrice = realPrice
-      ? currSymbol + realPrice.toFixed(2)
-      : (() => { const p = safe(stock.price, currSymbol + '0').toString(); return (p.includes('₽') || p.includes('$')) ? p : currSymbol + p; })();
-
-    // 52W: приоритет реальным данным из Tavily, затем Claude, с валидацией
-    let low52Num = realLow52 || parseFloat(String(stock.week52LowNum || '0').replace(/[^0-9.]/g,'')) || 0;
-    let high52Num = realHigh52 || parseFloat(String(stock.week52HighNum || '1').replace(/[^0-9.]/g,'')) || 1;
-    // Валидация: цена не может быть вне диапазона
-    if (finalPriceNum > 0 && high52Num > 0 && finalPriceNum > high52Num) high52Num = Math.round(finalPriceNum * 1.05 * 100) / 100;
-    if (finalPriceNum > 0 && low52Num > 0 && finalPriceNum < low52Num) low52Num = Math.round(finalPriceNum * 0.95 * 100) / 100;
-
-    // ─── STARK SCORE (0–10) из ответа Claude ───
-    // parseFloat, не "|| 5" — иначе валидный 0 молча станет 5
-    const scClamp = (v) => { const n = parseFloat(v); return Number.isFinite(n) ? Math.max(0, Math.min(10, n)) : 5; };
-    const starkSub = {
-      thesis: scClamp(stock.scThesis), antic: scClamp(stock.scAntic), insider: scClamp(stock.scInsider),
-      mom: scClamp(stock.scMom), rr: scClamp(stock.scRR), sent: scClamp(stock.scSent)
-    };
-    const STARK_W = { thesis: 25, antic: 25, insider: 15, mom: 15, rr: 10, sent: 10 };
-    const starkWsum = Object.values(STARK_W).reduce((a, b) => a + b, 0);
-    const starkScore = Object.keys(STARK_W).reduce((a, k) => a + (starkSub[k] / 10) * STARK_W[k], 0) / starkWsum * 10;
-
-    const norm = {
-      ticker: safe(stock.ticker, ticker),
-      name: safe(stock.name, ticker),
-      sector: safe(stock.sector, 'N/A'),
-      exchange: safe(stock.exchange, moex ? 'MOEX' : 'NYSE'),
-      price: finalPrice,
-      priceNum: finalPriceNum,
-      change: safe(stock.change, '0%'),
-      marketCap: safe(stock.marketCap, 'N/A'),
-      pe: safe(stock.pe, 'N/A'),
-      dividend: safe(stock.dividend, '0%'),
-      week52Low: realLow52 ? currSymbol + realLow52.toFixed(2) : safe(stock.week52Low, '0'),
-      week52High: realHigh52 ? currSymbol + realHigh52.toFixed(2) : safe(stock.week52High, '0'),
-      week52LowNum: low52Num,
-      week52HighNum: high52Num,
-      atHigh: safe(stock.atHigh, 'N/A'),
-      verdict: safe(stock.verdict, 'НАБЛЮДАТЬ'),
-      verdictEn: safe(stock.verdictEn, 'watch'),
-      confidence: safe(stock.confidence, 'СРЕДНЯЯ'),
-      rr: safe(stock.rr, '2:1'),
-      support: safe(stock.support, '—'),
-      entry: safe(stock.entry, '—'),
-      resistance: safe(stock.resistance, '—'),
-      target1: safe(stock.target1, '—'), target1Pct: safe(stock.target1Pct, ''), target1Period: safe(stock.target1Period, ''),
-      target2: safe(stock.target2, '—'), target2Pct: safe(stock.target2Pct, ''), target2Period: safe(stock.target2Period, ''),
-      target3: safe(stock.target3, '—'), target3Pct: safe(stock.target3Pct, ''), target3Period: safe(stock.target3Period, ''),
-      webDataSummary: safe(stock.webDataSummary, ''),
-      correlation: safe(stock.correlation, 'Нет данных'),
-      correlationChain: corrChain, insiders, events, chartEvents,
-      bullCase: safe(stock.bullCase, 'Нет данных'),
-      bearCase: safe(stock.bearCase, 'Нет данных'),
-      verdict_text: safe(stock.verdict_text, 'Нет данных'),
-      stopLoss: safe(stock.stopLoss, '—'),
-      macro: safe(stock.macro, ''),
-      anticipation,
-      starkSub, starkScore, starkW: STARK_W,
-      currSymbol
-    };
-
-    return norm;
-}
-
-function renderResult(s) {
-  window.__lastNorm = s;
-  const verdictClass = {'buy':'verdict-buy','watch':'verdict-watch','wait':'verdict-wait','sell':'verdict-sell'}[s.verdictEn] || 'verdict-watch';
-  let lo = s.week52LowNum || 0, hi = s.week52HighNum || 1, cur = s.priceNum || (lo+hi)/2;
-  // БАГ 2 FIX: расширяем диапазон если цена вне него
-  if (cur > hi) hi = Math.round(cur * 1.08 * 100) / 100;
-  if (cur < lo && lo > 0) lo = Math.round(cur * 0.92 * 100) / 100;
-  if (hi <= lo) hi = lo + 1;
-  const pct = Math.min(97, Math.max(3, ((cur-lo)/(hi-lo))*100));
-
-  const insidersHtml = s.insiders.length ? s.insiders.map(i => `
-    <div class="insider-item">
-      <div><div class="insider-name">${i.name||'—'}</div><div class="insider-role">${i.role||'—'}</div></div>
-      <div class="insider-amount ${i.type==='buy'?'insider-buy':'insider-sell'}"><span class="trade-badge ${i.type==='buy'?'buy':'sell'}"><span class="arr">${i.type==='buy'?'↑':'↓'}</span>${i.type==='buy'?'Покупка':'Продажа'}</span><span>${i.amount||''}</span>${i.shares?'<span class="trade-shares">('+i.shares+' акц.)</span>':''}</div>
-      <div class="insider-date">${i.date||'—'}</div>
-    </div>`).join('') : '<div style="font-size:12px;color:var(--dim)">Нет данных по инсайдерам за 6 месяцев</div>';
-
-  const eventsHtml = s.events.length ? s.events.map(e => `
-    <div class="event-item">
-      <div class="event-date">${e.date||'—'}</div>
-      <div class="event-text">${e.text||'—'}${e.urgent?'<span class="event-tag tag-urgent">СРОЧНО</span>':'<span class="event-tag tag-catalyst">КАТАЛИЗАТОР</span>'}</div>
-    </div>`).join('') : '<div style="font-size:12px;color:var(--dim)">Нет данных</div>';
-
-  const chainHtml = s.correlationChain.map((c,i,arr) =>
-    `<span class="corr-node">${c}</span>${i<arr.length-1?'<span class="corr-arrow">→</span>':''}`).join('');
-
-  const ant = s.anticipation || {};
-  const indicatorsHtml = (ant.indicators||[]).map(ind => `
-    <div class="indicator-item">
-      <div class="indicator-num">${ind.num||''}</div>
-      <div class="indicator-body">
-        <div class="indicator-name">${ind.name||''}</div>
-        <div class="indicator-desc">${ind.description||''}</div>
-        ${ind.lag?`<span class="indicator-lag">ЛАГ: ${ind.lag}</span>`:''}
+    resultDiv.innerHTML = `
+      <div class="big-card">
+        <h2 style="color:var(--gold); margin-bottom:12px;">${stock.ticker || input} — ${stock.company || ''}</h2>
+        <div style="font-size:68px; font-weight:700;">${stock.price || '—'}</div>
+        <div style="font-size:22px; color:${(stock.changePercent || 0) > 0 ? 'var(--green)' : 'var(--red)'};">${stock.change || ''}</div>
       </div>
-    </div>`).join('');
 
-  const anticipationHtml = (ant.narrative||ant.indicators?.length) ? `
-    <div class="anticipation-section">
-      <div class="anticipation-title">🔮 ПРЕДВОСХИЩЕНИЕ — ЧТО РЫНОК ЕЩЁ НЕ ВИДИТ</div>
-      ${ant.narrative?`<div class="anticipation-text">${ant.narrative}</div>`:''}
-      ${indicatorsHtml?`<div class="indicator-list">${indicatorsHtml}</div>`:''}
-      ${ant.method?`<div class="method-line">💡 МЕТОД АЛЕКСЕЯ: ${ant.method}</div>`:''}
-    </div>` : '';
+      <div class="grid">
+        <div class="card">
+          <h3 class="section-title">🎯 ЦЕЛИ</h3>
+          <p>Цель 1 (6-9 мес): <strong style="color:var(--green)">${stock.target1 || '—'}</strong></p>
+          <p>Цель 2 (12-15 мес): <strong style="color:var(--green)">${stock.target2 || '—'}</strong></p>
+          <p>Цель 3 (18-24 мес): <strong style="color:var(--green)">${stock.target3 || '—'}</strong></p>
+        </div>
 
-  const SC_META = [
-    { k:'thesis',  name:'Тезис / фундамент', c:'#0071e3' },
-    { k:'antic',   name:'ПРЕДВОСХИЩЕНИЕ',     c:'#5e5ce6' },
-    { k:'insider', name:'Инсайдеры',          c:'#1d8f4e' },
-    { k:'mom',     name:'Моментум / 52W',     c:'#ff9f0a' },
-    { k:'rr',      name:'Качество R',         c:'#bf6a00' },
-    { k:'sent',    name:'Сентимент',          c:'#d70015' }
-  ];
-  const scTotal = (typeof s.starkScore === 'number' && isFinite(s.starkScore)) ? s.starkScore : null;
-  const scBand = scTotal === null ? { t:'—', c:'var(--dim)' }
-    : scTotal >= 8 ? { t:'СИЛЬНЫЙ СИГНАЛ', c:'var(--green)' }
-    : scTotal >= 6 ? { t:'ИНТЕРЕСНО',      c:'var(--accent)' }
-    : scTotal >= 4 ? { t:'НЕЙТРАЛЬНО',     c:'var(--dim)' }
-    : scTotal >= 2 ? { t:'СЛАБО',          c:'var(--orange)' }
-    :                { t:'ИЗБЕГАТЬ',       c:'var(--red)' };
-  const scSub = s.starkSub || {}, scW = s.starkW || {};
-  const scMaxC = Math.max.apply(null, SC_META.map(m => (scW[m.k] || 0) * 10 / 100)) || 1;
-  const scBars = SC_META.map(m => {
-    const v = scSub[m.k] || 0;
-    const wd = Math.min(100, ((scW[m.k] || 0) * v / 100) / scMaxC * 100);
-    return `<div><div class="sc-fac-top"><span class="sc-fac-name">${m.name}</span><span class="sc-fac-val" style="color:${m.c}">${v.toFixed(1)}</span></div><div class="sc-bar"><div style="width:${wd}%;background:${m.c}"></div></div></div>`;
-  }).join('');
-  const scRank = SC_META.map(m => ({ name:m.name, pull:((scSub[m.k]||0)-5)/10*(scW[m.k]||0) })).sort((a,b)=>b.pull-a.pull);
-  const scUp = scRank[0], scDown = scRank[scRank.length-1];
-  let scExpl = '';
-  if (scTotal !== null) {
-    scExpl = `Балл ${scTotal.toFixed(1)}/10.`;
-    if (scUp && scUp.pull > 0) scExpl += ` Сильнее всего тянет вверх: <b>${scUp.name}</b>.`;
-    if (scDown && scDown.pull < 0) scExpl += ` Главный тормоз: <b>${scDown.name}</b>.`;
-    if ((!scUp || scUp.pull <= 0) && (!scDown || scDown.pull >= 0)) scExpl += ' Сигналы сбалансированы около нейтрали.';
-  }
-  const scCirc = 351.86, scDash = scTotal === null ? scCirc : scCirc * (1 - scTotal / 10);
-  const starkScoreHtml = `
-    <div class="sc-card">
-      <div class="sc-ring">
-        <svg width="120" height="120" viewBox="0 0 128 128">
-          <circle cx="64" cy="64" r="56" fill="none" stroke="#eef0f3" stroke-width="12"/>
-          <circle cx="64" cy="64" r="56" fill="none" stroke="${scBand.c}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${scCirc}" stroke-dashoffset="${scDash}" transform="rotate(-90 64 64)"/>
-        </svg>
-        <div class="sc-ring-val"><div class="sc-ring-num" style="color:${scBand.c}">${scTotal===null?'—':scTotal.toFixed(1)}</div><div class="sc-ring-of">из 10</div></div>
-      </div>
-      <div class="sc-body">
-        <div class="sc-head"><span class="sc-tag">STARK SCORE</span><span class="sc-badge" style="color:${scBand.c}">${scBand.t}</span></div>
-        <div class="sc-expl">${scExpl}</div>
-        <div class="sc-facs">${scBars}</div>
-      </div>
-    </div>`;
+        <div class="card">
+          <h3 class="section-title">🔮 ПРЕДВОСХИЩЕНИЕ</h3>
+          <p><strong>${stock.anticipationNarrative || 'Анализ в процессе...'}</strong></p>
+        </div>
 
-  document.getElementById('result').innerHTML = `
-    <div class="stock-hdr-card">
-      <div>
-        <div class="stock-name">${s.ticker} <button id="starBtn" class="star-toggle" onclick="toggleStar()" title="В вотчлист">${wlHas(s.ticker)?'★':'☆'}</button></div>
-        <div class="stock-full">${s.name}</div>
-        <div class="stock-sector">${s.sector} · ${s.exchange}</div>
-      </div>
-      <div class="stock-price-block">
-        <div class="stock-price">${s.price}</div>
-        <div class="stock-change ${s.change?.includes('+')?'pos':'neg'}">${s.change}</div>
-        <div><span class="verdict-badge ${verdictClass}">${s.verdict}</span></div>
-        <div class="rr-badge">R:R ${s.rr} · ${s.confidence} уверенность</div>
-      </div>
-    </div>
+        <div class="card">
+          <h3 class="section-title">📊 МЕТРИКИ</h3>
+          <p>МКТ Кап: ${stock.marketCap || '—'}</p>
+          <p>P/E: ${stock.pe || '—'}</p>
+          <p>Дивиденд: ${stock.dividend || '—'}%</p>
+        </div>
 
-    ${starkScoreHtml}
-
-    <div class="metrics">
-      <div class="metric"><div class="metric-label">МКТ КАП</div><div class="metric-val">${s.marketCap}</div></div>
-      <div class="metric"><div class="metric-label">P/E</div><div class="metric-val">${s.pe}</div></div>
-      <div class="metric"><div class="metric-label">ДИВИДЕНД</div><div class="metric-val">${s.dividend}</div></div>
-      <div class="metric"><div class="metric-label">52W LOW</div><div class="metric-val">${s.week52Low}</div></div>
-      <div class="metric"><div class="metric-label">52W HIGH</div><div class="metric-val">${s.week52High}</div></div>
-      <div class="metric"><div class="metric-label">ATH</div><div class="metric-val">${s.atHigh}</div></div>
-      <div class="metric"><div class="metric-label">СТОП</div><div class="metric-val" style="color:var(--red)">${s.stopLoss}</div></div>
-      <div class="metric"><div class="metric-label">БИРЖА</div><div class="metric-val">${s.exchange}</div></div>
-    </div>
-
-    <div class="price-bar-card">
-      <div class="card-title">52-Недельный диапазон</div>
-      <div class="bar-track">
-        <div class="bar-fill" style="width:${pct}%"></div>
-        <div class="bar-marker" style="left:${pct}%"></div>
-      </div>
-      <div class="bar-labels"><span>${s.week52Low}</span><span style="color:var(--accent);font-weight:600">СЕЙЧАС ${s.price}</span><span>${s.week52High}</span></div>
-      <div class="levels-row">
-        <div class="level-item"><div class="level-label">Поддержка</div><div class="level-val lvl-sup">${s.support}</div></div>
-        <div class="level-item"><div class="level-label">Точка входа</div><div class="level-val lvl-entry">${s.entry}</div></div>
-        <div class="level-item"><div class="level-label">Сопротивление</div><div class="level-val lvl-res">${s.resistance}</div></div>
-      </div>
-    </div>
-
-    <div class="targets">
-      <div class="target"><div class="target-label">Цель 1</div><div class="target-price">${s.target1}</div><div class="target-pct">${s.target1Pct}</div><div class="target-period">${s.target1Period}</div></div>
-      <div class="target"><div class="target-label">Цель 2</div><div class="target-price">${s.target2}</div><div class="target-pct">${s.target2Pct}</div><div class="target-period">${s.target2Period}</div></div>
-      <div class="target"><div class="target-label">Цель 3</div><div class="target-price">${s.target3}</div><div class="target-pct">${s.target3Pct}</div><div class="target-period">${s.target3Period}</div></div>
-    </div>
-
-    <div class="section-card">
-      <div class="section-title">🔗 Скрытая корреляция — Метод Алексея</div>
-      <div class="corr-text">${s.correlation}</div>
-      <div class="corr-chain">${chainHtml||'<span style="color:var(--dim);font-size:12px">Нет данных</span>'}</div>
-    </div>
-
-    <div class="section-card">
-      <div class="section-title">👔 Инсайдеры и умные деньги — SEC Form 4</div>
-      ${insidersHtml}
-    </div>
-
-    <div class="section-card">
-      <div class="section-title">⏰ События и катализаторы до 2028</div>
-      ${eventsHtml}
-    </div>
-
-    <div class="cases">
-      <div class="case-item"><div class="case-title bull">↑ Бычий кейс</div><div class="case-text">${s.bullCase}</div></div>
-      <div class="case-item"><div class="case-title bear">↓ Медвежий кейс</div><div class="case-text">${s.bearCase}</div></div>
-    </div>
-
-    <div class="verdict-section">
-      <div class="verdict-title">🎯 Вердикт STARK — 8 уровней</div>
-      <div class="verdict-text">${s.verdict_text}</div>
-      <div style="margin-top:10px;font-size:12px;color:var(--dim)">${s.macro}</div>
-      <div class="verdict-phrase">ВОТ ТАК ЗАКАЛЯЕТСЯ ХАРАКТЕР.</div>
-    </div>
-
-    ${anticipationHtml}
-
-    <div class="chart-section">
-      <div class="card-title">📈 История цены — ключевые события и драйверы</div>
-      <div class="chart-wrap">
-        <canvas id="priceChart"></canvas>
-        <div class="chart-tooltip" id="chartTooltip">
-          <div class="tt-date" id="ttDate"></div>
-          <div class="tt-price" id="ttPrice"></div>
-          <div class="tt-driver" id="ttDriver"></div>
+        <div class="card">
+          <h3 class="section-title">🛡️ СТАТУС ПРОТОКОЛА</h3>
+          <p>Без алкоголя: <strong style="color:var(--green)">4+ месяца</strong></p>
+          <p>Вим Хоф: <strong>4 дня</strong></p>
+          <p>Квал инвестор: <strong style="color:var(--green)">Q1 ✓</strong></p>
         </div>
       </div>
-      <div class="chart-events-list" id="chartEventsList"></div>
-    </div>`;
-
-  document.getElementById('result').classList.add('show');
-  document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
-  setTimeout(() => drawChart(s.chartEvents || [], s.currSymbol || '$'), 100);
-}
-
-function drawChart(events, currSymbol) {
-  currSymbol = currSymbol || '$';
-  const canvas = document.getElementById('priceChart');
-  if (!canvas || !events.length) return;
-  const ctx = canvas.getContext('2d');
-  const wrap = canvas.parentElement;
-  canvas.width = wrap.offsetWidth; canvas.height = wrap.offsetHeight;
-  const W = canvas.width, H = canvas.height;
-  const pad = { top: 20, right: 20, bottom: 40, left: 55 };
-  const prices = events.map(e => e.price);
-  const minP = Math.min(...prices) * 0.9, maxP = Math.max(...prices) * 1.1;
-  const typeColor = { peak: '#ff9f0a', crash: '#d70015', catalyst: '#1d8f4e', current: '#0071e3' };
-  const xOf = i => pad.left + (i / (events.length - 1)) * (W - pad.left - pad.right);
-  const yOf = p => pad.top + (1 - (p - minP) / (maxP - minP)) * (H - pad.top - pad.bottom);
-
-  ctx.strokeStyle = '#e8e8ed'; ctx.lineWidth = 1;
-  for (let i = 0; i <= 4; i++) {
-    const y = pad.top + (i / 4) * (H - pad.top - pad.bottom);
-    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
-    const val = maxP - (i / 4) * (maxP - minP);
-    ctx.fillStyle = '#a1a1a6'; ctx.font = '10px -apple-system, Inter, sans-serif';
-    ctx.fillText(currSymbol + val.toFixed(0), 4, y + 4);
-  }
-
-  const grad = ctx.createLinearGradient(0, pad.top, 0, H - pad.bottom);
-  grad.addColorStop(0, 'rgba(0,113,227,0.12)');
-  grad.addColorStop(1, 'rgba(0,113,227,0)');
-  ctx.beginPath();
-  ctx.moveTo(xOf(0), yOf(events[0].price));
-  events.forEach((e, i) => ctx.lineTo(xOf(i), yOf(e.price)));
-  ctx.lineTo(xOf(events.length - 1), H - pad.bottom);
-  ctx.lineTo(xOf(0), H - pad.bottom);
-  ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
-
-  ctx.beginPath(); ctx.strokeStyle = '#0071e3'; ctx.lineWidth = 2.5;
-  events.forEach((e, i) => i === 0 ? ctx.moveTo(xOf(i), yOf(e.price)) : ctx.lineTo(xOf(i), yOf(e.price)));
-  ctx.stroke();
-
-  events.forEach((e, i) => {
-    const x = xOf(i), y = yOf(e.price), color = typeColor[e.type] || '#9CA3AF';
-    ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2);
-    ctx.fillStyle = '#fff'; ctx.fill();
-    ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.stroke();
-    ctx.fillStyle = color; ctx.font = 'bold 10px Inter, sans-serif';
-    ctx.fillText(e.label, Math.max(pad.left, Math.min(W - pad.right - 40, x - 20)), y - 13);
-    ctx.fillStyle = '#9CA3AF'; ctx.font = '9px Inter, sans-serif';
-    ctx.fillText(e.date, Math.max(pad.left, x - 18), H - pad.bottom + 16);
-  });
-
-  const tooltip = document.getElementById('chartTooltip');
-  canvas.addEventListener('mousemove', ev => {
-    const rect = canvas.getBoundingClientRect();
-    const mx = (ev.clientX - rect.left) * (W / rect.width);
-    let closest = null, minDist = 999;
-    events.forEach((e, i) => { const d = Math.abs(xOf(i) - mx); if (d < minDist) { minDist = d; closest = { e, i }; } });
-    if (closest && minDist < 40) {
-      document.getElementById('ttDate').textContent = closest.e.date;
-      document.getElementById('ttPrice').textContent = currSymbol + closest.e.price;
-      document.getElementById('ttDriver').textContent = closest.e.driver;
-      tooltip.style.left = Math.min(ev.clientX - rect.left + 12, rect.width - 230) + 'px';
-      tooltip.style.top = Math.max(0, ev.clientY - rect.top - 60) + 'px';
-      tooltip.style.display = 'block';
-    } else { tooltip.style.display = 'none'; }
-  });
-  canvas.addEventListener('mouseleave', () => tooltip.style.display = 'none');
-
-  const typeColor2 = { peak: 'ev-peak', crash: 'ev-crash', catalyst: 'ev-catalyst', current: 'ev-current' };
-  const list = document.getElementById('chartEventsList');
-  if (list) list.innerHTML = events.map(e => `
-    <div class="chart-event-item">
-      <div class="ev-dot ${typeColor2[e.type]||'ev-catalyst'}"></div>
-      <div class="ev-date">${e.date}</div>
-      <div class="ev-label">${e.label}</div>
-      <div class="ev-driver">${e.driver}</div>
-    </div>`).join('');
-}
-// ═══════════════ ВКЛАДКИ ═══════════════
-function switchTab(name) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  const panel = document.getElementById('tab-' + name); if (panel) panel.classList.add('active');
-  const btn = document.getElementById('tabbtn-' + name); if (btn) btn.classList.add('active');
-  if (name === 'watchlist') renderWatchlist();
-  if (name === 'sizing' && window.__lastNorm && typeof window.__lastNorm.starkScore === 'number') {
-    const f = document.getElementById('szScore'); if (f) f.value = window.__lastNorm.starkScore.toFixed(1);
-  }
-}
-
-// ═══════════════ ВОТЧЛИСТ ═══════════════
-const WL_KEY = 'stark_watchlist';
-function wlLoad() { try { return JSON.parse(localStorage.getItem(WL_KEY) || '[]'); } catch (e) { return []; } }
-function wlSave(list) { localStorage.setItem(WL_KEY, JSON.stringify(list)); }
-function wlHas(tk) { return wlLoad().some(x => x.ticker === (tk || '').toUpperCase()); }
-function wlAdd(norm) {
-  if (!norm) return;
-  const tk = (norm.ticker || '').toUpperCase(); if (!tk) return;
-  const list = wlLoad();
-  const item = {
-    ticker: tk, name: norm.name || '', price: norm.price || '', priceNum: norm.priceNum || 0,
-    score: (typeof norm.starkScore === 'number' && isFinite(norm.starkScore)) ? norm.starkScore : null,
-    verdict: norm.verdict || '', verdictEn: norm.verdictEn || 'watch', ts: Date.now()
-  };
-  const idx = list.findIndex(x => x.ticker === tk);
-  if (idx >= 0) list[idx] = item; else list.push(item);
-  wlSave(list); renderWatchlist();
-}
-function wlRemove(tk, ev) {
-  if (ev) ev.stopPropagation();
-  tk = (tk || '').toUpperCase();
-  wlSave(wlLoad().filter(x => x.ticker !== tk));
-  renderWatchlist();
-  if (window.__lastNorm) updateStar(window.__lastNorm.ticker);
-}
-function toggleStar() {
-  const n = window.__lastNorm; if (!n) return;
-  const tk = (n.ticker || '').toUpperCase();
-  if (wlHas(tk)) wlRemove(tk); else wlAdd(n);
-  updateStar(tk);
-}
-function updateStar(tk) { const b = document.getElementById('starBtn'); if (b) b.textContent = wlHas(tk) ? '★' : '☆'; }
-function wlAge(ts) { if (!ts) return ''; const d = Math.floor((Date.now() - ts) / 86400000); if (d <= 0) return 'сегодня'; if (d === 1) return 'вчера'; return d + ' дн. назад'; }
-function wlScoreBand(score) {
-  if (score == null) return { c: 'var(--dim)', bg: 'var(--bg3)' };
-  if (score >= 8) return { c: '#1d8f4e', bg: '#e9f9ef' };
-  if (score >= 6) return { c: '#0071e3', bg: '#eaf2fd' };
-  if (score >= 4) return { c: '#6e6e73', bg: '#f0f0f3' };
-  if (score >= 2) return { c: '#bf6a00', bg: '#fff6e6' };
-  return { c: '#d70015', bg: '#fff0f0' };
-}
-function wlOpen(tk) { switchTab('analyze'); document.getElementById('tickerInput').value = tk; analyze(); }
-function renderWatchlist() {
-  const list = wlLoad().sort((a, b) => ((b.score == null ? -1 : b.score) - (a.score == null ? -1 : a.score)));
-  const el = document.getElementById('wlContent'); if (!el) return;
-  if (!list.length) {
-    el.innerHTML = '<div class="wl-empty">Вотчлист пуст.<br>Проанализируй акцию и нажми ☆ рядом с тикером, чтобы добавить её сюда.</div>';
-    return;
-  }
-  const vColor = { buy: '#1d8f4e', sell: '#d70015', wait: '#bf6a00', watch: '#6e6e73' };
-  el.innerHTML = '<div class="wl-grid">' + list.map(it => {
-    const band = wlScoreBand(it.score);
-    return `<div class="wl-card" onclick="wlOpen('${it.ticker}')">
-      <div class="wl-rm" onclick="wlRemove('${it.ticker}',event)" title="Убрать">×</div>
-      <div class="wl-tk">${it.ticker}</div>
-      <div class="wl-name">${it.name || ''}</div>
-      <div class="wl-row"><span class="wl-price">${it.price || '—'}</span><span class="wl-score" style="color:${band.c};background:${band.bg}">${it.score == null ? '—' : it.score.toFixed(1)}</span></div>
-      <div class="wl-verdict" style="color:${vColor[it.verdictEn] || '#6e6e73'}">${it.verdict || ''}</div>
-      <div class="wl-ts">${wlAge(it.ts)}</div>
-    </div>`;
-  }).join('') + '</div>';
-}
-
-// ═══════════════ СРАВНЕНИЕ ═══════════════
-function cmpShowError(m) { const el = document.getElementById('cmpError'); el.textContent = m; el.classList.add('show'); }
-function cmpHideError() { document.getElementById('cmpError').classList.remove('show'); }
-async function runCompare() {
-  const a = document.getElementById('cmpA').value.trim();
-  const b = document.getElementById('cmpB').value.trim();
-  const crKey = localStorage.getItem('crazyrouter_key');
-  cmpHideError();
-  if (!a || !b) { cmpShowError('Введи оба тикера'); return; }
-  if (!crKey) { cmpShowError('Сохрани Crazyrouter API ключ (вкладка Анализ)'); return; }
-  document.getElementById('cmpResult').innerHTML = '';
-  document.getElementById('cmpLoading').classList.add('show');
-  try {
-    const [na, nb] = await Promise.all([fetchAnalysis(a, ''), fetchAnalysis(b, '')]);
-    document.getElementById('cmpLoading').classList.remove('show');
-    renderCompare(na, nb);
+    `;
   } catch (e) {
-    document.getElementById('cmpLoading').classList.remove('show');
-    cmpShowError(e.message || 'Ошибка сравнения — попробуй ещё раз');
+    resultDiv.innerHTML = `<div style="color:red; padding:40px;">Ошибка: ${e.message}</div>`;
   }
 }
-function cmpPos(n) { let lo = n.week52LowNum || 0, hi = n.week52HighNum || 1, cur = n.priceNum || 0; if (hi <= lo || !cur) return null; return Math.min(100, Math.max(0, (cur - lo) / (hi - lo) * 100)); }
-function cmpScore(n) { return (typeof n.starkScore === 'number' && isFinite(n.starkScore)) ? n.starkScore : null; }
-function cmpBuys(n) { return (n.insiders || []).filter(i => i.type === 'buy').length; }
-function cmpCol(n, otherScore) {
-  const s = cmpScore(n);
-  const win = s != null && otherScore != null && s > otherScore;
-  const pos = cmpPos(n);
-  return `<div class="cmp-col">
-    <div class="cmp-tk">${n.ticker}</div>
-    <div class="cmp-sub">${n.name || ''}</div>
-    <div class="cmp-metric"><span class="lbl">STARK Score</span><span class="val ${win ? 'cmp-win' : ''}">${s == null ? '—' : s.toFixed(1) + ' / 10'}</span></div>
-    <div class="cmp-metric"><span class="lbl">Цена</span><span class="val">${n.price}</span></div>
-    <div class="cmp-metric"><span class="lbl">Изменение</span><span class="val">${n.change}</span></div>
-    <div class="cmp-metric"><span class="lbl">Вердикт</span><span class="val">${n.verdict}</span></div>
-    <div class="cmp-metric"><span class="lbl">R:R</span><span class="val">${n.rr}</span></div>
-    <div class="cmp-metric"><span class="lbl">Позиция в 52W</span><span class="val">${pos == null ? '—' : pos.toFixed(0) + '%'}</span></div>
-    <div class="cmp-metric"><span class="lbl">Покупки инсайдеров</span><span class="val">${cmpBuys(n)}</span></div>
-    <div class="cmp-metric"><span class="lbl">Сектор</span><span class="val">${n.sector}</span></div>
-  </div>`;
-}
-function renderCompare(a, b) {
-  document.getElementById('cmpResult').innerHTML =
-    `<div class="cmp-grid">${cmpCol(a, cmpScore(b))}${cmpCol(b, cmpScore(a))}</div>
-     <div class="sz-note" style="margin-top:14px">Зелёным выделен более высокий STARK Score. Это сопоставление аналитики, а не рекомендация — решение принимаешь сам.</div>`;
-}
-
-// ═══════════════ САЙЗИНГ ПО СИЛЕ ТЕЗИСА ═══════════════
-function runSizing() {
-  const cap = parseFloat(document.getElementById('szCapital').value) || 0;
-  const riskPct = parseFloat(document.getElementById('szRisk').value) || 0;
-  const entry = parseFloat(document.getElementById('szEntry').value) || 0;
-  const stop = parseFloat(document.getElementById('szStop').value) || 0;
-  const score = Math.max(0, Math.min(10, parseFloat(document.getElementById('szScore').value) || 0));
-  const bucket = parseFloat(document.getElementById('szBucket').value) || 1;
-  const out = document.getElementById('szResult');
-  if (cap <= 0 || riskPct <= 0 || entry <= 0 || stop <= 0) {
-    out.innerHTML = '<div class="error-box show">Заполни счёт, риск, вход и стоп положительными числами.</div>'; return;
-  }
-  const riskPerShare = Math.abs(entry - stop);
-  if (riskPerShare <= 0) { out.innerHTML = '<div class="error-box show">Вход и стоп не должны совпадать.</div>'; return; }
-  const conviction = 0.3 + 0.7 * (score / 10);          // 0.3..1.0 — масштаб по силе тезиса
-  const baseRisk = cap * riskPct / 100;
-  const adjRisk = baseRisk * conviction;
-  const shares = Math.floor(adjRisk / riskPerShare);
-  const posValue = shares * entry;
-  const bucketCap = cap * bucket;
-  const posPctOfAcct = cap > 0 ? posValue / cap * 100 : 0;
-  const posPctOfBucket = bucketCap > 0 ? posValue / bucketCap * 100 : 0;
-  const over = posValue > bucketCap;
-  const fmt = v => Math.round(v).toLocaleString('ru-RU');
-  out.innerHTML = `<div class="sz-card"><div class="sz-out">
-    <div style="font-size:12px;color:var(--dim);font-weight:600;margin-bottom:4px">РАЗМЕР ПОЗИЦИИ</div>
-    <div class="sz-out-big">${shares.toLocaleString('ru-RU')} акц.</div>
-    <div class="sz-out-row"><span>Стоимость позиции</span><b>${fmt(posValue)}</b></div>
-    <div class="sz-out-row"><span>Базовый риск (${riskPct}% счёта)</span><b>${fmt(baseRisk)}</b></div>
-    <div class="sz-out-row"><span>Множитель по тезису (Score ${score.toFixed(1)})</span><b>×${conviction.toFixed(2)}</b></div>
-    <div class="sz-out-row"><span>Фактический риск сделки</span><b>${fmt(adjRisk)}</b></div>
-    <div class="sz-out-row"><span>Риск на акцию</span><b>${riskPerShare.toFixed(2)}</b></div>
-    <div class="sz-out-row"><span>Доля от счёта</span><b>${posPctOfAcct.toFixed(1)}%</b></div>
-    <div class="sz-out-row"><span>Доля от корзины</span><b style="color:${over ? 'var(--red)' : 'inherit'}">${posPctOfBucket.toFixed(0)}%${over ? ' ⚠ превышает корзину' : ''}</b></div>
-  </div>
-  <div class="sz-note">Размер считается от фиксированного риска на сделку, уменьшенного по силе тезиса (STARK Score): балл 10 → полный риск, балл 0 → 30% от него. Это калькулятор, не рекомендация — вход и стоп бери из своего плана.</div>
-  </div>`;
-}
-
 </script>
 </body>
 </html>
