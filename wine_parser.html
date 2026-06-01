@@ -73,6 +73,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
         <input type="text" id="queryInput" class="search-input" placeholder="Moet Chandon Brut Imperial">
       </div>
       <button class="parse-btn" id="parseBtn" onclick="startSearch()">🔍 НАЙТИ</button>
+      <button class="parse-btn" id="catalogBtn" onclick="startCatalog()" style="background:#1A3A8B;box-shadow:0 2px 8px rgba(26,58,139,0.3);">📚 ВЕСЬ КАТАЛОГ</button>
     </div>
     <div class="quick-btns">
       <span style="font-size:10px;color:var(--dim);letter-spacing:1px">БЫСТРЫЙ ВЫБОР:</span>
@@ -184,6 +185,7 @@ async function startSearch() {
 
   const btn = document.getElementById('parseBtn');
   btn.disabled = true;
+  document.getElementById('catalogBtn').disabled = true;
   document.getElementById('resultsGrid').style.display = 'none';
   document.getElementById('compareSection').style.display = 'none';
 
@@ -207,6 +209,77 @@ async function startSearch() {
 
   setStatus(`✅ WineShopper: ${ws.length} поз. · WineZone: ${wz.length} поз.`);
   btn.disabled = false;
+  document.getElementById('catalogBtn').disabled = false;
+}
+
+// ===== РЕЖИМ КАТАЛОГА: вытащить весь верх каталога обоих магазинов и сопоставить =====
+async function claudeCatalog() {
+  try {
+    const r = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'winecatalog' })
+    });
+    const d = await r.json();
+    return {
+      wineshopper: Array.isArray(d.wineshopper) ? d.wineshopper : [],
+      winezone: Array.isArray(d.winezone) ? d.winezone : [],
+      matched: Array.isArray(d.matched) ? d.matched : []
+    };
+  } catch(e) {}
+  return { wineshopper: [], winezone: [], matched: [] };
+}
+
+// Таблица совпадений из ГОТОВЫХ данных сервера (матчинг делает Claude, не клиент).
+function renderServerCompare(matched) {
+  if (!matched || !matched.length) return '';
+  return `<div class="compare-card">
+    <div class="compare-title">📊 СОВПАДЕНИЯ ПО КАТАЛОГУ — ${matched.length}</div>
+    <div class="compare-row compare-header">
+      <span>Позиция</span><span>WineShopper</span><span>WineZone</span><span>Разница</span>
+    </div>
+    ${matched.map(m => {
+      const diff = Number(m.diff || 0);
+      const cls = m.cheaper === 'wz' ? 'diff-pos' : m.cheaper === 'ws' ? 'diff-neg' : '';
+      const tag = m.cheaper === 'ws' ? '<span class="tag tag-ws">WS дешевле</span>'
+        : m.cheaper === 'wz' ? '<span class="tag tag-wz">WZ дешевле</span>' : '';
+      const sign = diff > 0 ? '+' : '';
+      return `<div class="compare-row">
+        <span style="font-size:11px">${(m.name||'').slice(0,60)}${tag}</span>
+        <span style="font-family:'IBM Plex Mono'">${Number(m.ws_price||0).toLocaleString('ru')} ₽</span>
+        <span style="font-family:'IBM Plex Mono'">${Number(m.wz_price||0).toLocaleString('ru')} ₽</span>
+        <span class="${cls}">${sign}${diff.toLocaleString('ru')} ₽</span>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+async function startCatalog() {
+  const btnS = document.getElementById('parseBtn');
+  const btnC = document.getElementById('catalogBtn');
+  btnS.disabled = true; btnC.disabled = true;
+  document.getElementById('resultsGrid').style.display = 'none';
+  document.getElementById('compareSection').style.display = 'none';
+
+  setStatus('Тяну каталоги шампанского с обоих магазинов и сопоставляю позиции...', true);
+
+  const data = await claudeCatalog();
+  const ws = data.wineshopper, wz = data.winezone, matched = data.matched;
+
+  // Сначала совпадения (главное в этом режиме), потом полные списки магазинов.
+  const compareHtml = renderServerCompare(matched);
+  if (compareHtml) {
+    document.getElementById('compareSection').style.display = 'block';
+    document.getElementById('compareSection').innerHTML = compareHtml;
+  }
+
+  document.getElementById('resultsGrid').style.display = 'grid';
+  document.getElementById('resultsGrid').innerHTML =
+    renderShop(ws, 'WINESHOPPER', 'shop-ws') +
+    renderShop(wz, 'WINEZONE', 'shop-wz');
+
+  setStatus(`✅ Каталог: WineShopper ${ws.length} · WineZone ${wz.length} · совпадений ${matched.length}`);
+  btnS.disabled = false; btnC.disabled = false;
 }
 
 document.addEventListener('keydown', e => {
