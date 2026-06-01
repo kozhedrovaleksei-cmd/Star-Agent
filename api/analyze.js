@@ -303,6 +303,96 @@ export default async function handler(req, res) {
       return res.json(parsed);
     }
 
+    // ============================================================
+    // WINE CATALOG — парсит верх каталога шампанского в обоих магазинах
+    // и сопоставляет одинаковые позиции (бренд+винтаж+объём) с разницей цен.
+    // Запрос не нужен. Требует ENV: FIRECRAWL_KEY, CRAZYROUTER_KEY.
+    // ============================================================
+    if (action === 'winecatalog') {
+      const fcKey = process.env.FIRECRAWL_KEY;
+      if (!fcKey) return res.status(500).json({ error: 'No FIRECRAWL_KEY' });
+      if (!crKey) return res.status(500).json({ error: 'No CRAZYROUTER_KEY' });
+
+      // Скрейп страницы каталога. waitFor большой — каталоги грузятся через JS.
+      async function fcScrapeCat(url) {
+        try {
+          const r = await fetch('https://api.firecrawl.dev/v2/scrape', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + fcKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url, formats: ['markdown'], waitFor: 7000, proxy: 'auto' })
+          });
+          const d = await r.json();
+          const data = d.data || d;
+          return (data && data.markdown) ? data.markdown : '';
+        } catch (e) { return ''; }
+      }
+
+      // Бэкап: если страница каталога пустая — поиск по домену.
+      async function fcSearchCat(domain) {
+        try {
+          const r = await fetch('https://api.firecrawl.dev/v2/search', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + fcKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: 'шампанское брют купить цена',
+              limit: 6,
+              location: 'Russia',
+              includeDomains: [domain],
+              scrapeOptions: { formats: ['markdown'], waitFor: 6000, proxy: 'auto' }
+            })
+          });
+          const d = await r.json();
+          const web = (d.data && d.data.web) || d.web || [];
+          return web.map(x => (x.markdown || x.description || '')).join('\n\n---\n\n');
+        } catch (e) { return ''; }
+      }
+
+      async function grab(catUrl, domain) {
+        let raw = await fcScrapeCat(catUrl);
+        if (!raw || raw.length < 200) raw = await fcSearchCat(domain);
+        return raw.slice(0, 14000);
+      }
+
+      const [wsRaw, wzRaw] = await Promise.all([
+        grab('https://wine-shopper.ru/shampanskoe-igristye-vina/', 'wine-shopper.ru'),
+        grab('https://winezone.ru/shampanskoe', 'winezone.ru')
+      ]);
+
+      const catPrompt =
+        'Ниже — каталоги шампанского из двух магазинов.\n\n' +
+        '=== WINE-SHOPPER.RU ===\n' + (wsRaw || 'нет данных') + '\n\n' +
+        '=== WINEZONE.RU ===\n' + (wzRaw || 'нет данных') + '\n\n' +
+        'Задачи:\n' +
+        '1) Извлеки ВСЕ товары с ценами в рублях из каждого магазина. НЕ выдумывай. ' +
+        'Если цены нет — позицию пропусти.\n' +
+        '2) Сопоставь ОДИНАКОВЫЕ позиции между магазинами. Одинаковые = совпадает бренд И винтаж (год) И объём. ' +
+        'Игнорируй мусорные слова (Шампанское, Игристое, Брют, Сухое, Champagne, AOC, gift box, в подарочной упаковке, мл, л, 0.75). ' +
+        'Бренд важнее всего: Moet, Dom Perignon, Ruinart, Veuve Clicquot, Bollinger, Krug, Roederer/Cristal, Laurent-Perrier и т.д. ' +
+        'Если у позиции в одном магазине нет пары в другом — в matched НЕ включай.\n' +
+        '3) Для каждой пары: diff = цена WineZone минус цена WineShopper; cheaper = "ws" если WineShopper дешевле, "wz" если WineZone дешевле, "equal" если равны.\n' +
+        'Ответь СТРОГО валидным JSON без markdown:\n' +
+        '{"wineshopper":[{"name":"...","price":12345,"volume":"0.75 л","type":"Брют"}],' +
+        '"winezone":[{"name":"...","price":12345,"volume":"0.75 л","type":"Брют"}],' +
+        '"matched":[{"name":"бренд + винтаж + объём","ws_price":12345,"wz_price":11000,"diff":-1345,"cheaper":"wz"}]}';
+
+      let parsed = { wineshopper: [], winezone: [], matched: [] };
+      try {
+        const text = await callClaude([{ role: 'user', content: catPrompt }], 6000);
+        const clean = (text || '').replace(/```json|```/g, '').trim();
+        const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
+        if (s !== -1 && e !== -1) parsed = JSON.parse(clean.slice(s, e + 1));
+      } catch (e) {}
+
+      if (!Array.isArray(parsed.wineshopper)) parsed.wineshopper = [];
+      if (!Array.isArray(parsed.winezone)) parsed.winezone = [];
+      if (!Array.isArray(parsed.matched)) parsed.matched = [];
+
+      // DEBUG — убери, когда каталог заработает стабильно.
+      parsed._debug = { wsLen: wsRaw.length, wzLen: wzRaw.length };
+
+      return res.json(parsed);
+    }
+
     if (action === 'analyze') {
       if (!crKey) return res.status(500).json({ error: 'No API key' });
 
