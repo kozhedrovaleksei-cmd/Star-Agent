@@ -1,81 +1,440 @@
-if (action === 'winescrape') {
-  const fcKey = process.env.FIRECRAWL_KEY;
-  if (!fcKey) return res.status(500).json({ error: 'No FIRECRAWL_KEY' });
-  if (!crKey) return res.status(500).json({ error: 'No CRAZYROUTER_KEY' });
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const champagne = (query || '').trim();
-  if (!champagne) return res.json({ wineshopper: [], winezone: [] });
+  const { action, ticker, prompt, query } = req.body;
+  const crKey = process.env.CRAZYROUTER_KEY;
+  const tvKey = process.env.TAVILY_KEY;
+  const fhKey = process.env.FINNHUB_KEY; // Finnhub — живые котировки US
 
-  // Скрейп конкретной страницы. waitFor поднят до 6000 — winezone грузит каталог медленно.
-  async function fcScrape(url) {
+  const MOEX_TICKERS = ['SBER','SVCB','RUAL','FLNC','LKOH','GAZP','YNDX','NVTK','ROSN','GMKN','MTSS','VTBR','AFLT','POLY','PLZL','MGNT','ALRS','PHOR','NLMK','CHMF','MAGN','RTKM','FEES','HYDR','IRAO','MOEX','TCSG','OZON','VKCO'];
+  const isMoex = MOEX_TICKERS.includes((ticker || '').toUpperCase());
+
+  async function tavilySearch(q) {
+    if (!tvKey) return '';
     try {
-      const r = await fetch('https://api.firecrawl.dev/v2/scrape', {
+      const r = await fetch('https://api.tavily.com/search', {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + fcKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, formats: ['markdown'], waitFor: 6000, proxy: 'auto' })
-      });
-      const d = await r.json();
-      const data = d.data || d;
-      return (data && data.markdown) ? data.markdown : '';
-    } catch (e) { return ''; }
-  }
-
-  // Поиск по домену. КЛЮЧЕВОЕ: если выдача тонкая — скрейпим ПЕРВУЮ найденную
-  // ссылку (это бренд-страница), а не общий каталог. Общий каталог — только крайний фолбэк.
-  async function fcSearch(domain, fallbackUrl) {
-    let out = '', topUrl = '';
-    try {
-      const r = await fetch('https://api.firecrawl.dev/v2/search', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + fcKey, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: champagne + ' купить цена',
-          limit: 5,
-          location: 'Russia',
-          includeDomains: [domain],
-          scrapeOptions: { formats: ['markdown'], waitFor: 6000, proxy: 'auto' }
+          api_key: tvKey,
+          query: q,
+          search_depth: 'basic',
+          max_results: 5,
+          include_answer: true
         })
       });
-      const d = await r.json();
-      const web = (d.data && d.data.web) || d.web || [];
-      out = web.map(x => (x.markdown || x.description || '')).join('\n\n---\n\n').slice(0, 12000);
-      if (web.length && web[0].url) topUrl = web[0].url;   // ← ссылка из реальной выдачи
-    } catch (e) {}
-    if (!out || out.length < 120) {
-      const target = topUrl || fallbackUrl;                // ← сначала найденная страница, потом каталог
-      if (target) out = (await fcScrape(target)).slice(0, 12000);
-    }
-    return out;
+      const data = await r.json();
+      return data.answer || (data.results || []).map(x => x.title + ': ' + x.content).join('\n\n');
+    } catch(e) { return ''; }
   }
 
-  const [wsRaw, wzRaw] = await Promise.all([
-    fcSearch('wine-shopper.ru', null),
-    fcSearch('winezone.ru', 'https://winezone.ru/shampanskoe')
-  ]);
+  async function callClaude(messages, maxTokens) {
+    maxTokens = maxTokens || 4000;
+    const r = await fetch('https://crazyrouter.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + crKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: maxTokens, messages })
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
+    return (d.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+  }
 
-  const extractPrompt =
-    'Ниже содержимое страниц двух винных магазинов по запросу "' + champagne + '".\n\n' +
-    '=== WINE-SHOPPER.RU ===\n' + (wsRaw || 'нет данных') + '\n\n' +
-    '=== WINEZONE.RU ===\n' + (wzRaw || 'нет данных') + '\n\n' +
-    'Извлеки реальные товары с ценами в рублях ТОЛЬКО из текста выше. ' +
-    'Бери только позиции, релевантные запросу "' + champagne + '" (тот же бренд). ' +
-    'НЕ выдумывай ни названия, ни цены. Если по магазину релевантных данных нет — пустой массив. ' +
-    'Ответь СТРОГО валидным JSON без markdown:\n' +
-    '{"wineshopper":[{"name":"полное название","price":12345,"volume":"750 мл","type":"Brut"}],"winezone":[]}';
+  // БАГ 1 FIX: извлечение рублёвой цены MOEX
+  // RUAL торгуется ~30-80 руб, SBER ~280-340, LKOH ~6000-8000
+  // Tavily часто возвращает HKD цену для RUAL (~1.8 HKD) — фильтруем
+  function extractMoexPrice(text, tickerName) {
+    if (!text) return { price: null, high52: null, low52: null };
 
-  let parsed = { wineshopper: [], winezone: [] };
+    // Диапазоны разумных цен для известных тикеров в рублях
+    const PRICE_RANGES = {
+      'RUAL': [15, 150],
+      'SBER': [150, 500],
+      'SVCB': [8, 30],
+      'FLNC': [50, 300],
+      'GAZP': [100, 400],
+      'LKOH': [4000, 10000],
+      'GMKN': [10000, 25000],
+      'NVTK': [800, 2000],
+    };
+    const range = PRICE_RANGES[tickerName] || [1, 100000];
+
+    let price = null;
+    let high52 = null;
+    let low52 = null;
+
+    // Ищем числа рядом с рублёвыми маркерами
+    const rubPatterns = [
+      // "47.50 ₽" или "₽ 47.50"
+      /(?:₽|руб\.?|RUB)\s*([\d\s]{1,8}[.,]?\d{0,2})/gi,
+      /([\d\s]{1,8}[.,]\d{1,2})\s*(?:₽|руб\.?|RUB)/gi,
+      // "цена: 47.50" или "price: 47.50" или "торгуется по 47"
+      /(?:цена|стоимость|котировка|торгуется по|last price|close)[:\s]+([0-9]{2,6}[.,]?[0-9]{0,2})/gi,
+      // просто число в разумном диапазоне после тикера
+      new RegExp(tickerName + '[^0-9]{1,30}([0-9]{2,6}[.,][0-9]{1,2})', 'gi'),
+    ];
+
+    for (let i = 0; i < rubPatterns.length; i++) {
+      const matches = [...text.matchAll(rubPatterns[i])];
+      for (const m of matches) {
+        const v = parseFloat(m[1].replace(/\s/g, '').replace(',', '.'));
+        if (v >= range[0] && v <= range[1]) { price = v; break; }
+      }
+      if (price) break;
+    }
+
+    // 52W диапазон
+    const h52 = text.match(/52.{0,10}(?:high|max|макс)[^\d]*([\d]+[.,][\d]*)/i);
+    const l52 = text.match(/52.{0,10}(?:low|min|мин)[^\d]*([\d]+[.,][\d]*)/i);
+    if (h52) { const v = parseFloat(h52[1].replace(',','.')); if (v >= range[0] && v <= range[1]*1.5) high52 = v; }
+    if (l52) { const v = parseFloat(l52[1].replace(',','.')); if (v >= range[0]*0.5 && v <= range[1]) low52 = v; }
+
+    // Валидация слайдера: цена всегда внутри диапазона
+    if (price && high52 && price > high52) high52 = Math.round(price * 1.08 * 100) / 100;
+    if (price && low52 && price < low52) low52 = Math.round(price * 0.92 * 100) / 100;
+    // Если нет диапазона — строим вокруг цены
+    if (price && !high52) high52 = Math.round(price * 1.3 * 100) / 100;
+    if (price && !low52) low52 = Math.round(price * 0.7 * 100) / 100;
+
+    return { price, high52, low52 };
+  }
+
+  function extractUsdPrice(text) {
+    if (!text) return { price: null, high52: null, low52: null };
+    const m = text.match(/\$\s*([\d]{1,5}\.[\d]{1,2})/);
+    const price = m ? parseFloat(m[1]) : null;
+    const h = text.match(/52.week high[^\d$]*([\d]+\.[\d]+)/i);
+    const l = text.match(/52.week low[^\d$]*([\d]+\.[\d]+)/i);
+    let high52 = h ? parseFloat(h[1]) : null;
+    let low52 = l ? parseFloat(l[1]) : null;
+    if (price && high52 && price > high52) high52 = Math.round(price * 1.08 * 100) / 100;
+    if (price && low52 && price < low52) low52 = Math.round(price * 0.92 * 100) / 100;
+    if (price && !high52) high52 = Math.round(price * 1.3 * 100) / 100;
+    if (price && !low52) low52 = Math.round(price * 0.7 * 100) / 100;
+    return { price, high52, low52 };
+  }
+
   try {
-    const text = await callClaude([{ role: 'user', content: extractPrompt }], 2000);
-    const clean = (text || '').replace(/```json|```/g, '').trim();
-    const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
-    if (s !== -1 && e !== -1) parsed = JSON.parse(clean.slice(s, e + 1));
-  } catch (e) {}
+    if (action === 'price') {
+      const T = (ticker || '').toUpperCase();
+      try {
+        // 1) MOEX — реальная котировка из MOEX ISS (публичный, без ключа)
+        if (isMoex) {
+          try {
+            const url = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities/'
+              + encodeURIComponent(T) + '.json?iss.meta=off&iss.only=marketdata,securities';
+            const j = await (await fetch(url)).json();
+            const md = j.marketdata || {}, sec = j.securities || {};
+            const mdCol = md.columns || [], mdRow = (md.data || [])[0] || [];
+            const secCol = sec.columns || [], secRow = (sec.data || [])[0] || [];
+            const mg = (n) => { const i = mdCol.indexOf(n); return i >= 0 ? mdRow[i] : null; };
+            const sg = (n) => { const i = secCol.indexOf(n); return i >= 0 ? secRow[i] : null; };
+            let last = mg('LAST');
+            if (last == null) last = mg('MARKETPRICE');
+            if (last == null) last = mg('LCLOSEPRICE');
+            if (last == null) last = sg('PREVPRICE');
+            const prev = sg('PREVPRICE');
+            if (last != null && isFinite(+last) && +last > 0) {
+              const price = +last;
+              let change = null;
+              if (prev != null && isFinite(+prev) && +prev > 0) change = (price - +prev) / +prev * 100;
+              return res.json({
+                price, high52: null, low52: null,
+                change: change != null ? ((change >= 0 ? '+' : '') + change.toFixed(2) + '%') : null,
+                currency: 'RUB', source: 'MOEX ISS'
+              });
+            }
+          } catch (e) {}
+        }
+        // 2) US — реальная котировка из Finnhub
+        if (!isMoex && fhKey) {
+          try {
+            const q = await (await fetch('https://finnhub.io/api/v1/quote?symbol=' + encodeURIComponent(T) + '&token=' + fhKey)).json();
+            if (q && isFinite(+q.c) && +q.c > 0) {
+              let high52 = null, low52 = null;
+              try {
+                const m = await (await fetch('https://finnhub.io/api/v1/stock/metric?symbol=' + encodeURIComponent(T) + '&metric=all&token=' + fhKey)).json();
+                const mm = (m && m.metric) || {};
+                if (isFinite(+mm['52WeekHigh'])) high52 = +mm['52WeekHigh'];
+                if (isFinite(+mm['52WeekLow'])) low52 = +mm['52WeekLow'];
+              } catch (e) {}
+              const change = isFinite(+q.dp) ? ((+q.dp >= 0 ? '+' : '') + (+q.dp).toFixed(2) + '%') : null;
+              return res.json({ price: +q.c, high52, low52, change, currency: 'USD', source: 'Finnhub' });
+            }
+          } catch (e) {}
+        }
+        // 3) ФОЛБЭК — старый путь через Tavily (нет ключа / пусто / ошибка)
+        const searchQ = isMoex
+          ? T + ' MOEX акция цена рублей сегодня котировка'
+          : T + ' stock price today 2026';
+        const priceData = await tavilySearch(searchQ);
+        const extracted = isMoex
+          ? extractMoexPrice(priceData, T)
+          : extractUsdPrice(priceData);
+        return res.json({
+          price: extracted.price, high52: extracted.high52, low52: extracted.low52,
+          currency: isMoex ? 'RUB' : 'USD', source: 'Tavily fallback'
+        });
+      } catch (e) {}
+      return res.json({ price: null });
+    }
 
-  if (!Array.isArray(parsed.wineshopper)) parsed.wineshopper = [];
-  if (!Array.isArray(parsed.winezone)) parsed.winezone = [];
+    if (action === 'search') {
+      const result = await tavilySearch(query || '');
+      return res.json({ result });
+    }
 
-  // DEBUG включён намеренно — посмотри wzLen в ответе. Убери эту строку, когда WineZone заработает.
-  parsed._debug = { wsLen: wsRaw.length, wzLen: wzRaw.length, ws: wsRaw.slice(0, 400), wz: wzRaw.slice(0, 400) };
+    // Распознавание тикера по тикеру ИЛИ названию компании (русский/английский)
+    if (action === 'resolve') {
+      const raw = (ticker || '').trim();
+      if (!raw) return res.json({ ticker: '', name: '' });
+      if (!crKey) return res.json({ ticker: raw.toUpperCase(), name: '' });
+      try {
+        const r = await callClaude([{ role: 'user', content:
+          'Определи биржевой тикер по вводу пользователя (это тикер ИЛИ название компании на русском/английском): "' + raw + '".\n' +
+          'Правила:\n' +
+          '- Российские компании → тикер MOEX (Сбербанк→SBER, Совкомбанк→SVCB, Лукойл→LKOH, Газпром→GAZP, Норникель→GMKN, Яндекс→YDEX, Новатэк→NVTK).\n' +
+          '- Иностранные компании → тикер основной биржи (Nike→NKE, Найк→NKE, Apple→AAPL, Эппл→AAPL, Tesla→TSLA, Тесла→TSLA).\n' +
+          '- Если ввод УЖЕ корректный биржевой тикер — верни его без изменений.\n' +
+          '- Ответь СТРОГО одной строкой JSON без markdown: {"ticker":"XXX","name":"Полное название"}.\n' +
+          '- Если определить невозможно — {"ticker":"' + raw.toUpperCase() + '","name":""}.' }], 80);
+        const clean = (r || '').replace(/```json|```/g, '').trim();
+        const m = clean.match(/\{[\s\S]*\}/);
+        const obj = m ? JSON.parse(m[0]) : {};
+        const t = String(obj.ticker || raw).toUpperCase().replace(/[^A-Z0-9.]/g, '');
+        return res.json({ ticker: t || raw.toUpperCase(), name: obj.name || '' });
+      } catch (e) {
+        return res.json({ ticker: raw.toUpperCase(), name: '' });
+      }
+    }
 
-  return res.json(parsed);
+    // ============================================================
+    // WINE PRICE MONITOR — отдельный путь через Firecrawl.
+    // НЕ использует Tavily. Не трогает analyze / price / resolve / search.
+    // Требует ENV: FIRECRAWL_KEY, CRAZYROUTER_KEY.
+    // ============================================================
+    if (action === 'winescrape') {
+      const fcKey = process.env.FIRECRAWL_KEY;
+      if (!fcKey) return res.status(500).json({ error: 'No FIRECRAWL_KEY' });
+      if (!crKey) return res.status(500).json({ error: 'No CRAZYROUTER_KEY' });
+
+      const champagne = (query || '').trim();
+      if (!champagne) return res.json({ wineshopper: [], winezone: [] });
+
+      // Скрейп конкретной страницы. waitFor поднят до 6000 — winezone грузит каталог медленно.
+      async function fcScrape(url) {
+        try {
+          const r = await fetch('https://api.firecrawl.dev/v2/scrape', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + fcKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url, formats: ['markdown'], waitFor: 6000, proxy: 'auto' })
+          });
+          const d = await r.json();
+          const data = d.data || d;
+          return (data && data.markdown) ? data.markdown : '';
+        } catch (e) { return ''; }
+      }
+
+      // Поиск по домену. КЛЮЧЕВОЕ: если выдача тонкая — скрейпим ПЕРВУЮ найденную
+      // ссылку (это бренд-страница), а не общий каталог. Общий каталог — только крайний фолбэк.
+      async function fcSearch(domain, fallbackUrl) {
+        let out = '', topUrl = '';
+        try {
+          const r = await fetch('https://api.firecrawl.dev/v2/search', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + fcKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: champagne + ' купить цена',
+              limit: 5,
+              location: 'Russia',
+              includeDomains: [domain],
+              scrapeOptions: { formats: ['markdown'], waitFor: 6000, proxy: 'auto' }
+            })
+          });
+          const d = await r.json();
+          const web = (d.data && d.data.web) || d.web || [];
+          out = web.map(x => (x.markdown || x.description || '')).join('\n\n---\n\n').slice(0, 12000);
+          if (web.length && web[0].url) topUrl = web[0].url;   // ссылка из реальной выдачи
+        } catch (e) {}
+        if (!out || out.length < 120) {
+          const target = topUrl || fallbackUrl;                // сначала найденная страница, потом каталог
+          if (target) out = (await fcScrape(target)).slice(0, 12000);
+        }
+        return out;
+      }
+
+      const [wsRaw, wzRaw] = await Promise.all([
+        fcSearch('wine-shopper.ru', null),
+        fcSearch('winezone.ru', 'https://winezone.ru/shampanskoe')
+      ]);
+
+      const extractPrompt =
+        'Ниже содержимое страниц двух винных магазинов по запросу "' + champagne + '".\n\n' +
+        '=== WINE-SHOPPER.RU ===\n' + (wsRaw || 'нет данных') + '\n\n' +
+        '=== WINEZONE.RU ===\n' + (wzRaw || 'нет данных') + '\n\n' +
+        'Извлеки реальные товары с ценами в рублях ТОЛЬКО из текста выше. ' +
+        'Бери только позиции, релевантные запросу "' + champagne + '" (тот же бренд). ' +
+        'НЕ выдумывай ни названия, ни цены. Если по магазину релевантных данных нет — пустой массив. ' +
+        'Ответь СТРОГО валидным JSON без markdown:\n' +
+        '{"wineshopper":[{"name":"полное название","price":12345,"volume":"750 мл","type":"Brut"}],"winezone":[]}';
+
+      let parsed = { wineshopper: [], winezone: [] };
+      try {
+        const text = await callClaude([{ role: 'user', content: extractPrompt }], 2000);
+        const clean = (text || '').replace(/```json|```/g, '').trim();
+        const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
+        if (s !== -1 && e !== -1) parsed = JSON.parse(clean.slice(s, e + 1));
+      } catch (e) {}
+
+      if (!Array.isArray(parsed.wineshopper)) parsed.wineshopper = [];
+      if (!Array.isArray(parsed.winezone)) parsed.winezone = [];
+
+      // DEBUG включён намеренно — посмотри wzLen в ответе. Убери эту строку, когда WineZone заработает.
+      parsed._debug = { wsLen: wsRaw.length, wzLen: wzRaw.length, ws: wsRaw.slice(0, 400), wz: wzRaw.slice(0, 400) };
+
+      return res.json(parsed);
+    }
+
+    if (action === 'analyze') {
+      if (!crKey) return res.status(500).json({ error: 'No API key' });
+
+      const marketQuery = isMoex
+        ? ticker + ' MOEX акция цена рублей котировка май 2026'
+        : ticker + ' stock price today May 2026';
+
+      const corrQuery = ticker + ' suppliers leading indicators correlation 2026';
+
+      const insiderQuery = isMoex
+        ? ticker + ' инсайдеры крупный акционер сделки покупка продажа дата 2025 2026 МосБиржа раскрытие'
+        : ticker + ' insider transactions Form 4 SEC OpenInsider buy sell date shares 2025 2026';
+
+      // Словарь опережающих индикаторов для каждого тикера
+      const LEADING_INDICATOR_QUERIES = {
+        // Металлы и сырьё
+        'RUAL': 'aluminum LME price 3M futures today May 2026 USD per tonne',
+        'FCX':  'copper LME spot price futures May 2026 USD per tonne',
+        'NEM':  'gold spot price XAU May 2026 USD per ounce',
+        'GMKN': 'palladium nickel LME price May 2026 USD',
+        'NLMK': 'steel HRC price European market May 2026',
+        'CHMF': 'steel billet price Russia export May 2026',
+        // Энергетика
+        'CEG':  'PJM electricity wholesale price May 2026 nuclear power',
+        'VST':  'ERCOT Texas electricity spot price May 2026',
+        'OKLO': 'nuclear energy policy SMR permits USA 2026',
+        'UEC':  'uranium spot price UX May 2026 USD per pound',
+        'CCJ':  'uranium spot price Cameco contract May 2026 USD per pound',
+        'PBR':  'Brent crude oil price Brazil pre-salt May 2026',
+        'LKOH': 'Brent crude oil price Urals May 2026 USD barrel',
+        'ROSN': 'Brent Urals oil price Russia export May 2026',
+        'NVTK': 'LNG natural gas price Europe TTF May 2026',
+        'GAZP': 'natural gas price Russia Europe TTF May 2026',
+        // Технологии и телеком
+        'NOK':  'Nokia 5G contracts revenue telecom infrastructure 2026',
+        'RKLB': 'rocket launch market satellite commercial contracts 2026',
+        'FLNC': 'battery storage energy grid demand USA 2026',
+        // Потребительский сектор
+        'NKE':  'Nike footwear retail sales consumer spending USA Q2 2026',
+        'TTWO': 'GTA VI release date Take-Two gaming revenue 2026',
+        // Финансы
+        'SBER': 'ключевая ставка ЦБ РФ май 2026 банковский сектор',
+        'SVCB': 'Совкомбанк финансовые результаты прибыль 2026',
+        'TCSG': 'Т-Банк финансовые результаты клиенты 2026',
+        // Дефолтный запрос
+        'DEFAULT': ticker + ' suppliers supply chain input cost factory orders leading demand indicator May 2026'
+      };
+
+      const leadingQuery = LEADING_INDICATOR_QUERIES[ticker.toUpperCase()] || LEADING_INDICATOR_QUERIES['DEFAULT'];
+
+      // Отдельный запрос на ПОДТВЕРЖДЁННУЮ дату ближайшего отчёта/событий
+      const catalystQuery = isMoex
+        ? ticker + ' дата отчёта МСФО РСБУ 2026 дивиденды календарь событий точная дата'
+        : ticker + ' next earnings date confirmed report calendar 2026 dividend ex-date catalyst';
+
+      const results = await Promise.allSettled([
+        tavilySearch(marketQuery),
+        tavilySearch(insiderQuery),
+        tavilySearch(catalystQuery),
+        tavilySearch(corrQuery),
+        tavilySearch(leadingQuery)
+      ]);
+
+      const news         = results[0].status === 'fulfilled' ? results[0].value : '';
+      const insiders     = results[1].status === 'fulfilled' ? results[1].value : '';
+      const catalysts    = results[2].status === 'fulfilled' ? results[2].value : '';
+      const correlations = results[3].status === 'fulfilled' ? results[3].value : '';
+      const leadingData  = results[4] && results[4].status === 'fulfilled' ? results[4].value : '';
+
+      const extracted = isMoex
+        ? extractMoexPrice(news, (ticker||'').toUpperCase())
+        : extractUsdPrice(news);
+      const currentPrice = extracted.price;
+      const currencySymbol = isMoex ? '₽' : '$';
+
+      const priceInstruction = currentPrice
+        ? '\n\nВАЖНО: Текущая цена ' + ticker + ' = ' + currencySymbol + currentPrice +
+          ' (из веб-поиска май 2026, ' + (isMoex ? 'РУБЛИ МОСБИРЖА' : 'USD') + ').' +
+          ' Используй ТОЛЬКО эту цену: price="' + currencySymbol + currentPrice + '", priceNum=' + currentPrice + '.' +
+          (isMoex ? ' ВСЕ цены в РУБЛЯХ ₽. exchange="MOEX".' : '') +
+          ' НЕ используй другие числа как цену акции.'
+        : '';
+
+      // БАГ 3 FIX: инструкция по инсайдерам — только реальные сделки с датой
+      const insiderInstruction = '\n\nПОЛЕ insiders: бери ТОЛЬКО реальные сделки из веб-данных (Form 4 / OpenInsider / официальные раскрытия). Для каждой: name, role, type (buy/sell), amount, shares, date — точная дата сделки из Form 4 (формат "15 июн 2026"); если сделка есть в данных, но точной даты нет — укажи хотя бы месяц ("июн 2026"). НЕ показывай сделку, которой НЕТ в веб-данных. Нет подтверждённых сделок с источником — верни []. НИКОГДА не выдумывай инсайдеров, даты, суммы и количество акций.';
+
+      // ДАТЫ И СОБЫТИЯ — точность + достаточное количество
+      const dateInstruction =
+        '\n\n=== СОБЫТИЯ И ДАТЫ (ТОЧНОСТЬ) ===' +
+        '\nСегодня 29 мая 2026.' +
+        ' В events дай 4-6 событий: недавние подтверждённые факты (прошедшие отчёты/события с реальными датами — это контекст, urgent=false) И будущие катализаторы.' +
+        ' Даты в events.date и insiders.date — ТОЛЬКО реальные из веб-данных (формат "15 июн 2026").' +
+        ' Если точной даты будущего события в данных нет — напиши "ожидается Q3 2026" и т.п., но НЕ выдумывай конкретное число.' +
+        ' urgent=true — только для подтверждённых будущих событий в пределах ~30 дней. Прошедшие события НИКОГДА не помечай urgent.';
+
+      // Базовая инструкция ПРЕДВОСХИЩЕНИЯ — для ЛЮБОГО тикера (есть он в словаре или нет)
+      const anticipationInstruction =
+        '\n\n=== БЛОК ПРЕДВОСХИЩЕНИЕ — 5 ИНДИКАТОРОВ (ОБЯЗАТЕЛЬНО) ===' +
+        '\nПострой причинно-следственную цепочку ВВЕРХ по поставкам для ' + ticker + ':' +
+        ' поставщики и их заказы, входное сырьё и его цены, загрузка фабрик/OEM-подрядчиков,' +
+        ' законтрактованный пайплайн, опережающие сигналы спроса, регуляторные/тендерные решения.' +
+        ' Эталон логики: заказы тайваньских OEM (Feng Tay, Pou Chen) опережают выручку Nike на 1-2 квартала —' +
+        ' примени ТАКУЮ ЖЕ логику к ' + ticker + '.' +
+        ' Заполни anticipationInd1..anticipationInd5: название индикатора + механизм связи + лаг опережения.' +
+        ' ТОЧНОСТЬ: конкретные числа бери ТОЛЬКО из веб-данных ниже; нет числа — опиши механизм качественно, без выдуманных цифр.';
+
+      // Опережающий индикатор — реальные числа для словарных тикеров
+      const leadingNote = leadingData
+        ? '\n\n=== ОПЕРЕЖАЮЩИЙ ИНДИКАТОР (РЕАЛЬНЫЕ ДАННЫЕ МАЙ 2026) ===\n' + leadingData +
+          '\nИспользуй эти реальные числа в anticipationInd1..5 где релевантно. НЕ бери данные из памяти.'
+        : '';
+
+      const rawData = [
+        '=== ЦЕНА И РЫНОК (май 2026) ===', news || 'нет данных', '',
+        '=== ИНСАЙДЕРЫ И МАЖОРИТАРИИ (2025-2026) ===', insiders || 'нет данных', '',
+        '=== КАТАЛИЗАТОРЫ И СОБЫТИЯ (2026) ===', catalysts || 'нет данных', '',
+        '=== КОРРЕЛЯЦИИ И ПОСТАВЩИКИ ===', correlations || 'нет данных',
+        leadingNote
+      ].join('\n').trim();
+
+      const analysisPrompt = prompt +
+        '\n\nРЕАЛЬНЫЕ ДАННЫЕ ИЗ ВЕБ-ПОИСКА (май 2026):\n' + rawData +
+        priceInstruction + insiderInstruction + anticipationInstruction + dateInstruction +
+        '\n\nКРИТИЧНО: Используй ТОЛЬКО данные выше. Все цены — только из этих данных.' +
+        (isMoex ? '\nБИРЖА МОСБИРЖА: цена РУБЛИ (₽). exchange="MOEX".' : '');
+
+      const text = await callClaude([{ role: 'user', content: analysisPrompt }], 5000);
+      return res.json({ text });
+    }
+
+    return res.status(400).json({ error: 'Unknown action' });
+  } catch (e) {
+    return res.status(500).json({ error: e.message || String(e) });
+  }
 }
