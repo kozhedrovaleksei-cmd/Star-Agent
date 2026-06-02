@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   const { action, ticker, prompt, query } = req.body;
   const crKey = process.env.CRAZYROUTER_KEY;
   const tvKey = process.env.TAVILY_KEY;
-  const fhKey = process.env.FINNHUB_KEY; // Finnhub — живые котировки US
+  const fmpKey = process.env.FMP_KEY;
 
   const MOEX_TICKERS = ['SBER','SVCB','RUAL','FLNC','LKOH','GAZP','YNDX','NVTK','ROSN','GMKN','MTSS','VTBR','AFLT','POLY','PLZL','MGNT','ALRS','PHOR','NLMK','CHMF','MAGN','RTKM','FEES','HYDR','IRAO','MOEX','TCSG','OZON','VKCO'];
   const isMoex = MOEX_TICKERS.includes((ticker || '').toUpperCase());
@@ -124,66 +124,22 @@ export default async function handler(req, res) {
 
   try {
     if (action === 'price') {
-      const T = (ticker || '').toUpperCase();
       try {
-        // 1) MOEX — реальная котировка из MOEX ISS (публичный, без ключа)
-        if (isMoex) {
-          try {
-            const url = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities/'
-              + encodeURIComponent(T) + '.json?iss.meta=off&iss.only=marketdata,securities';
-            const j = await (await fetch(url)).json();
-            const md = j.marketdata || {}, sec = j.securities || {};
-            const mdCol = md.columns || [], mdRow = (md.data || [])[0] || [];
-            const secCol = sec.columns || [], secRow = (sec.data || [])[0] || [];
-            const mg = (n) => { const i = mdCol.indexOf(n); return i >= 0 ? mdRow[i] : null; };
-            const sg = (n) => { const i = secCol.indexOf(n); return i >= 0 ? secRow[i] : null; };
-            let last = mg('LAST');
-            if (last == null) last = mg('MARKETPRICE');
-            if (last == null) last = mg('LCLOSEPRICE');
-            if (last == null) last = sg('PREVPRICE');
-            const prev = sg('PREVPRICE');
-            if (last != null && isFinite(+last) && +last > 0) {
-              const price = +last;
-              let change = null;
-              if (prev != null && isFinite(+prev) && +prev > 0) change = (price - +prev) / +prev * 100;
-              return res.json({
-                price, high52: null, low52: null,
-                change: change != null ? ((change >= 0 ? '+' : '') + change.toFixed(2) + '%') : null,
-                currency: 'RUB', source: 'MOEX ISS'
-              });
-            }
-          } catch (e) {}
-        }
-        // 2) US — реальная котировка из Finnhub
-        if (!isMoex && fhKey) {
-          try {
-            const q = await (await fetch('https://finnhub.io/api/v1/quote?symbol=' + encodeURIComponent(T) + '&token=' + fhKey)).json();
-            if (q && isFinite(+q.c) && +q.c > 0) {
-              let high52 = null, low52 = null;
-              try {
-                const m = await (await fetch('https://finnhub.io/api/v1/stock/metric?symbol=' + encodeURIComponent(T) + '&metric=all&token=' + fhKey)).json();
-                const mm = (m && m.metric) || {};
-                if (isFinite(+mm['52WeekHigh'])) high52 = +mm['52WeekHigh'];
-                if (isFinite(+mm['52WeekLow'])) low52 = +mm['52WeekLow'];
-              } catch (e) {}
-              const change = isFinite(+q.dp) ? ((+q.dp >= 0 ? '+' : '') + (+q.dp).toFixed(2) + '%') : null;
-              return res.json({ price: +q.c, high52, low52, change, currency: 'USD', source: 'Finnhub' });
-            }
-          } catch (e) {}
-        }
-        // 3) ФОЛБЭК — старый путь через Tavily (нет ключа / пусто / ошибка)
+        // БАГ 1 FIX: для RUAL используем очень специфичный запрос на русском
         const searchQ = isMoex
-          ? T + ' MOEX акция цена рублей сегодня котировка'
-          : T + ' stock price today 2026';
+          ? ticker + ' MOEX акция цена рублей сегодня котировка'
+          : ticker + ' stock price today 2026';
         const priceData = await tavilySearch(searchQ);
         const extracted = isMoex
-          ? extractMoexPrice(priceData, T)
+          ? extractMoexPrice(priceData, (ticker||'').toUpperCase())
           : extractUsdPrice(priceData);
         return res.json({
-          price: extracted.price, high52: extracted.high52, low52: extracted.low52,
-          currency: isMoex ? 'RUB' : 'USD', source: 'Tavily fallback'
+          price: extracted.price,
+          high52: extracted.high52,
+          low52: extracted.low52,
+          currency: isMoex ? 'RUB' : 'USD'
         });
-      } catch (e) {}
+      } catch(e) {}
       return res.json({ price: null });
     }
 
@@ -214,183 +170,6 @@ export default async function handler(req, res) {
       } catch (e) {
         return res.json({ ticker: raw.toUpperCase(), name: '' });
       }
-    }
-
-    // ============================================================
-    // WINE PRICE MONITOR — отдельный путь через Firecrawl.
-    // НЕ использует Tavily. Не трогает analyze / price / resolve / search.
-    // Требует ENV: FIRECRAWL_KEY, CRAZYROUTER_KEY.
-    // ============================================================
-    if (action === 'winescrape') {
-      const fcKey = process.env.FIRECRAWL_KEY;
-      if (!fcKey) return res.status(500).json({ error: 'No FIRECRAWL_KEY' });
-      if (!crKey) return res.status(500).json({ error: 'No CRAZYROUTER_KEY' });
-
-      const champagne = (query || '').trim();
-      if (!champagne) return res.json({ wineshopper: [], winezone: [] });
-
-      // Скрейп конкретной страницы. waitFor поднят до 6000 — winezone грузит каталог медленно.
-      async function fcScrape(url) {
-        try {
-          const r = await fetch('https://api.firecrawl.dev/v2/scrape', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + fcKey, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url, formats: ['markdown'], waitFor: 6000, proxy: 'auto' })
-          });
-          const d = await r.json();
-          const data = d.data || d;
-          return (data && data.markdown) ? data.markdown : '';
-        } catch (e) { return ''; }
-      }
-
-      // Поиск по домену. КЛЮЧЕВОЕ: если выдача тонкая — скрейпим ПЕРВУЮ найденную
-      // ссылку (это бренд-страница), а не общий каталог. Общий каталог — только крайний фолбэк.
-      async function fcSearch(domain, fallbackUrl) {
-        let out = '', topUrl = '';
-        try {
-          const r = await fetch('https://api.firecrawl.dev/v2/search', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + fcKey, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              query: champagne + ' купить цена',
-              limit: 5,
-              location: 'Russia',
-              includeDomains: [domain],
-              scrapeOptions: { formats: ['markdown'], waitFor: 6000, proxy: 'auto' }
-            })
-          });
-          const d = await r.json();
-          const web = (d.data && d.data.web) || d.web || [];
-          out = web.map(x => (x.markdown || x.description || '')).join('\n\n---\n\n').slice(0, 12000);
-          if (web.length && web[0].url) topUrl = web[0].url;   // ссылка из реальной выдачи
-        } catch (e) {}
-        if (!out || out.length < 120) {
-          const target = topUrl || fallbackUrl;                // сначала найденная страница, потом каталог
-          if (target) out = (await fcScrape(target)).slice(0, 12000);
-        }
-        return out;
-      }
-
-      const [wsRaw, wzRaw] = await Promise.all([
-        fcSearch('wine-shopper.ru', null),
-        fcSearch('winezone.ru', 'https://winezone.ru/shampanskoe')
-      ]);
-
-      const extractPrompt =
-        'Ниже содержимое страниц двух винных магазинов по запросу "' + champagne + '".\n\n' +
-        '=== WINE-SHOPPER.RU ===\n' + (wsRaw || 'нет данных') + '\n\n' +
-        '=== WINEZONE.RU ===\n' + (wzRaw || 'нет данных') + '\n\n' +
-        'Извлеки реальные товары с ценами в рублях ТОЛЬКО из текста выше. ' +
-        'Бери только позиции, релевантные запросу "' + champagne + '" (тот же бренд). ' +
-        'НЕ выдумывай ни названия, ни цены. Если по магазину релевантных данных нет — пустой массив. ' +
-        'Ответь СТРОГО валидным JSON без markdown:\n' +
-        '{"wineshopper":[{"name":"полное название","price":12345,"volume":"750 мл","type":"Brut"}],"winezone":[]}';
-
-      let parsed = { wineshopper: [], winezone: [] };
-      try {
-        const text = await callClaude([{ role: 'user', content: extractPrompt }], 2000);
-        const clean = (text || '').replace(/```json|```/g, '').trim();
-        const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
-        if (s !== -1 && e !== -1) parsed = JSON.parse(clean.slice(s, e + 1));
-      } catch (e) {}
-
-      if (!Array.isArray(parsed.wineshopper)) parsed.wineshopper = [];
-      if (!Array.isArray(parsed.winezone)) parsed.winezone = [];
-
-      // DEBUG включён намеренно — посмотри wzLen в ответе. Убери эту строку, когда WineZone заработает.
-      parsed._debug = { wsLen: wsRaw.length, wzLen: wzRaw.length, ws: wsRaw.slice(0, 400), wz: wzRaw.slice(0, 400) };
-
-      return res.json(parsed);
-    }
-
-    // ============================================================
-    // WINE CATALOG — парсит верх каталога шампанского в обоих магазинах
-    // и сопоставляет одинаковые позиции (бренд+винтаж+объём) с разницей цен.
-    // Запрос не нужен. Требует ENV: FIRECRAWL_KEY, CRAZYROUTER_KEY.
-    // ============================================================
-    if (action === 'winecatalog') {
-      const fcKey = process.env.FIRECRAWL_KEY;
-      if (!fcKey) return res.status(500).json({ error: 'No FIRECRAWL_KEY' });
-      if (!crKey) return res.status(500).json({ error: 'No CRAZYROUTER_KEY' });
-
-      // Скрейп страницы каталога. waitFor большой — каталоги грузятся через JS.
-      async function fcScrapeCat(url) {
-        try {
-          const r = await fetch('https://api.firecrawl.dev/v2/scrape', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + fcKey, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url, formats: ['markdown'], waitFor: 7000, proxy: 'auto' })
-          });
-          const d = await r.json();
-          const data = d.data || d;
-          return (data && data.markdown) ? data.markdown : '';
-        } catch (e) { return ''; }
-      }
-
-      // Бэкап: если страница каталога пустая — поиск по домену.
-      async function fcSearchCat(domain) {
-        try {
-          const r = await fetch('https://api.firecrawl.dev/v2/search', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + fcKey, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              query: 'шампанское брют купить цена',
-              limit: 6,
-              location: 'Russia',
-              includeDomains: [domain],
-              scrapeOptions: { formats: ['markdown'], waitFor: 6000, proxy: 'auto' }
-            })
-          });
-          const d = await r.json();
-          const web = (d.data && d.data.web) || d.web || [];
-          return web.map(x => (x.markdown || x.description || '')).join('\n\n---\n\n');
-        } catch (e) { return ''; }
-      }
-
-      async function grab(catUrl, domain) {
-        let raw = await fcScrapeCat(catUrl);
-        if (!raw || raw.length < 200) raw = await fcSearchCat(domain);
-        return raw.slice(0, 14000);
-      }
-
-      const [wsRaw, wzRaw] = await Promise.all([
-        grab('https://wine-shopper.ru/shampanskoe-igristye-vina/', 'wine-shopper.ru'),
-        grab('https://winezone.ru/shampanskoe', 'winezone.ru')
-      ]);
-
-      const catPrompt =
-        'Ниже — каталоги шампанского из двух магазинов.\n\n' +
-        '=== WINE-SHOPPER.RU ===\n' + (wsRaw || 'нет данных') + '\n\n' +
-        '=== WINEZONE.RU ===\n' + (wzRaw || 'нет данных') + '\n\n' +
-        'Задачи:\n' +
-        '1) Извлеки ВСЕ товары с ценами в рублях из каждого магазина. НЕ выдумывай. ' +
-        'Если цены нет — позицию пропусти.\n' +
-        '2) Сопоставь ОДИНАКОВЫЕ позиции между магазинами. Одинаковые = совпадает бренд И винтаж (год) И объём. ' +
-        'Игнорируй мусорные слова (Шампанское, Игристое, Брют, Сухое, Champagne, AOC, gift box, в подарочной упаковке, мл, л, 0.75). ' +
-        'Бренд важнее всего: Moet, Dom Perignon, Ruinart, Veuve Clicquot, Bollinger, Krug, Roederer/Cristal, Laurent-Perrier и т.д. ' +
-        'Если у позиции в одном магазине нет пары в другом — в matched НЕ включай.\n' +
-        '3) Для каждой пары: diff = цена WineZone минус цена WineShopper; cheaper = "ws" если WineShopper дешевле, "wz" если WineZone дешевле, "equal" если равны.\n' +
-        'Ответь СТРОГО валидным JSON без markdown:\n' +
-        '{"wineshopper":[{"name":"...","price":12345,"volume":"0.75 л","type":"Брют"}],' +
-        '"winezone":[{"name":"...","price":12345,"volume":"0.75 л","type":"Брют"}],' +
-        '"matched":[{"name":"бренд + винтаж + объём","ws_price":12345,"wz_price":11000,"diff":-1345,"cheaper":"wz"}]}';
-
-      let parsed = { wineshopper: [], winezone: [], matched: [] };
-      try {
-        const text = await callClaude([{ role: 'user', content: catPrompt }], 6000);
-        const clean = (text || '').replace(/```json|```/g, '').trim();
-        const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
-        if (s !== -1 && e !== -1) parsed = JSON.parse(clean.slice(s, e + 1));
-      } catch (e) {}
-
-      if (!Array.isArray(parsed.wineshopper)) parsed.wineshopper = [];
-      if (!Array.isArray(parsed.winezone)) parsed.winezone = [];
-      if (!Array.isArray(parsed.matched)) parsed.matched = [];
-
-      // DEBUG — убери, когда каталог заработает стабильно.
-      parsed._debug = { wsLen: wsRaw.length, wzLen: wzRaw.length };
-
-      return res.json(parsed);
     }
 
     if (action === 'analyze') {
@@ -521,6 +300,48 @@ export default async function handler(req, res) {
 
       const text = await callClaude([{ role: 'user', content: analysisPrompt }], 5000);
       return res.json({ text });
+    }
+
+    // СКРИНЕР через FMP (free 250/день)
+    if (action === 'screen') {
+      if (!fmpKey) return res.json({ error: 'FMP_KEY не задан в окружении', results: [] });
+      const f = req.body.filters || {};
+      const params = new URLSearchParams();
+      if (f.marketCapMoreThan) params.set('marketCapMoreThan', String(f.marketCapMoreThan));
+      if (f.priceMoreThan)     params.set('priceMoreThan', String(f.priceMoreThan));
+      if (f.priceLowerThan)    params.set('priceLowerThan', String(f.priceLowerThan));
+      if (f.volumeMoreThan)    params.set('volumeMoreThan', String(f.volumeMoreThan));
+      if (f.betaMoreThan)      params.set('betaMoreThan', String(f.betaMoreThan));
+      if (f.dividendMoreThan)  params.set('dividendMoreThan', String(f.dividendMoreThan));
+      if (f.sector)            params.set('sector', String(f.sector));
+      if (f.exchange)          params.set('exchange', String(f.exchange));
+      if (f.country)           params.set('country', String(f.country));
+      params.set('isActivelyTrading', 'true');
+      params.set('limit', String(f.limit || 30));
+      params.set('apikey', fmpKey);
+      try {
+        const r = await fetch('https://financialmodelingprep.com/api/v3/stock-screener?' + params.toString());
+        const data = await r.json();
+        if (!Array.isArray(data)) {
+          const msg = (data && (data['Error Message'] || data.error)) || 'FMP вернул не список (проверь ключ/лимит)';
+          return res.json({ error: msg, results: [] });
+        }
+        const results = data.slice(0, f.limit || 30).map((x: any) => ({
+          symbol: x.symbol,
+          name: x.companyName || '',
+          price: x.price ?? null,
+          marketCap: x.marketCap ?? null,
+          sector: x.sector || '',
+          industry: x.industry || '',
+          volume: x.volume ?? null,
+          beta: x.beta ?? null,
+          exchange: x.exchangeShortName || x.exchange || '',
+          country: x.country || ''
+        }));
+        return res.json({ results });
+      } catch (e) {
+        return res.json({ error: (e as Error).message || 'Ошибка запроса к FMP', results: [] });
+      }
     }
 
     return res.status(400).json({ error: 'Unknown action' });
