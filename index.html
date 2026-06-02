@@ -316,6 +316,36 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); min-
 .sz-out-row { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-top: 1px solid #d8e8fb; }
 .sz-out-row:first-of-type { border-top: none; }
 .sz-note { font-size: 12px; color: var(--dim); line-height: 1.5; margin-top: 12px; }
+/* ─── СКРИНЕР ─── */
+.scr-filters { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+.scr-f { display: flex; flex-direction: column; flex: 1; min-width: 130px; }
+.scr-f label { font-size: 11px; color: var(--dim); font-weight: 600; margin-bottom: 6px; }
+.scr-f input, .scr-f select { background: var(--bg4); border: 1px solid var(--border); border-radius: 10px; padding: 9px 11px; font-family: var(--font); font-size: 14px; color: var(--text); outline: none; }
+.scr-f input:focus, .scr-f select:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.tbl-wrap { background: var(--bg2); border: 1px solid var(--border2); border-radius: 16px; box-shadow: var(--shadow); overflow-x: auto; }
+table.dt { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 560px; }
+table.dt th { text-align: left; color: var(--dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; padding: 12px 14px; border-bottom: 1px solid var(--border2); white-space: nowrap; }
+table.dt td { padding: 11px 14px; border-bottom: 1px solid var(--border2); vertical-align: middle; }
+table.dt tr:last-child td { border-bottom: none; }
+table.dt .sym { font-weight: 700; font-size: 14px; }
+table.dt .nm { color: var(--dim); font-size: 12px; }
+.dt-num { text-align: right; font-variant-numeric: tabular-nums; }
+.mini-btn { background: var(--accent-soft); border: 1px solid #cfe3fb; color: var(--accent); font-family: var(--font); font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 980px; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+.mini-btn:hover { background: var(--accent); color: #fff; }
+.mini-rm { background: none; border: none; color: var(--dim2); font-size: 17px; cursor: pointer; line-height: 1; padding: 2px 6px; }
+.mini-rm:hover { color: var(--red); }
+.pnl-pos { color: var(--green); font-weight: 600; }
+.pnl-neg { color: var(--red); font-weight: 600; }
+
+/* ─── ПОРТФЕЛЬ ─── */
+.pf-add { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+.pf-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.pf-totals { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.pf-tot-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; padding: 14px 18px; box-shadow: var(--shadow); flex: 1; min-width: 150px; }
+.pf-tot-lbl { font-size: 11px; color: var(--dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.pf-tot-val { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; margin-top: 4px; }
+.refresh-btn { background: var(--text); color: #fff; border: none; font-family: var(--font); font-size: 13px; font-weight: 500; padding: 9px 18px; border-radius: 980px; cursor: pointer; transition: opacity 0.15s; }
+.refresh-btn:hover { opacity: 0.85; }
 </style>
 </head>
 <body>
@@ -351,6 +381,8 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); min-
     <button id="tabbtn-analyze" class="tab-btn active" onclick="switchTab('analyze')">🔍 Анализ</button>
     <button id="tabbtn-watchlist" class="tab-btn" onclick="switchTab('watchlist')">⭐ Вотчлист</button>
     <button id="tabbtn-compare" class="tab-btn" onclick="switchTab('compare')">⚖️ Сравнение</button>
+    <button id="tabbtn-screener" class="tab-btn" onclick="switchTab('screener')">🔎 Скринер</button>
+    <button id="tabbtn-portfolio" class="tab-btn" onclick="switchTab('portfolio')">💼 Портфель</button>
     <button id="tabbtn-sizing" class="tab-btn" onclick="switchTab('sizing')">📐 Сайзинг</button>
   </nav>
 
@@ -429,6 +461,37 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); min-
       <div class="load-title">⚖️ STARK СРАВНИВАЕТ ДВЕ АКЦИИ...</div>
     </div>
     <div id="cmpResult"></div>
+  </div>
+
+  <div id="tab-screener" class="tab-panel">
+    <div class="input-card">
+      <div class="scr-filters">
+        <div class="scr-f"><label>Биржа</label><select id="scrExchange"><option value="">Любая</option><option value="NASDAQ">NASDAQ</option><option value="NYSE">NYSE</option><option value="AMEX">AMEX</option></select></div>
+        <div class="scr-f"><label>Сектор</label><select id="scrSector"><option value="">Любой</option><option>Technology</option><option>Energy</option><option>Financial Services</option><option>Healthcare</option><option>Basic Materials</option><option>Industrials</option><option>Consumer Cyclical</option><option>Consumer Defensive</option><option>Utilities</option><option>Real Estate</option><option>Communication Services</option></select></div>
+        <div class="scr-f"><label>Капитализация от ($)</label><input type="number" id="scrMcap" placeholder="1000000000"></div>
+        <div class="scr-f"><label>Цена от ($)</label><input type="number" id="scrPriceMin" placeholder="5" step="any"></div>
+        <div class="scr-f"><label>Цена до ($)</label><input type="number" id="scrPriceMax" placeholder="" step="any"></div>
+        <div class="scr-f"><label>Объём от</label><input type="number" id="scrVolume" placeholder="500000"></div>
+        <div class="scr-f"><label>Кол-во</label><input type="number" id="scrLimit" value="30" min="1" max="100"></div>
+        <button class="analyze-btn" style="flex:0 0 160px;align-self:flex-end" onclick="runScreener()">🔎 СКАНИРОВАТЬ</button>
+      </div>
+    </div>
+    <div id="scrError" class="error-box"></div>
+    <div id="scrLoading" class="loading"><div class="load-title">🔎 STARK СКАНИРУЕТ РЫНОК...</div></div>
+    <div id="scrResult"></div>
+  </div>
+
+  <div id="tab-portfolio" class="tab-panel">
+    <div class="input-card">
+      <div class="pf-add">
+        <div class="scr-f"><label>Тикер</label><input type="text" id="pfTicker" class="ticker-input" style="font-size:16px" placeholder="CCJ"></div>
+        <div class="scr-f"><label>Кол-во акций</label><input type="number" id="pfShares" placeholder="100" step="any"></div>
+        <div class="scr-f"><label>Средняя цена входа</label><input type="number" id="pfEntry" placeholder="40.50" step="any"></div>
+        <button class="analyze-btn" style="flex:0 0 150px;align-self:flex-end" onclick="pfAdd()">＋ ДОБАВИТЬ</button>
+      </div>
+    </div>
+    <div id="pfError" class="error-box"></div>
+    <div id="pfContent"></div>
   </div>
 
   <div id="tab-sizing" class="tab-panel">
@@ -1023,6 +1086,7 @@ function switchTab(name) {
   const panel = document.getElementById('tab-' + name); if (panel) panel.classList.add('active');
   const btn = document.getElementById('tabbtn-' + name); if (btn) btn.classList.add('active');
   if (name === 'watchlist') renderWatchlist();
+  if (name === 'portfolio') renderPortfolio();
   if (name === 'sizing' && window.__lastNorm && typeof window.__lastNorm.starkScore === 'number') {
     const f = document.getElementById('szScore'); if (f) f.value = window.__lastNorm.starkScore.toFixed(1);
   }
@@ -1175,6 +1239,117 @@ function runSizing() {
   </div>
   <div class="sz-note">Размер считается от фиксированного риска на сделку, уменьшенного по силе тезиса (STARK Score): балл 10 → полный риск, балл 0 → 30% от него. Это калькулятор, не рекомендация — вход и стоп бери из своего плана.</div>
   </div>`;
+}
+
+// ═══════════════ СКРИНЕР (FMP) ═══════════════
+function scrShowError(m){ const el=document.getElementById('scrError'); el.textContent=m; el.classList.add('show'); }
+function scrHideError(){ document.getElementById('scrError').classList.remove('show'); }
+function fmtMcap(v){ if(v==null||isNaN(v)) return '—'; v=Number(v); if(v>=1e12) return '$'+(v/1e12).toFixed(2)+'T'; if(v>=1e9) return '$'+(v/1e9).toFixed(1)+'B'; if(v>=1e6) return '$'+(v/1e6).toFixed(0)+'M'; return '$'+v.toLocaleString('en-US'); }
+function fmtVol(v){ if(v==null||isNaN(v)) return '—'; v=Number(v); if(v>=1e6) return (v/1e6).toFixed(1)+'M'; if(v>=1e3) return (v/1e3).toFixed(0)+'K'; return String(v); }
+async function runScreener(){
+  scrHideError();
+  const filters={};
+  const ex=document.getElementById('scrExchange').value; if(ex) filters.exchange=ex;
+  const sec=document.getElementById('scrSector').value; if(sec) filters.sector=sec;
+  const mc=parseFloat(document.getElementById('scrMcap').value); if(mc>0) filters.marketCapMoreThan=mc;
+  const pmin=parseFloat(document.getElementById('scrPriceMin').value); if(pmin>0) filters.priceMoreThan=pmin;
+  const pmax=parseFloat(document.getElementById('scrPriceMax').value); if(pmax>0) filters.priceLowerThan=pmax;
+  const vol=parseFloat(document.getElementById('scrVolume').value); if(vol>0) filters.volumeMoreThan=vol;
+  const lim=parseInt(document.getElementById('scrLimit').value)||30; filters.limit=Math.min(100,Math.max(1,lim));
+  document.getElementById('scrResult').innerHTML='';
+  document.getElementById('scrLoading').classList.add('show');
+  try{
+    const r=await fetch('https://star-agent-murex.vercel.app/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'screen',filters})});
+    const d=await r.json();
+    document.getElementById('scrLoading').classList.remove('show');
+    if(d.error){ scrShowError(String(d.error).includes('FMP_KEY')?'Скринер не настроен: добавь FMP_KEY в переменные окружения Vercel (бесплатный ключ — financialmodelingprep.com).':d.error); return; }
+    renderScreener(d.results||[]);
+  }catch(e){ document.getElementById('scrLoading').classList.remove('show'); scrShowError(e.message||'Ошибка скринера'); }
+}
+function renderScreener(rows){
+  const el=document.getElementById('scrResult');
+  if(!rows.length){ el.innerHTML='<div class="wl-empty">Ничего не найдено. Ослабь фильтры.</div>'; return; }
+  el.innerHTML='<div class="tbl-wrap"><table class="dt"><thead><tr><th>Тикер</th><th class="dt-num">Цена</th><th class="dt-num">Кап.</th><th class="dt-num">Объём</th><th>Сектор</th><th></th></tr></thead><tbody>'+
+    rows.map(x=>`<tr>
+      <td><div class="sym">${x.symbol}</div><div class="nm">${(x.name||'').slice(0,28)}</div></td>
+      <td class="dt-num">${x.price==null?'—':'$'+Number(x.price).toFixed(2)}</td>
+      <td class="dt-num">${fmtMcap(x.marketCap)}</td>
+      <td class="dt-num">${fmtVol(x.volume)}</td>
+      <td>${x.sector||'—'}</td>
+      <td><button class="mini-btn" onclick="scrAnalyze('${x.symbol}')">Анализ →</button></td>
+    </tr>`).join('')+
+    '</tbody></table></div><div class="sz-note" style="margin-top:10px">Источник: FMP. Скрининг — не рекомендация; жми «Анализ» для разбора по методу.</div>';
+}
+function scrAnalyze(tk){ switchTab('analyze'); document.getElementById('tickerInput').value=tk; analyze(); }
+
+// ═══════════════ ПОРТФЕЛЬ + P&L ═══════════════
+const PF_KEY='stark_portfolio';
+function pfLoad(){ try{ return JSON.parse(localStorage.getItem(PF_KEY)||'[]'); }catch(e){ return []; } }
+function pfSave(list){ localStorage.setItem(PF_KEY, JSON.stringify(list)); }
+function pfShowError(m){ const el=document.getElementById('pfError'); el.textContent=m; el.classList.add('show'); }
+function pfHideError(){ document.getElementById('pfError').classList.remove('show'); }
+function pfAdd(){
+  pfHideError();
+  const tk=document.getElementById('pfTicker').value.trim().toUpperCase();
+  const sh=parseFloat(document.getElementById('pfShares').value);
+  const en=parseFloat(document.getElementById('pfEntry').value);
+  if(!tk){ pfShowError('Введи тикер'); return; }
+  if(!(sh>0)){ pfShowError('Кол-во акций должно быть больше 0'); return; }
+  if(!(en>0)){ pfShowError('Цена входа должна быть больше 0'); return; }
+  const list=pfLoad();
+  const cur=isMoexTicker(tk)?'RUB':'USD';
+  const idx=list.findIndex(p=>p.ticker===tk);
+  if(idx>=0){ const old=list[idx]; const totSh=old.shares+sh; old.entry=(old.entry*old.shares+en*sh)/totSh; old.shares=totSh; old.current=null; old.currentTs=null; }
+  else { list.push({ticker:tk,shares:sh,entry:en,currency:cur,current:null,currentTs:null}); }
+  pfSave(list);
+  document.getElementById('pfTicker').value=''; document.getElementById('pfShares').value=''; document.getElementById('pfEntry').value='';
+  renderPortfolio();
+}
+function pfRemove(tk){ pfSave(pfLoad().filter(p=>p.ticker!==tk)); renderPortfolio(); }
+async function pfRefresh(){
+  const list=pfLoad(); if(!list.length) return;
+  const btn=document.getElementById('pfRefreshBtn'); if(btn){ btn.disabled=true; btn.textContent='Обновляю...'; }
+  await Promise.all(list.map(async p=>{
+    try{
+      const r=await fetch('https://star-agent-murex.vercel.app/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'price',ticker:p.ticker})});
+      const d=await r.json();
+      if(d.price){ p.current=parseFloat(d.price); p.currentTs=Date.now(); }
+    }catch(e){}
+  }));
+  pfSave(list);
+  if(btn){ btn.disabled=false; btn.textContent='🔄 Обновить цены'; }
+  renderPortfolio();
+}
+function pfFmt(v,c){ if(v==null||isNaN(v)) return '—'; const n=Number(v).toLocaleString('ru-RU',{maximumFractionDigits:2}); return c==='RUB'?n+' ₽':'$'+n; }
+function renderPortfolio(){
+  const el=document.getElementById('pfContent'); if(!el) return;
+  const list=pfLoad();
+  if(!list.length){ el.innerHTML='<div class="wl-empty">Портфель пуст.<br>Добавь позицию: тикер, количество и среднюю цену входа.</div>'; return; }
+  const tot={};
+  list.forEach(p=>{ const c=p.currency||'USD'; if(!tot[c]) tot[c]={cost:0,value:0}; tot[c].cost+=p.entry*p.shares; tot[c].value+=(p.current!=null?p.current:p.entry)*p.shares; });
+  const totalsHtml=Object.keys(tot).map(c=>{ const t=tot[c]; const pnl=t.value-t.cost; const pct=t.cost>0?pnl/t.cost*100:0; const cls=pnl>=0?'pnl-pos':'pnl-neg';
+    return `<div class="pf-tot-card"><div class="pf-tot-lbl">Стоимость · ${c}</div><div class="pf-tot-val">${pfFmt(t.value,c)}</div><div class="${cls}" style="font-size:13px;margin-top:2px">${pnl>=0?'+':''}${pfFmt(pnl,c)} (${pct>=0?'+':''}${pct.toFixed(1)}%)</div></div>`;
+  }).join('');
+  const rows=list.map(p=>{
+    const c=p.currency||'USD';
+    const val=(p.current!=null?p.current:p.entry)*p.shares;
+    const pnl=p.current!=null?(p.current-p.entry)*p.shares:null;
+    const pct=(p.current!=null&&p.entry>0)?(p.current/p.entry-1)*100:null;
+    const cls=pnl==null?'':(pnl>=0?'pnl-pos':'pnl-neg');
+    return `<tr>
+      <td><div class="sym">${p.ticker}</div><div class="nm">${c}</div></td>
+      <td class="dt-num">${p.shares.toLocaleString('ru-RU')}</td>
+      <td class="dt-num">${pfFmt(p.entry,c)}</td>
+      <td class="dt-num">${p.current==null?'<span style="color:var(--dim2)">—</span>':pfFmt(p.current,c)}</td>
+      <td class="dt-num">${pfFmt(val,c)}</td>
+      <td class="dt-num ${cls}">${pnl==null?'—':(pnl>=0?'+':'')+pfFmt(pnl,c)+(pct!=null?' ('+(pct>=0?'+':'')+pct.toFixed(1)+'%)':'')}</td>
+      <td><button class="mini-rm" onclick="pfRemove('${p.ticker}')" title="Убрать">×</button></td>
+    </tr>`;
+  }).join('');
+  el.innerHTML=`<div class="pf-bar"><button id="pfRefreshBtn" class="refresh-btn" onclick="pfRefresh()">🔄 Обновить цены</button><span style="font-size:12px;color:var(--dim)">Цены — из того же источника, что и анализ (могут отставать; MOEX в ₽).</span></div>
+    <div class="pf-totals">${totalsHtml}</div>
+    <div class="tbl-wrap"><table class="dt"><thead><tr><th>Тикер</th><th class="dt-num">Кол-во</th><th class="dt-num">Вход</th><th class="dt-num">Текущая</th><th class="dt-num">Стоимость</th><th class="dt-num">P&L</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="sz-note" style="margin-top:10px">Разные валюты не конвертируются — итоги отдельно по ₽ и $. Это учёт, не рекомендация.</div>`;
 }
 
 </script>
