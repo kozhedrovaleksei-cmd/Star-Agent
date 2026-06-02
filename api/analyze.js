@@ -1,3 +1,7 @@
+// Vercel: дефолт 10с убивает тяжёлый analyze (Tavily + Claude 5000 токенов через crazyrouter).
+// 60 — потолок Hobby. Если нужно больше — включить Fluid Compute (до 300с) или перейти на Pro.
+export const config = { maxDuration: 60 };
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -34,16 +38,32 @@ export default async function handler(req, res) {
 
   async function callClaude(messages, maxTokens) {
     maxTokens = maxTokens || 4000;
-    const r = await fetch('https://crazyrouter.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + crKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: maxTokens, messages })
-    });
-    const d = await r.json();
+    // crazyrouter нестабилен: ставим жёсткий таймаут НИЖЕ лимита функции (60с),
+    // чтобы зависший прокси падал чистой ошибкой, а не убивался платформой Vercel.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 50000);
+    let r;
+    try {
+      r = await fetch('https://crazyrouter.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + crKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: maxTokens, messages }),
+        signal: ctrl.signal
+      });
+    } catch (e: any) {
+      clearTimeout(timer);
+      if (e && e.name === 'AbortError') throw new Error('crazyrouter не ответил за 50с (нестабилен/перегружен) — повтори запрос');
+      throw new Error('crazyrouter недоступен: ' + (e?.message || String(e)));
+    }
+    clearTimeout(timer);
+    const raw = await r.text();
+    let d: any;
+    try { d = JSON.parse(raw); }
+    catch { throw new Error('crazyrouter вернул не-JSON (HTTP ' + r.status + '): ' + raw.slice(0, 160)); }
     if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
     return (d.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
   }
