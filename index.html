@@ -622,7 +622,7 @@ async function fetchAnalysis(rawInput, context) {
   // ─── РАСПОЗНАВАНИЕ ТИКЕРА ПО НАЗВАНИЮ КОМПАНИИ (RU/EN) ───
   let ticker = (rawInput || '').toUpperCase();
   try {
-    const rr = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
+    const rr = await fetch('/api/analyze', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'resolve', ticker: rawInput })
     });
@@ -682,7 +682,7 @@ JSON шаблон — заполни ВСЕ поля реальными данн
 {"ticker":"${ticker}","name":"","sector":"","exchange":"${moex ? 'MOEX' : 'NYSE'}","price":"${currSymbol}0","priceNum":0,"change":"0%","marketCap":"","pe":"","dividend":"","week52Low":"","week52High":"","week52LowNum":0,"week52HighNum":0,"atHigh":"","verdict":"НАБЛЮДАТЬ","verdictEn":"watch","confidence":"СРЕДНЯЯ","rr":"2:1","support":"","entry":"","resistance":"","target1":"","target1Pct":"","target1Period":"","target2":"","target2Pct":"","target2Period":"","target3":"","target3Pct":"","target3Period":"","webDataSummary":"","correlation":"","correlationChain":[],"insiders":[],"events":[],"bullCase":"","bearCase":"","verdict_text":"","stopLoss":"","macro":"","chartEvents":[],"anticipationNarrative":"","anticipationInd1":"","anticipationInd2":"","anticipationInd3":"","anticipationInd4":"","anticipationInd5":"","anticipationMethod":"","scThesis":5,"scAntic":5,"scInsider":5,"scMom":5,"scRR":5,"scSent":5}`;
 
   // ─── ПРОМПТ С УЧЁТОМ БИРЖИ ─── (выполняем запрос анализа)
-    const res = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
+    const res = await fetch('/api/analyze', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'analyze', ticker, prompt })
     });
@@ -749,7 +749,7 @@ JSON шаблон — заполни ВСЕ поля реальными данн
     let realHigh52 = 0;
     let realLow52 = 0;
     try {
-      const rp = await fetch('https://star-agent-murex.vercel.app/api/analyze', {
+      const rp = await fetch('/api/analyze', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'price', ticker })
       });
@@ -1271,7 +1271,7 @@ async function runScreener(){
   document.getElementById('scrResult').innerHTML='';
   document.getElementById('scrLoading').classList.add('show');
   try{
-    const r=await fetch('https://star-agent-murex.vercel.app/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'screen',filters})});
+    const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'screen',filters})});
     const d=await safeJson(r);
     document.getElementById('scrLoading').classList.remove('show');
     if(d.error){ scrShowError(String(d.error).includes('FMP_KEY')?'Скринер не настроен: добавь FMP_KEY в переменные окружения Vercel (бесплатный ключ — financialmodelingprep.com).':d.error); return; }
@@ -1323,7 +1323,7 @@ async function pfRefresh(){
   const btn=document.getElementById('pfRefreshBtn'); if(btn){ btn.disabled=true; btn.textContent='Обновляю...'; }
   await Promise.all(list.map(async p=>{
     try{
-      const r=await fetch('https://star-agent-murex.vercel.app/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'price',ticker:p.ticker})});
+      const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'price',ticker:p.ticker})});
       const d=await safeJson(r);
       if(d.price){ p.current=parseFloat(d.price); p.currentTs=Date.now(); }
     }catch(e){}
