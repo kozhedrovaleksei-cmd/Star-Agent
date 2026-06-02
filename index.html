@@ -520,6 +520,18 @@ const MOEX_TICKERS = ['SBER','SVCB','RUAL','FLNC','LKOH','GAZP','YNDX','NVTK','R
 
 function isMoexTicker(t) { return MOEX_TICKERS.includes((t||'').toUpperCase()); }
 
+// Безопасный разбор ответа бэка: если функция Vercel умерла по таймауту и вернула
+// текстовую страницу ("A server error has occurred"), показываем реальную причину,
+// а не давимся на JSON.parse первой буквой 'A'.
+async function safeJson(resp) {
+  const raw = await resp.text();
+  try { return JSON.parse(raw); }
+  catch (e) {
+    const snippet = (raw || '').trim().slice(0, 180) || ('пустой ответ, HTTP ' + resp.status);
+    throw new Error('Бэкенд вернул не JSON (HTTP ' + resp.status + '): ' + snippet);
+  }
+}
+
 function saveCRKey() {
   const key = document.getElementById('crKeyInput').value.trim();
   if (!key) { setCRStatus('❌ Введи ключ', 'var(--red)'); return; }
@@ -614,7 +626,7 @@ async function fetchAnalysis(rawInput, context) {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'resolve', ticker: rawInput })
     });
-    const rd = await rr.json();
+    const rd = await safeJson(rr);
     if (rd && rd.ticker) ticker = rd.ticker;
   } catch (e) {}
   const moex = isMoexTicker(ticker);
@@ -674,7 +686,7 @@ JSON шаблон — заполни ВСЕ поля реальными данн
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'analyze', ticker, prompt })
     });
-    const data = await res.json();
+    const data = await safeJson(res);
     console.log('API response:', JSON.stringify(data).slice(0, 300));
     if (data.error) throw new Error(typeof data.error === 'string' ? data.error : (data.error.message || JSON.stringify(data.error)));
 
@@ -741,7 +753,7 @@ JSON шаблон — заполни ВСЕ поля реальными данн
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'price', ticker })
       });
-      const dp = await rp.json();
+      const dp = await safeJson(rp);
       console.log('Price response:', JSON.stringify(dp));
       if (dp.price) realPrice = parseFloat(dp.price);
       if (dp.high52) realHigh52 = parseFloat(dp.high52);
@@ -1260,7 +1272,7 @@ async function runScreener(){
   document.getElementById('scrLoading').classList.add('show');
   try{
     const r=await fetch('https://star-agent-murex.vercel.app/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'screen',filters})});
-    const d=await r.json();
+    const d=await safeJson(r);
     document.getElementById('scrLoading').classList.remove('show');
     if(d.error){ scrShowError(String(d.error).includes('FMP_KEY')?'Скринер не настроен: добавь FMP_KEY в переменные окружения Vercel (бесплатный ключ — financialmodelingprep.com).':d.error); return; }
     renderScreener(d.results||[]);
@@ -1312,7 +1324,7 @@ async function pfRefresh(){
   await Promise.all(list.map(async p=>{
     try{
       const r=await fetch('https://star-agent-murex.vercel.app/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'price',ticker:p.ticker})});
-      const d=await r.json();
+      const d=await safeJson(r);
       if(d.price){ p.current=parseFloat(d.price); p.currentTs=Date.now(); }
     }catch(e){}
   }));
