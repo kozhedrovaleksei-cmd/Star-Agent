@@ -1,6 +1,7 @@
-// Vercel: дефолт 10с убивает тяжёлый analyze (Tavily + Claude 5000 токенов через crazyrouter).
-// 60 — потолок Hobby. Если нужно больше — включить Fluid Compute (до 300с) или перейти на Pro.
-export const config = { maxDuration: 60 };
+// Vercel: дефолт 10с убивает тяжёлый analyze. 180с даёт медленному crazyrouter время ответить.
+// ВАЖНО: значение >60 работает ТОЛЬКО при включённом Fluid Compute (Settings → Functions).
+// Без Fluid Compute Vercel молча обрежет до 60с.
+export const config = { maxDuration: 180 };
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -46,9 +47,10 @@ export default async function handler(req, res) {
       ? { 'content-type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' }
       : { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + crKey, 'anthropic-version': '2023-06-01' };
     const who = direct ? 'Anthropic' : 'crazyrouter';
-    // Жёсткий таймаут НИЖЕ лимита функции (60с): зависший провайдер падает чистой ошибкой, а не убивается Vercel.
+    // Жёсткий таймаут НИЖЕ лимита функции (180с): даём провайдеру до 170с ответить,
+    // зависший падает чистой ошибкой, а не убивается платформой Vercel.
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 50000);
+    const timer = setTimeout(() => ctrl.abort(), 170000);
     let r;
     try {
       r = await fetch(url, {
@@ -59,7 +61,7 @@ export default async function handler(req, res) {
       });
     } catch (e) {
       clearTimeout(timer);
-      if (e && e.name === 'AbortError') throw new Error(who + ' не ответил за 50с (перегружен/недоступен) — повтори запрос');
+      if (e && e.name === 'AbortError') throw new Error(who + ' не ответил за 170с (перегружен/недоступен) — повтори запрос');
       throw new Error(who + ' недоступен: ' + (e?.message || String(e)));
     }
     clearTimeout(timer);
