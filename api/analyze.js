@@ -1,3 +1,7 @@
+// Vercel: дефолт 10с убивает тяжёлый analyze (Tavily + Claude 5000 токенов через crazyrouter).
+// 60 — потолок Hobby. Если нужно больше — включить Fluid Compute (до 300с) или перейти на Pro.
+export const config = { maxDuration: 60 };
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -6,7 +10,8 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { action, ticker, prompt, query } = req.body;
-  const crKey = process.env.CRAZYROUTER_KEY;
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;            // прямой Anthropic (приоритет)
+  const crKey = anthropicKey || process.env.CRAZYROUTER_KEY;     // gate "есть ли LLM-ключ" — работает для обоих
   const tvKey = process.env.TAVILY_KEY;
   const fmpKey = process.env.FMP_KEY;
 
@@ -34,17 +39,35 @@ export default async function handler(req, res) {
 
   async function callClaude(messages, maxTokens) {
     maxTokens = maxTokens || 4000;
-    const r = await fetch('https://crazyrouter.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + crKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: maxTokens, messages })
-    });
-    const d = await r.json();
-    if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
+    // Провайдер: ANTHROPIC_API_KEY → прямой Anthropic (надёжно). Иначе — crazyrouter (прокси, нестабилен).
+    const direct = !!anthropicKey;
+    const url = direct ? 'https://api.anthropic.com/v1/messages' : 'https://crazyrouter.com/v1/messages';
+    const headers = direct
+      ? { 'content-type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' }
+      : { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + crKey, 'anthropic-version': '2023-06-01' };
+    const who = direct ? 'Anthropic' : 'crazyrouter';
+    // Жёсткий таймаут НИЖЕ лимита функции (60с): зависший провайдер падает чистой ошибкой, а не убивается Vercel.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 50000);
+    let r;
+    try {
+      r = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: maxTokens, messages }),
+        signal: ctrl.signal
+      });
+    } catch (e) {
+      clearTimeout(timer);
+      if (e && e.name === 'AbortError') throw new Error(who + ' не ответил за 50с (перегружен/недоступен) — повтори запрос');
+      throw new Error(who + ' недоступен: ' + (e?.message || String(e)));
+    }
+    clearTimeout(timer);
+    const raw = await r.text();
+    let d;
+    try { d = JSON.parse(raw); }
+    catch { throw new Error(who + ' вернул не-JSON (HTTP ' + r.status + '): ' + raw.slice(0, 160)); }
+    if (d.error) throw new Error((d.error.message || JSON.stringify(d.error)) + ' [' + who + ']');
     return (d.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
   }
 
@@ -319,14 +342,31 @@ export default async function handler(req, res) {
       params.set('isActivelyTrading', 'true');
       params.set('limit', String(f.limit || 30));
       params.set('apikey', fmpKey);
+
+      // FMP перевёл скринер на /stable/. v3 теперь legacy и на НОВЫХ ключах
+      // часто отвечает ошибкой "legacy only". Бьём stable, при сбое — один раз v3.
+      const STABLE = 'https://financialmodelingprep.com/stable/company-screener?';
+      const V3 = 'https://financialmodelingprep.com/api/v3/stock-screener?';
+      const tryScreen = async (base) => {
+        const r = await fetch(base + params.toString());
+        return r.json();
+      };
+
       try {
-        const r = await fetch('https://financialmodelingprep.com/api/v3/stock-screener?' + params.toString());
-        const data = await r.json();
+        let data = await tryScreen(STABLE);
         if (!Array.isArray(data)) {
-          const msg = (data && (data['Error Message'] || data.error)) || 'FMP вернул не список (проверь ключ/лимит)';
-          return res.json({ error: msg, results: [] });
+          // stable не отдал список → пробуем legacy v3
+          const v3data = await tryScreen(V3);
+          if (Array.isArray(v3data)) {
+            data = v3data;
+          } else {
+            const msg = (data && (data['Error Message'] || data.error || data.message))
+              || (v3data && (v3data['Error Message'] || v3data.error || v3data.message))
+              || 'FMP вернул не список (проверь ключ/лимит)';
+            return res.json({ error: msg, results: [] });
+          }
         }
-        const results = data.slice(0, f.limit || 30).map((x: any) => ({
+        const results = data.slice(0, f.limit || 30).map((x) => ({
           symbol: x.symbol,
           name: x.companyName || '',
           price: x.price ?? null,
@@ -340,7 +380,7 @@ export default async function handler(req, res) {
         }));
         return res.json({ results });
       } catch (e) {
-        return res.json({ error: (e as Error).message || 'Ошибка запроса к FMP', results: [] });
+        return res.json({ error: e.message || 'Ошибка запроса к FMP', results: [] });
       }
     }
 
