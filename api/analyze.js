@@ -319,12 +319,29 @@ export default async function handler(req, res) {
       params.set('isActivelyTrading', 'true');
       params.set('limit', String(f.limit || 30));
       params.set('apikey', fmpKey);
+
+      // FMP перевёл скринер на /stable/. v3 теперь legacy и на НОВЫХ ключах
+      // часто отвечает ошибкой "legacy only". Бьём stable, при сбое — один раз v3.
+      const STABLE = 'https://financialmodelingprep.com/stable/company-screener?';
+      const V3 = 'https://financialmodelingprep.com/api/v3/stock-screener?';
+      const tryScreen = async (base: string) => {
+        const r = await fetch(base + params.toString());
+        return r.json();
+      };
+
       try {
-        const r = await fetch('https://financialmodelingprep.com/api/v3/stock-screener?' + params.toString());
-        const data = await r.json();
+        let data: any = await tryScreen(STABLE);
         if (!Array.isArray(data)) {
-          const msg = (data && (data['Error Message'] || data.error)) || 'FMP вернул не список (проверь ключ/лимит)';
-          return res.json({ error: msg, results: [] });
+          // stable не отдал список → пробуем legacy v3
+          const v3data = await tryScreen(V3);
+          if (Array.isArray(v3data)) {
+            data = v3data;
+          } else {
+            const msg = (data && (data['Error Message'] || data.error || data.message))
+              || (v3data && (v3data['Error Message'] || v3data.error || v3data.message))
+              || 'FMP вернул не список (проверь ключ/лимит)';
+            return res.json({ error: msg, results: [] });
+          }
         }
         const results = data.slice(0, f.limit || 30).map((x: any) => ({
           symbol: x.symbol,
