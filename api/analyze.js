@@ -54,14 +54,14 @@ export default async function handler(req, res) {
         body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: maxTokens, messages }),
         signal: ctrl.signal
       });
-    } catch (e: any) {
+    } catch (e) {
       clearTimeout(timer);
       if (e && e.name === 'AbortError') throw new Error('crazyrouter не ответил за 50с (нестабилен/перегружен) — повтори запрос');
       throw new Error('crazyrouter недоступен: ' + (e?.message || String(e)));
     }
     clearTimeout(timer);
     const raw = await r.text();
-    let d: any;
+    let d;
     try { d = JSON.parse(raw); }
     catch { throw new Error('crazyrouter вернул не-JSON (HTTP ' + r.status + '): ' + raw.slice(0, 160)); }
     if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
@@ -344,13 +344,13 @@ export default async function handler(req, res) {
       // часто отвечает ошибкой "legacy only". Бьём stable, при сбое — один раз v3.
       const STABLE = 'https://financialmodelingprep.com/stable/company-screener?';
       const V3 = 'https://financialmodelingprep.com/api/v3/stock-screener?';
-      const tryScreen = async (base: string) => {
+      const tryScreen = async (base) => {
         const r = await fetch(base + params.toString());
         return r.json();
       };
 
       try {
-        let data: any = await tryScreen(STABLE);
+        let data = await tryScreen(STABLE);
         if (!Array.isArray(data)) {
           // stable не отдал список → пробуем legacy v3
           const v3data = await tryScreen(V3);
@@ -363,7 +363,7 @@ export default async function handler(req, res) {
             return res.json({ error: msg, results: [] });
           }
         }
-        const results = data.slice(0, f.limit || 30).map((x: any) => ({
+        const results = data.slice(0, f.limit || 30).map((x) => ({
           symbol: x.symbol,
           name: x.companyName || '',
           price: x.price ?? null,
@@ -377,7 +377,7 @@ export default async function handler(req, res) {
         }));
         return res.json({ results });
       } catch (e) {
-        return res.json({ error: (e as Error).message || 'Ошибка запроса к FMP', results: [] });
+        return res.json({ error: e.message || 'Ошибка запроса к FMP', results: [] });
       }
     }
 
