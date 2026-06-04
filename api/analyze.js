@@ -3,6 +3,134 @@
 // Без Fluid Compute Vercel молча обрежет до 60с.
 export const config = { maxDuration: 180 };
 
+// ====== LEVEL SCANNER (action 'levelscan') — STARK, 1H S/R ======
+// Детерминированный, без Claude. Данные — Yahoo 1H (бесплатно). Ищет ЧИСТЫЕ
+// ГОРИЗОНТАЛЬНЫЕ уровни (S/R по Герчику) и ранжирует по чистоте. Диагонали не видит.
+// КРУТИ ПОД СЕБЯ:
+const LS_INTERVAL    = '60m';   // 1H бары
+const LS_RANGE       = '3mo';   // глубина истории касаний
+const LS_PIVOT_K     = 3;       // пивот = экстремум сильнее соседей ±K баров
+const LS_CLUSTER_TOL = 0.004;   // 0.4% — ширина кластера касаний ("цент в цент": уже = чище)
+const LS_MIN_TOUCHES = 3;       // минимум касаний для валидного уровня
+const LS_PROXIMITY   = 0.03;    // "торгуемый сейчас", если цена в пределах 3% от уровня
+const LS_TOP_N       = 10;      // сколько тикеров на выход
+const LS_CONCURRENCY = 6;       // параллельных запросов к Yahoo (чтобы не словить 429)
+
+// Дефолтный универс. Передай {"symbols":[...]} в теле — будет использован твой список.
+const LEVELSCAN_UNIVERSE = [
+  'NVDA','TSLA','AMD','AAPL','MSFT','META','AMZN','GOOGL','NFLX','AVGO',
+  'PLTR','SMCI','COIN','MSTR','MARA','RIOT','SOFI','HOOD','RIVN','LCID',
+  'INTC','MU','QCOM','BABA','NIO','F','BAC','DIS','UBER','SHOP',
+  'CRWD','SNOW','DDOG','NET','RBLX','PYPL','SQ','ARM','DELL','ORCL'
+];
+
+async function lsMapLimit(arr, limit, fn) {
+  const out = []; let i = 0;
+  const workers = Array.from({ length: Math.min(limit, arr.length) }, async () => {
+    while (i < arr.length) { const idx = i++; out[idx] = await fn(arr[idx]); }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
+async function lsFetchBars(symbol) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${LS_INTERVAL}&range=${LS_RANGE}`;
+  const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+  if (!r.ok) return null;
+  const j = await r.json();
+  const res = j?.chart?.result?.[0];
+  const q = res?.indicators?.quote?.[0];
+  const ts = res?.timestamp;
+  if (!q || !ts) return null;
+  const bars = [];
+  for (let i = 0; i < ts.length; i++) {
+    const h = q.high?.[i], l = q.low?.[i], c = q.close?.[i];
+    if (h == null || l == null || c == null) continue;
+    bars.push({ t: ts[i] * 1000, h, l, c });
+  }
+  return bars.length ? bars : null;
+}
+
+function lsPivots(bars) {
+  const out = [];
+  for (let i = LS_PIVOT_K; i < bars.length - LS_PIVOT_K; i++) {
+    let isHigh = true, isLow = true;
+    for (let j = i - LS_PIVOT_K; j <= i + LS_PIVOT_K; j++) {
+      if (j === i) continue;
+      if (bars[j].h >= bars[i].h) isHigh = false;
+      if (bars[j].l <= bars[i].l) isLow = false;
+    }
+    if (isHigh) out.push({ price: bars[i].h, t: bars[i].t });
+    if (isLow)  out.push({ price: bars[i].l, t: bars[i].t });
+  }
+  return out;
+}
+
+function lsClusterLevels(pvs, now) {
+  if (!pvs.length) return [];
+  const sorted = [...pvs].sort((a, b) => a.price - b.price);
+  const clusters = [];
+  let cur = [sorted[0]];
+  for (let i = 1; i < sorted.length; i++) {
+    const base = cur[0].price;
+    if ((sorted[i].price - base) / base <= LS_CLUSTER_TOL) cur.push(sorted[i]);
+    else { clusters.push(cur); cur = [sorted[i]]; }
+  }
+  clusters.push(cur);
+  return clusters.map(c => {
+    const prices = c.map(x => x.price);
+    const center = prices.reduce((a, b) => a + b, 0) / prices.length;
+    const width  = (Math.max(...prices) - Math.min(...prices)) / center;
+    const lastT  = Math.max(...c.map(x => x.t));
+    const ageDays = (now - lastT) / 86400000;
+    return { center, touches: c.length, width, ageDays };
+  }).filter(l => l.touches >= LS_MIN_TOUCHES);
+}
+
+function lsScoreLevel(l) {
+  const touchScore = Math.min(l.touches, 8) / 8;
+  const tightScore = Math.max(0, 1 - l.width / LS_CLUSTER_TOL);
+  const freshScore = Math.max(0, 1 - l.ageDays / 60);
+  return 0.45 * touchScore + 0.35 * tightScore + 0.20 * freshScore;
+}
+
+async function lsScanSymbol(symbol) {
+  try {
+    const bars = await lsFetchBars(symbol);
+    if (!bars || bars.length < 50) return null;
+    const price = bars[bars.length - 1].c;
+    const now   = bars[bars.length - 1].t;
+    const levels = lsClusterLevels(lsPivots(bars), now);
+    if (!levels.length) return null;
+
+    const below = levels.filter(l => l.center < price).map(l => ({ ...l, dist: (price - l.center) / price }));
+    const above = levels.filter(l => l.center > price).map(l => ({ ...l, dist: (l.center - price) / price }));
+    const pickNearest = (arr) => arr.filter(l => l.dist <= LS_PROXIMITY).sort((a, b) => lsScoreLevel(b) - lsScoreLevel(a))[0] || null;
+
+    const support = pickNearest(below);
+    const resistance = pickNearest(above);
+    if (!support && !resistance) return null;
+
+    const best = [support, resistance].filter(Boolean).sort((a, b) => lsScoreLevel(b) - lsScoreLevel(a))[0];
+    const fmt = (l) => l ? {
+      level: +l.center.toFixed(2),
+      distPct: +(l.dist * 100).toFixed(2),
+      touches: l.touches,
+      widthPct: +(l.width * 100).toFixed(2),
+      ageDays: Math.round(l.ageDays),
+      quality: +lsScoreLevel(l).toFixed(2),
+    } : null;
+
+    return { symbol, price: +price.toFixed(2), support: fmt(support), resistance: fmt(resistance), rank: +lsScoreLevel(best).toFixed(3) };
+  } catch (e) { return null; }
+}
+
+async function levelScan(symbols) {
+  const uniq = [...new Set((symbols || []).map(s => String(s).toUpperCase().trim()).filter(Boolean))];
+  const results = await lsMapLimit(uniq, LS_CONCURRENCY, lsScanSymbol);
+  return results.filter(Boolean).sort((a, b) => b.rank - a.rank).slice(0, LS_TOP_N);
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -10,7 +138,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { action, ticker, prompt, query } = req.body;
+  const { action, ticker, prompt, query, symbols } = req.body;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;            // прямой Anthropic (приоритет)
   const crKey = anthropicKey || process.env.CRAZYROUTER_KEY;     // gate "есть ли LLM-ключ" — работает для обоих
   const tvKey = process.env.TAVILY_KEY;
@@ -195,6 +323,14 @@ export default async function handler(req, res) {
       } catch (e) {
         return res.json({ ticker: raw.toUpperCase(), name: '' });
       }
+    }
+
+    // СКАНЕР УРОВНЕЙ S/R на 1H (детерминированный, без Claude)
+    // Тело: {"action":"levelscan"}  ИЛИ  {"action":"levelscan","symbols":["NVDA","AMD",...]}
+    if (action === 'levelscan') {
+      const universe = (Array.isArray(symbols) && symbols.length) ? symbols : LEVELSCAN_UNIVERSE;
+      const results = await levelScan(universe);
+      return res.json({ action: 'levelscan', count: results.length, results });
     }
 
     if (action === 'analyze') {
