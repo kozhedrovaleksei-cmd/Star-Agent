@@ -3,18 +3,26 @@
 // Без Fluid Compute Vercel молча обрежет до 60с.
 export const config = { maxDuration: 180 };
 
-// ====== LEVEL SCANNER (action 'levelscan') — STARK, 1H S/R ======
-// Детерминированный, без Claude. Данные — Yahoo 1H (бесплатно). Ищет ЧИСТЫЕ
+// ====== LEVEL SCANNER (action 'levelscan') — STARK, выбираемый таймфрейм S/R ======
+// Детерминированный, без Claude. Данные — Yahoo (бесплатно). Ищет ЧИСТЫЕ
 // ГОРИЗОНТАЛЬНЫЕ уровни (S/R по Герчику) и ранжирует по чистоте. Диагонали не видит.
 // КРУТИ ПОД СЕБЯ:
-const LS_INTERVAL    = '60m';   // 1H бары
-const LS_RANGE       = '3mo';   // глубина истории касаний
 const LS_PIVOT_K     = 3;       // пивот = экстремум сильнее соседей ±K баров
 const LS_CLUSTER_TOL = 0.004;   // 0.4% — ширина кластера касаний ("цент в цент": уже = чище)
 const LS_MIN_TOUCHES = 3;       // минимум касаний для валидного уровня
 const LS_PROXIMITY   = 0.03;    // "торгуемый сейчас", если цена в пределах 3% от уровня
 const LS_TOP_N       = 10;      // сколько тикеров на выход
 const LS_CONCURRENCY = 6;       // параллельных запросов к Yahoo (чтобы не словить 429)
+const LS_MIN_BARS    = 50;      // меньше — данных не хватает, тикер пропускаем
+
+// Карта таймфреймов: ключ из фронта → параметры Yahoo + ресемпл + человекочитаемая метка.
+// Yahoo НЕ отдаёт 4h напрямую → тянем 60m и склеиваем по 4 бара (resample:4).
+const LS_TF = {
+  '15m': { yfInterval: '15m', yfRange: '1mo', resample: 1, label: '15 минут' },
+  '1h':  { yfInterval: '60m', yfRange: '3mo', resample: 1, label: '1 час'    },
+  '4h':  { yfInterval: '60m', yfRange: '6mo', resample: 4, label: '4 часа'   },
+  '1d':  { yfInterval: '1d',  yfRange: '2y',  resample: 1, label: '1 день'   },
+};
 
 // Дефолтный универс. Передай {"symbols":[...]} в теле — будет использован твой список.
 const LEVELSCAN_UNIVERSE = [
@@ -33,8 +41,8 @@ async function lsMapLimit(arr, limit, fn) {
   return out;
 }
 
-async function lsFetchBars(symbol) {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${LS_INTERVAL}&range=${LS_RANGE}`;
+async function lsFetchBars(symbol, yfInterval, yfRange) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${yfInterval}&range=${yfRange}`;
   const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
   if (!r.ok) return null;
   const j = await r.json();
@@ -49,6 +57,24 @@ async function lsFetchBars(symbol) {
     bars.push({ t: ts[i] * 1000, h, l, c });
   }
   return bars.length ? bars : null;
+}
+
+// Склейка N последовательных баров в один (для 4h из 60m).
+// Для поиска кластеров S/R привязка к открытию сессии некритична — берём подряд.
+function lsResample(bars, factor) {
+  if (!factor || factor <= 1) return bars;
+  const out = [];
+  for (let i = 0; i < bars.length; i += factor) {
+    const chunk = bars.slice(i, i + factor);
+    if (!chunk.length) continue;
+    out.push({
+      t: chunk[chunk.length - 1].t,
+      h: Math.max(...chunk.map(b => b.h)),
+      l: Math.min(...chunk.map(b => b.l)),
+      c: chunk[chunk.length - 1].c,
+    });
+  }
+  return out;
 }
 
 function lsPivots(bars) {
@@ -94,10 +120,12 @@ function lsScoreLevel(l) {
   return 0.45 * touchScore + 0.35 * tightScore + 0.20 * freshScore;
 }
 
-async function lsScanSymbol(symbol) {
+async function lsScanSymbol(symbol, tf) {
   try {
-    const bars = await lsFetchBars(symbol);
-    if (!bars || bars.length < 50) return null;
+    let bars = await lsFetchBars(symbol, tf.yfInterval, tf.yfRange);
+    if (!bars) return null;
+    if (tf.resample > 1) bars = lsResample(bars, tf.resample);
+    if (!bars || bars.length < LS_MIN_BARS) return null;
     const price = bars[bars.length - 1].c;
     const now   = bars[bars.length - 1].t;
     const levels = lsClusterLevels(lsPivots(bars), now);
@@ -125,10 +153,13 @@ async function lsScanSymbol(symbol) {
   } catch (e) { return null; }
 }
 
-async function levelScan(symbols) {
+async function levelScan(symbols, intervalKey) {
+  const key = LS_TF[intervalKey] ? intervalKey : '1h';
+  const tf = LS_TF[key];
   const uniq = [...new Set((symbols || []).map(s => String(s).toUpperCase().trim()).filter(Boolean))];
-  const results = await lsMapLimit(uniq, LS_CONCURRENCY, lsScanSymbol);
-  return results.filter(Boolean).sort((a, b) => b.rank - a.rank).slice(0, LS_TOP_N);
+  const scanned = await lsMapLimit(uniq, LS_CONCURRENCY, (s) => lsScanSymbol(s, tf));
+  const results = scanned.filter(Boolean).sort((a, b) => b.rank - a.rank).slice(0, LS_TOP_N);
+  return { interval: key, timeframe: tf.label, results };
 }
 
 export default async function handler(req, res) {
@@ -325,12 +356,20 @@ export default async function handler(req, res) {
       }
     }
 
-    // СКАНЕР УРОВНЕЙ S/R на 1H (детерминированный, без Claude)
-    // Тело: {"action":"levelscan"}  ИЛИ  {"action":"levelscan","symbols":["NVDA","AMD",...]}
+    // СКАНЕР УРОВНЕЙ S/R с выбираемым таймфреймом (детерминированный, без Claude)
+    // Тело: {"action":"levelscan"} ИЛИ {"action":"levelscan","interval":"4h","symbols":["NVDA",...]}
+    // interval: '15m' | '1h' (дефолт) | '4h' | '1d'. Неизвестный → '1h'.
     if (action === 'levelscan') {
       const universe = (Array.isArray(symbols) && symbols.length) ? symbols : LEVELSCAN_UNIVERSE;
-      const results = await levelScan(universe);
-      return res.json({ action: 'levelscan', count: results.length, results });
+      const intervalKey = req.body.interval || '1h';
+      const scan = await levelScan(universe, intervalKey);
+      return res.json({
+        action: 'levelscan',
+        interval: scan.interval,     // фактический ключ ('15m'/'1h'/'4h'/'1d')
+        timeframe: scan.timeframe,   // человекочитаемая метка ('4 часа')
+        count: scan.results.length,
+        results: scan.results
+      });
     }
 
     if (action === 'analyze') {
