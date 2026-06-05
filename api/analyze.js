@@ -162,6 +162,19 @@ async function levelScan(symbols, intervalKey) {
   return { interval: key, timeframe: tf.label, results };
 }
 
+// Лайв-котировка прокси-индикатора (WTI=CL=F, медь=HG=F, 10Y=^TNX, ETF и т.п.) для блока СВЯЗИ.
+// Последний дневной клоуз + изменение к предыдущему дню. null, если Yahoo не отдал.
+async function leadQuote(symbol) {
+  try {
+    const bars = await lsFetchBars(symbol, '1d', '1mo');
+    if (!bars || !bars.length) return null;
+    const last = bars[bars.length - 1].c;
+    const prev = bars.length > 1 ? bars[bars.length - 2].c : last;
+    const changePct = prev ? ((last - prev) / prev) * 100 : 0;
+    return { price: +last.toFixed(4), changePct: +changePct.toFixed(2) };
+  } catch (e) { return null; }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -369,6 +382,68 @@ export default async function handler(req, res) {
         timeframe: scan.timeframe,   // человекочитаемая метка ('4 часа')
         count: scan.results.length,
         results: scan.results
+      });
+    }
+
+    // КАРТА СВЯЗЕЙ: с чем коррелирует тикер + опережающие индикаторы (за чем следить).
+    // Claude даёт каждому корреляту/индикатору Yahoo-прокси (WTI=CL=F и т.п.),
+    // бэк дотягивает по нему лайв-котировку — чтобы значение было видно сразу.
+    // Тело: {"action":"leading","ticker":"PBR"}
+    if (action === 'leading') {
+      if (!crKey) return res.status(500).json({ error: 'No API key' });
+      const tk = (ticker || '').toUpperCase();
+      if (!tk) return res.json({ ticker: '', correlations: [], leading: [] });
+
+      const ctx = await tavilySearch(tk + ' what drives stock price correlations leading indicators commodity supply chain demand 2026');
+
+      const ldPrompt =
+        'Ты — STARK AI. Для инструмента ' + tk + ' определи две вещи:\n' +
+        '1) С ЧЕМ КОРРЕЛИРУЕТ (сырьё/макро/сектор/валюта) — прямо или обратно.\n' +
+        '2) ОПЕРЕЖАЮЩИЕ ИНДИКАТОРЫ — за чем следить, чтобы ПРЕДВИДЕТЬ движение ' + tk + ' (входное сырьё, поставщики, цены, спрос, регуляторика). Эталон: нефтяные компании → WTI/Brent; алюминий → LME aluminum; дата-центры → цена электричества; чипмейкеры → SOX.\n\n' +
+        'Для КАЖДОГО коррелята и индикатора дай Yahoo Finance тикер-ПРОКСИ, если торгуемый ориентир существует:\n' +
+        '- WTI=CL=F, Brent=BZ=F, золото=GC=F, серебро=SI=F, медь=HG=F, природный газ=NG=F, палладий=PA=F, платина=PL=F\n' +
+        '- индекс доллара=DX-Y.NYB, 10Y трежерис=^TNX, S&P500=^GSPC, VIX=^VIX, энергетика ETF=XLE, уран ETF=URA, золотодобыча=GDX, полупроводники=SOXX, биотех=XBI\n' +
+        '- отдельные акции/ETF — их обычный тикер; крипта — например BTC-USD, ETH-USD\n' +
+        '- если торгуемого прокси НЕТ (напр. "загрузка фабрик") — symbol="".\n\n' +
+        'Верни СТРОГО валидный JSON, без markdown и текста вокруг:\n' +
+        '{"ticker":"' + tk + '","name":"полное название","summary":"одно предложение: что это и от чего ходит цена",' +
+        '"correlations":[{"name":"WTI нефть","symbol":"CL=F","direction":"прямая","note":"механизм одной строкой"}],' +
+        '"leading":[{"name":"WTI Crude","symbol":"CL=F","direction":"прямая","mechanism":"как влияет на цену ' + tk + '","lag":"лаг, напр 0-1 нед или 1-2 квартала"}]}\n' +
+        'Дай 2-4 коррелята и 3-5 опережающих индикаторов. Числа и факты бери ТОЛЬКО из контекста ниже, не выдумывай.\n\n' +
+        '=== КОНТЕКСТ ИЗ ВЕБ-ПОИСКА (2026) ===\n' + (ctx || 'нет данных');
+
+      let obj;
+      try {
+        const r = await callClaude([{ role: 'user', content: ldPrompt }], 1500);
+        const clean = (r || '').replace(/```json|```/g, '').trim();
+        const m = clean.match(/\{[\s\S]*\}/);
+        obj = m ? JSON.parse(m[0]) : null;
+      } catch (e) {
+        return res.status(500).json({ error: 'Не удалось разобрать ответ модели — повтори' });
+      }
+      if (!obj) return res.status(500).json({ error: 'Пустой ответ модели — повтори' });
+
+      const corr = Array.isArray(obj.correlations) ? obj.correlations : [];
+      const lead = Array.isArray(obj.leading) ? obj.leading : [];
+      const syms = [...new Set([...corr, ...lead].map(x => String(x.symbol || '').trim()).filter(Boolean))];
+      const quotes = {};
+      await lsMapLimit(syms, LS_CONCURRENCY, async (sym) => { const q = await leadQuote(sym); if (q) quotes[sym] = q; });
+      const attach = (x) => {
+        const sym = String(x.symbol || '').trim();
+        const q = quotes[sym];
+        return {
+          name: x.name || '', symbol: sym,
+          direction: x.direction || '', note: x.note || '', mechanism: x.mechanism || '', lag: x.lag || '',
+          price: q ? q.price : null, changePct: q ? q.changePct : null
+        };
+      };
+
+      return res.json({
+        ticker: obj.ticker || tk,
+        name: obj.name || '',
+        summary: obj.summary || '',
+        correlations: corr.map(attach),
+        leading: lead.map(attach)
       });
     }
 
