@@ -1447,6 +1447,7 @@ async function runLevels(){
 function renderLevels(rows, count, backendTf, requested){
   const el=document.getElementById('lvResult');
   const reqLabel = LV_TF[requested] || requested || '1ч';
+  const tfLabel = backendTf || reqLabel;
   const tfHeader = backendTf
     ? 'Таймфрейм: <b>'+backendTf+'</b> <span style="color:var(--dim)">(с бэкенда)</span>'
     : 'Таймфрейм: <b>'+reqLabel+'</b> — <span style="color:var(--orange)">запрошен; пока бэк не пропатчен на interval, он считает на своём дефолте (1ч)</span>';
@@ -1466,7 +1467,14 @@ function renderLevels(rows, count, backendTf, requested){
       const price = pn!=null ? cur+pn.toFixed(2) : '—';
       const tvSym = moex ? 'MOEX:'+sym : sym;
       const tvUrl='https://www.tradingview.com/chart/?symbol='+encodeURIComponent(tvSym)+'&interval='+tvI;
-      return '<tr><td><div class="sym">'+sym+'</div></td><td class="dt-num">'+price+'</td><td>'+lvCell('sup',x.support,cur)+'</td><td>'+lvCell('res',x.resistance,cur)+'</td><td><a class="mini-btn" href="'+tvUrl+'" target="_blank" rel="noopener" style="text-decoration:none">График ↗</a></td></tr>';
+      const sup = (x.support && x.support.level!=null) ? lvNum(x.support.level) : null;
+      const res = (x.resistance && x.resistance.level!=null) ? lvNum(x.resistance.level) : null;
+      const cparts=[];
+      if(sup!=null) cparts.push('поддержка '+cur+sup.toFixed(2));
+      if(res!=null) cparts.push('сопротивление '+cur+res.toFixed(2));
+      const comment = cparts.length ? (cparts.join(', ')+' · фрейм '+tfLabel) : '';
+      const commentHtml = comment ? '<div style="font-size:12px;color:var(--dim);font-weight:400;margin-top:4px;max-width:260px;line-height:1.4">'+comment+'</div>' : '';
+      return '<tr><td><div class="sym">'+sym+'</div>'+commentHtml+'</td><td class="dt-num">'+price+'</td><td>'+lvCell('sup',x.support,cur)+'</td><td>'+lvCell('res',x.resistance,cur)+'</td><td><a class="mini-btn" href="'+tvUrl+'" target="_blank" rel="noopener" style="text-decoration:none">График ↗</a></td></tr>';
     }).join('')+
     '</tbody></table></div><div class="sz-note" style="margin-top:10px">Узкие уровни (ширина &lt; 0.3%) помечены «цент-в-цент» — чистейший кластер. Сортировка по чистоте ближайшего уровня. «График ↗» открывает тикер в TradingView в этом же фрейме. Источник: Yahoo. Сканер структуры, не рекомендация.</div>';
 }
