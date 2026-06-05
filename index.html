@@ -385,6 +385,7 @@ table.dt .nm { color: var(--dim); font-size: 12px; }
     <button id="tabbtn-portfolio" class="tab-btn" onclick="switchTab('portfolio')">💼 Портфель</button>
     <button id="tabbtn-sizing" class="tab-btn" onclick="switchTab('sizing')">📐 Сайзинг</button>
     <button id="tabbtn-levels" class="tab-btn" onclick="switchTab('levels')">🎯 Уровни</button>
+    <button id="tabbtn-leading" class="tab-btn" onclick="switchTab('leading')">🧭 Связи</button>
   </nav>
 
   <div id="tab-analyze" class="tab-panel active">
@@ -536,6 +537,21 @@ table.dt .nm { color: var(--dim); font-size: 12px; }
     <div id="lvError" class="error-box"></div>
     <div id="lvLoading" class="loading"><div class="load-title">🎯 STARK СКАНИРУЕТ УРОВНИ...</div></div>
     <div id="lvResult"></div>
+  </div>
+
+  <div id="tab-leading" class="tab-panel">
+    <div class="input-card">
+      <div class="cmp-inputs">
+        <div class="ticker-wrap" style="flex:1">
+          <div class="input-label">Тикер / компания</div>
+          <input type="text" id="ldInput" class="ticker-input" placeholder="PBR · LKOH · Лукойл">
+        </div>
+        <button class="analyze-btn" style="flex:0 0 210px" onclick="runLeading()">🧭 ПОКАЗАТЬ СВЯЗИ</button>
+      </div>
+    </div>
+    <div id="ldError" class="error-box"></div>
+    <div id="ldLoading" class="loading"><div class="load-title">🧭 STARK ИЩЕТ ОПЕРЕЖАЮЩИЕ ИНДИКАТОРЫ...</div></div>
+    <div id="ldResult"></div>
   </div>
 </div>
 
@@ -1453,6 +1469,83 @@ function renderLevels(rows, count, backendTf, requested){
       return '<tr><td><div class="sym">'+sym+'</div></td><td class="dt-num">'+price+'</td><td>'+lvCell('sup',x.support,cur)+'</td><td>'+lvCell('res',x.resistance,cur)+'</td><td><a class="mini-btn" href="'+tvUrl+'" target="_blank" rel="noopener" style="text-decoration:none">График ↗</a></td></tr>';
     }).join('')+
     '</tbody></table></div><div class="sz-note" style="margin-top:10px">Узкие уровни (ширина &lt; 0.3%) помечены «цент-в-цент» — чистейший кластер. Сортировка по чистоте ближайшего уровня. «График ↗» открывает тикер в TradingView в этом же фрейме. Источник: Yahoo. Сканер структуры, не рекомендация.</div>';
+}
+
+// ═══════════════ СВЯЗИ: КОРРЕЛЯЦИИ + ОПЕРЕЖАЮЩИЕ ИНДИКАТОРЫ ═══════════════
+function ldShowError(m){ const el=document.getElementById('ldError'); el.textContent='⚠ '+m; el.classList.add('show'); }
+function ldHideError(){ document.getElementById('ldError').classList.remove('show'); }
+function ldYahoo(sym){ return sym ? 'https://finance.yahoo.com/quote/'+encodeURIComponent(sym) : ''; }
+function ldDir(d){
+  const s=(d||'').toLowerCase();
+  if(s.includes('обр')||s.includes('inv')||s.includes('neg')) return '<span style="color:var(--red);font-weight:600">обратная</span>';
+  if(s.includes('прям')||s.includes('dir')||s.includes('pos')) return '<span style="color:var(--green);font-weight:600">прямая</span>';
+  return d?'<span style="color:var(--dim)">'+d+'</span>':'';
+}
+function ldPriceBadge(x){
+  if(x.price==null) return '<span style="font-size:12px;color:var(--dim2)">нет котировки</span>';
+  const c = x.changePct>0?'var(--green)':(x.changePct<0?'var(--red)':'var(--dim)');
+  const sign = x.changePct>0?'+':'';
+  const chg = x.changePct!=null?(' <span style="color:'+c+';font-weight:600">'+sign+x.changePct.toFixed(2)+'%</span>'):'';
+  return '<span style="font-weight:700">'+x.price+'</span>'+chg;
+}
+async function runLeading(){
+  ldHideError();
+  const raw=document.getElementById('ldInput').value.trim();
+  const crKey=localStorage.getItem('crazyrouter_key');
+  if(!raw){ ldShowError('Введи тикер или название'); return; }
+  if(!crKey){ ldShowError('Сохрани Crazyrouter API ключ (вкладка Анализ)'); return; }
+  document.getElementById('ldResult').innerHTML='';
+  document.getElementById('ldLoading').classList.add('show');
+  try{
+    let ticker=raw.toUpperCase();
+    try{
+      const rr=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'resolve',ticker:raw})});
+      const rd=await safeJson(rr); if(rd&&rd.ticker) ticker=rd.ticker;
+    }catch(e){}
+    const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'leading',ticker})});
+    const d=await safeJson(r);
+    document.getElementById('ldLoading').classList.remove('show');
+    if(d.error){ ldShowError(typeof d.error==='string'?d.error:(d.error.message||JSON.stringify(d.error))); return; }
+    document.getElementById('ldInput').value=d.ticker||ticker;
+    renderLeading(d);
+  }catch(e){
+    document.getElementById('ldLoading').classList.remove('show');
+    ldShowError(e.message||'Ошибка');
+  }
+}
+function renderLeading(d){
+  const el=document.getElementById('ldResult');
+  const corr=Array.isArray(d.correlations)?d.correlations:[];
+  const lead=Array.isArray(d.leading)?d.leading:[];
+  const corrChips=corr.map(c=>{
+    const label=(c.name||'')+(c.symbol?' ('+c.symbol+')':'');
+    const inner=c.symbol?'<a href="'+ldYahoo(c.symbol)+'" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">'+label+' ↗</a>':label;
+    const px=c.price!=null?' · '+c.price:'';
+    return '<span class="corr-node" title="'+(c.note||'').replace(/"/g,'')+'">'+inner+' · '+ldDir(c.direction)+px+'</span>';
+  }).join('');
+  const leadCards=lead.map((x,i)=>(
+    '<div class="indicator-item">'+
+      '<div class="indicator-num">'+(i+1)+'</div>'+
+      '<div class="indicator-body">'+
+        '<div class="indicator-name" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">'+
+          '<span>'+(x.name||'')+(x.symbol?' <span style="color:var(--dim);font-weight:500">('+x.symbol+')</span>':'')+'</span>'+
+          '<span>'+ldPriceBadge(x)+'</span>'+
+        '</div>'+
+        '<div class="indicator-desc">'+(x.mechanism||'')+'</div>'+
+        '<div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
+          (x.lag?'<span class="indicator-lag">ЛАГ: '+x.lag+'</span>':'')+
+          ldDir(x.direction)+
+          (x.symbol?'<a class="mini-btn" href="'+ldYahoo(x.symbol)+'" target="_blank" rel="noopener" style="text-decoration:none">котировка ↗</a>':'')+
+        '</div>'+
+      '</div>'+
+    '</div>'
+  )).join('');
+  el.innerHTML=
+    '<div class="stock-hdr-card"><div><div class="stock-name" style="font-size:38px">'+(d.ticker||'')+'</div><div class="stock-full">'+(d.name||'')+'</div></div></div>'+
+    (d.summary?'<div class="section-card"><div class="corr-text" style="margin:0">'+d.summary+'</div></div>':'')+
+    '<div class="section-card"><div class="section-title">🔗 С чем коррелирует</div><div class="corr-chain">'+(corrChips||'<span style="color:var(--dim);font-size:12px">Нет данных</span>')+'</div></div>'+
+    '<div class="anticipation-section"><div class="anticipation-title">📡 ОПЕРЕЖАЮЩИЕ ИНДИКАТОРЫ — ЗА ЧЕМ СЛЕДИТЬ</div>'+(leadCards?'<div class="indicator-list">'+leadCards+'</div>':'<div class="anticipation-text">Нет данных</div>')+'</div>'+
+    '<div class="sz-note" style="margin-top:10px">Цены индикаторов — последний дневной клоуз с Yahoo (могут отставать). Прокси-тикер в скобках, «↗» открывает котировку. Карта связей, не рекомендация.</div>';
 }
 
 </script>
