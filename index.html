@@ -521,6 +521,15 @@ table.dt .nm { color: var(--dim); font-size: 12px; }
           <label>Тикеры через запятую (пусто — дефолтный универс)</label>
           <input type="text" id="lvSymbols" placeholder="NVDA, AMD, COIN, PLTR">
         </div>
+        <div class="scr-f" style="flex:0 0 150px">
+          <label>Таймфрейм</label>
+          <select id="lvInterval">
+            <option value="15m">15 минут</option>
+            <option value="1h" selected>1 час</option>
+            <option value="4h">4 часа</option>
+            <option value="1d">1 день</option>
+          </select>
+        </div>
         <button class="analyze-btn" style="flex:0 0 180px;align-self:flex-end" onclick="runLevels()">🎯 СКАНИРОВАТЬ</button>
       </div>
     </div>
@@ -1398,10 +1407,13 @@ function lvCell(side, lvl, cur){
   return '<div style="font-weight:700;font-size:15px;color:'+color+'">'+cur+lv.toFixed(2)+badge+'</div>'+
          '<div style="font-size:11px;color:var(--dim);margin-top:3px">'+distS+' · '+touches+' кас. · ширина '+widthS+'</div>';
 }
+const LV_TF = { '15m':'15 минут', '1h':'1 час', '4h':'4 часа', '1d':'1 день' };
+function lvTvInterval(i){ return ({'15m':'15','1h':'60','4h':'240','1d':'D'})[i] || '60'; }
 async function runLevels(){
   lvHideError();
   const raw=document.getElementById('lvSymbols').value.trim();
-  const body={action:'levelscan'};
+  const interval=document.getElementById('lvInterval').value||'1h';
+  const body={action:'levelscan', interval:interval};
   if(raw){ const syms=raw.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean); if(syms.length) body.symbols=syms; }
   document.getElementById('lvResult').innerHTML='';
   document.getElementById('lvLoading').classList.add('show');
@@ -1410,27 +1422,37 @@ async function runLevels(){
     const d=await safeJson(r);
     document.getElementById('lvLoading').classList.remove('show');
     if(d.error){ lvShowError(typeof d.error==='string'?d.error:(d.error.message||JSON.stringify(d.error))); return; }
-    renderLevels(d.results||[], d.count);
+    renderLevels(d.results||[], d.count, d.timeframe||d.interval||'', interval);
   }catch(e){
     document.getElementById('lvLoading').classList.remove('show');
     lvShowError(e.message||'Ошибка сканера уровней');
   }
 }
-function renderLevels(rows, count){
+function renderLevels(rows, count, backendTf, requested){
   const el=document.getElementById('lvResult');
+  const reqLabel = LV_TF[requested] || requested || '1ч';
+  const tfHeader = backendTf
+    ? 'Таймфрейм: <b>'+backendTf+'</b> <span style="color:var(--dim)">(с бэкенда)</span>'
+    : 'Таймфрейм: <b>'+reqLabel+'</b> — <span style="color:var(--orange)">запрошен; пока бэк не пропатчен на interval, он считает на своём дефолте (1ч)</span>';
   if(!rows || !rows.length){
-    el.innerHTML='<div class="wl-empty">Пусто (count: '+(count==null?0:count)+').<br>Скорее всего Yahoo придушил интрадей-запросы с серверов Vercel (429 / блок датацентра).<br>Погоняй пореже или дай знать — добавим повтор с задержкой.</div>';
+    el.innerHTML='<div class="sz-note" style="margin:0 0 12px;font-size:13px">'+tfHeader+'</div>'+
+      '<div class="wl-empty">Пусто (count: '+(count==null?0:count)+').<br>Скорее всего Yahoo придушил интрадей-запросы с серверов Vercel (429 / блок датацентра).<br>Погоняй пореже или дай знать — добавим повтор с задержкой.</div>';
     return;
   }
-  el.innerHTML='<div class="tbl-wrap"><table class="dt"><thead><tr><th>Тикер</th><th class="dt-num">Цена</th><th>Поддержка</th><th>Сопротивление</th></tr></thead><tbody>'+
+  const tvI=lvTvInterval(requested);
+  el.innerHTML='<div class="sz-note" style="margin:0 0 12px;font-size:13px">'+tfHeader+'</div>'+
+    '<div class="tbl-wrap"><table class="dt"><thead><tr><th>Тикер</th><th class="dt-num">Цена</th><th>Поддержка</th><th>Сопротивление</th><th></th></tr></thead><tbody>'+
     rows.map(x=>{
       const sym=(x.symbol||x.ticker||'').toUpperCase();
-      const cur=isMoexTicker(sym)?'₽':'$';
+      const moex=isMoexTicker(sym);
+      const cur=moex?'₽':'$';
       const pn=lvNum(x.price);
       const price = pn!=null ? cur+pn.toFixed(2) : '—';
-      return '<tr><td><div class="sym">'+sym+'</div></td><td class="dt-num">'+price+'</td><td>'+lvCell('sup',x.support,cur)+'</td><td>'+lvCell('res',x.resistance,cur)+'</td></tr>';
+      const tvSym = moex ? 'MOEX:'+sym : sym;
+      const tvUrl='https://www.tradingview.com/chart/?symbol='+encodeURIComponent(tvSym)+'&interval='+tvI;
+      return '<tr><td><div class="sym">'+sym+'</div></td><td class="dt-num">'+price+'</td><td>'+lvCell('sup',x.support,cur)+'</td><td>'+lvCell('res',x.resistance,cur)+'</td><td><a class="mini-btn" href="'+tvUrl+'" target="_blank" rel="noopener" style="text-decoration:none">График ↗</a></td></tr>';
     }).join('')+
-    '</tbody></table></div><div class="sz-note" style="margin-top:10px">Узкие уровни (ширина &lt; 0.3%) помечены «цент-в-цент» — чистейший кластер. Сортировка по чистоте ближайшего уровня. Источник: Yahoo, 1H. Сканер структуры, не рекомендация.</div>';
+    '</tbody></table></div><div class="sz-note" style="margin-top:10px">Узкие уровни (ширина &lt; 0.3%) помечены «цент-в-цент» — чистейший кластер. Сортировка по чистоте ближайшего уровня. «График ↗» открывает тикер в TradingView в этом же фрейме. Источник: Yahoo. Сканер структуры, не рекомендация.</div>';
 }
 
 </script>
