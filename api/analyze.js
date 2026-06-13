@@ -4,19 +4,14 @@
 export const config = { maxDuration: 180 };
 
 // ====== LEVEL SCANNER (action 'levelscan') — STARK, выбираемый таймфрейм S/R ======
-// Детерминированный, без Claude. Данные — Yahoo (бесплатно). Ищет ЧИСТЫЕ
-// ГОРИЗОНТАЛЬНЫЕ уровни (S/R по Герчику) и ранжирует по чистоте. Диагонали не видит.
-// КРУТИ ПОД СЕБЯ:
-const LS_PIVOT_K     = 3;       // пивот = экстремум сильнее соседей ±K баров
-const LS_CLUSTER_TOL = 0.004;   // 0.4% — ширина кластера касаний ("цент в цент": уже = чище)
-const LS_MIN_TOUCHES = 3;       // минимум касаний для валидного уровня
-const LS_PROXIMITY   = 0.03;    // "торгуемый сейчас", если цена в пределах 3% от уровня
-const LS_TOP_N       = 10;      // сколько тикеров на выход
-const LS_CONCURRENCY = 6;       // параллельных запросов к Yahoo (чтобы не словить 429)
-const LS_MIN_BARS    = 50;      // меньше — данных не хватает, тикер пропускаем
+const LS_PIVOT_K     = 3;
+const LS_CLUSTER_TOL = 0.004;
+const LS_MIN_TOUCHES = 3;
+const LS_PROXIMITY   = 0.03;
+const LS_TOP_N       = 10;
+const LS_CONCURRENCY = 6;
+const LS_MIN_BARS    = 50;
 
-// Карта таймфреймов: ключ из фронта → параметры Yahoo + ресемпл + человекочитаемая метка.
-// Yahoo НЕ отдаёт 4h напрямую → тянем 60m и склеиваем по 4 бара (resample:4).
 const LS_TF = {
   '15m': { yfInterval: '15m', yfRange: '1mo', resample: 1, label: '15 минут' },
   '1h':  { yfInterval: '60m', yfRange: '3mo', resample: 1, label: '1 час'    },
@@ -24,7 +19,6 @@ const LS_TF = {
   '1d':  { yfInterval: '1d',  yfRange: '2y',  resample: 1, label: '1 день'   },
 };
 
-// Дефолтный универс. Передай {"symbols":[...]} в теле — будет использован твой список.
 const LEVELSCAN_UNIVERSE = [
   'NVDA','TSLA','AMD','AAPL','MSFT','META','AMZN','GOOGL','NFLX','AVGO',
   'PLTR','SMCI','COIN','MSTR','MARA','RIOT','SOFI','HOOD','RIVN','LCID',
@@ -59,8 +53,6 @@ async function lsFetchBars(symbol, yfInterval, yfRange) {
   return bars.length ? bars : null;
 }
 
-// Склейка N последовательных баров в один (для 4h из 60m).
-// Для поиска кластеров S/R привязка к открытию сессии некритична — берём подряд.
 function lsResample(bars, factor) {
   if (!factor || factor <= 1) return bars;
   const out = [];
@@ -162,8 +154,6 @@ async function levelScan(symbols, intervalKey) {
   return { interval: key, timeframe: tf.label, results };
 }
 
-// Лайв-котировка прокси-индикатора (WTI=CL=F, медь=HG=F, 10Y=^TNX, ETF и т.п.) для блока СВЯЗИ.
-// Последний дневной клоуз + изменение к предыдущему дню. null, если Yahoo не отдал.
 async function leadQuote(symbol) {
   try {
     const bars = await lsFetchBars(symbol, '1d', '1mo');
@@ -175,6 +165,55 @@ async function leadQuote(symbol) {
   } catch (e) { return null; }
 }
 
+// ====== РЕАЛЬНЫЕ ФУНДАМЕНТАЛЬНЫЕ ЧИСЛА ИЗ FMP (US-тикеры) ======
+// Источник истины для цены, 52W, market cap, P/E, EPS. БЕЗ выдумок.
+async function fmpQuote(ticker) {
+  const key = process.env.FMP_KEY;
+  if (!key) return null;
+  try {
+    const r = await fetch(`https://financialmodelingprep.com/stable/quote?symbol=${encodeURIComponent(ticker)}&apikey=${key}`);
+    const arr = await r.json();
+    const q = Array.isArray(arr) ? arr[0] : arr;
+    if (!q || q.price == null) return null;
+    return {
+      price: q.price ?? null,
+      marketCap: q.marketCap ?? null,
+      pe: q.pe ?? null,
+      eps: q.eps ?? null,
+      yearHigh: q.yearHigh ?? null,
+      yearLow: q.yearLow ?? null,
+      exchange: q.exchange ?? null
+    };
+  } catch (e) { return null; }
+}
+
+async function fmpDividendYield(ticker) {
+  const key = process.env.FMP_KEY;
+  if (!key) return null;
+  try {
+    const r = await fetch(`https://financialmodelingprep.com/stable/ratios-ttm?symbol=${encodeURIComponent(ticker)}&apikey=${key}`);
+    const arr = await r.json();
+    const x = Array.isArray(arr) ? arr[0] : arr;
+    if (!x) return null;
+    const dy = x.dividendYieldTTM ?? x.dividendYielTTM ?? x.dividendYield ?? null;
+    if (dy == null) return null;
+    return dy < 1 ? +(dy * 100).toFixed(2) : +Number(dy).toFixed(2); // нормализуем долю→%
+  } catch (e) { return null; }
+}
+
+function fmtCap(v) {
+  if (v == null) return 'н/д';
+  if (v >= 1e12) return '$' + (v / 1e12).toFixed(2) + 'T';
+  if (v >= 1e9)  return '$' + (v / 1e9).toFixed(2) + 'B';
+  if (v >= 1e6)  return '$' + (v / 1e6).toFixed(2) + 'M';
+  return '$' + v;
+}
+
+function rangePosition(price, low, high) {
+  if (price == null || low == null || high == null || high <= low) return null;
+  return Math.round(((price - low) / (high - low)) * 100); // % от минимума
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -183,8 +222,8 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { action, ticker, prompt, query, symbols } = req.body;
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;            // прямой Anthropic (приоритет)
-  const crKey = anthropicKey || process.env.CRAZYROUTER_KEY;     // gate "есть ли LLM-ключ" — работает для обоих
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  const crKey = anthropicKey || process.env.CRAZYROUTER_KEY;
   const tvKey = process.env.TAVILY_KEY;
   const fmpKey = process.env.FMP_KEY;
 
@@ -212,15 +251,12 @@ export default async function handler(req, res) {
 
   async function callClaude(messages, maxTokens) {
     maxTokens = maxTokens || 4000;
-    // Провайдер: ANTHROPIC_API_KEY → прямой Anthropic (надёжно). Иначе — crazyrouter (прокси, нестабилен).
     const direct = !!anthropicKey;
     const url = direct ? 'https://api.anthropic.com/v1/messages' : 'https://crazyrouter.com/v1/messages';
     const headers = direct
       ? { 'content-type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' }
       : { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + crKey, 'anthropic-version': '2023-06-01' };
     const who = direct ? 'Anthropic' : 'crazyrouter';
-    // Жёсткий таймаут НИЖЕ лимита функции (180с): даём провайдеру до 170с ответить,
-    // зависший падает чистой ошибкой, а не убивается платформой Vercel.
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 170000);
     let r;
@@ -245,40 +281,21 @@ export default async function handler(req, res) {
     return (d.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
   }
 
-  // БАГ 1 FIX: извлечение рублёвой цены MOEX
-  // RUAL торгуется ~30-80 руб, SBER ~280-340, LKOH ~6000-8000
-  // Tavily часто возвращает HKD цену для RUAL (~1.8 HKD) — фильтруем
+  // MOEX: рублёвая цена из текста Tavily (FMP не покрывает MOEX). БЕЗ фабрикации диапазона.
   function extractMoexPrice(text, tickerName) {
     if (!text) return { price: null, high52: null, low52: null };
-
-    // Диапазоны разумных цен для известных тикеров в рублях
     const PRICE_RANGES = {
-      'RUAL': [15, 150],
-      'SBER': [150, 500],
-      'SVCB': [8, 30],
-      'FLNC': [50, 300],
-      'GAZP': [100, 400],
-      'LKOH': [4000, 10000],
-      'GMKN': [10000, 25000],
-      'NVTK': [800, 2000],
+      'RUAL': [15, 150], 'SBER': [150, 500], 'SVCB': [8, 30], 'FLNC': [50, 300],
+      'GAZP': [100, 400], 'LKOH': [4000, 10000], 'GMKN': [10000, 25000], 'NVTK': [800, 2000],
     };
     const range = PRICE_RANGES[tickerName] || [1, 100000];
-
-    let price = null;
-    let high52 = null;
-    let low52 = null;
-
-    // Ищем числа рядом с рублёвыми маркерами
+    let price = null, high52 = null, low52 = null;
     const rubPatterns = [
-      // "47.50 ₽" или "₽ 47.50"
       /(?:₽|руб\.?|RUB)\s*([\d\s]{1,8}[.,]?\d{0,2})/gi,
       /([\d\s]{1,8}[.,]\d{1,2})\s*(?:₽|руб\.?|RUB)/gi,
-      // "цена: 47.50" или "price: 47.50" или "торгуется по 47"
       /(?:цена|стоимость|котировка|торгуется по|last price|close)[:\s]+([0-9]{2,6}[.,]?[0-9]{0,2})/gi,
-      // просто число в разумном диапазоне после тикера
       new RegExp(tickerName + '[^0-9]{1,30}([0-9]{2,6}[.,][0-9]{1,2})', 'gi'),
     ];
-
     for (let i = 0; i < rubPatterns.length; i++) {
       const matches = [...text.matchAll(rubPatterns[i])];
       for (const m of matches) {
@@ -287,23 +304,18 @@ export default async function handler(req, res) {
       }
       if (price) break;
     }
-
-    // 52W диапазон
     const h52 = text.match(/52.{0,10}(?:high|max|макс)[^\d]*([\d]+[.,][\d]*)/i);
     const l52 = text.match(/52.{0,10}(?:low|min|мин)[^\d]*([\d]+[.,][\d]*)/i);
     if (h52) { const v = parseFloat(h52[1].replace(',','.')); if (v >= range[0] && v <= range[1]*1.5) high52 = v; }
     if (l52) { const v = parseFloat(l52[1].replace(',','.')); if (v >= range[0]*0.5 && v <= range[1]) low52 = v; }
-
-    // Валидация слайдера: цена всегда внутри диапазона
+    // коррекция явного мусора (цена не может быть вне своего диапазона)
     if (price && high52 && price > high52) high52 = Math.round(price * 1.08 * 100) / 100;
     if (price && low52 && price < low52) low52 = Math.round(price * 0.92 * 100) / 100;
-    // Если нет диапазона — строим вокруг цены
-    if (price && !high52) high52 = Math.round(price * 1.3 * 100) / 100;
-    if (price && !low52) low52 = Math.round(price * 0.7 * 100) / 100;
-
+    // НЕТ диапазона в данных → null. НЕ фабрикуем ±30% (это и был источник вранья).
     return { price, high52, low52 };
   }
 
+  // US-фоллбэк, если FMP не ответил. Тоже без фабрикации диапазона.
   function extractUsdPrice(text) {
     if (!text) return { price: null, high52: null, low52: null };
     const m = text.match(/\$\s*([\d]{1,5}\.[\d]{1,2})/);
@@ -314,15 +326,20 @@ export default async function handler(req, res) {
     let low52 = l ? parseFloat(l[1]) : null;
     if (price && high52 && price > high52) high52 = Math.round(price * 1.08 * 100) / 100;
     if (price && low52 && price < low52) low52 = Math.round(price * 0.92 * 100) / 100;
-    if (price && !high52) high52 = Math.round(price * 1.3 * 100) / 100;
-    if (price && !low52) low52 = Math.round(price * 0.7 * 100) / 100;
+    // НЕТ диапазона → null. Без выдумок.
     return { price, high52, low52 };
   }
 
   try {
     if (action === 'price') {
       try {
-        // БАГ 1 FIX: для RUAL используем очень специфичный запрос на русском
+        // US: реальные числа из FMP. Слайдер 52W теперь честный.
+        if (!isMoex) {
+          const q = await fmpQuote(ticker);
+          if (q && q.price != null) {
+            return res.json({ price: q.price, high52: q.yearHigh, low52: q.yearLow, currency: 'USD' });
+          }
+        }
         const searchQ = isMoex
           ? ticker + ' MOEX акция цена рублей сегодня котировка'
           : ticker + ' stock price today 2026';
@@ -345,7 +362,6 @@ export default async function handler(req, res) {
       return res.json({ result });
     }
 
-    // Распознавание тикера по тикеру ИЛИ названию компании (русский/английский)
     if (action === 'resolve') {
       const raw = (ticker || '').trim();
       if (!raw) return res.json({ ticker: '', name: '' });
@@ -369,26 +385,19 @@ export default async function handler(req, res) {
       }
     }
 
-    // СКАНЕР УРОВНЕЙ S/R с выбираемым таймфреймом (детерминированный, без Claude)
-    // Тело: {"action":"levelscan"} ИЛИ {"action":"levelscan","interval":"4h","symbols":["NVDA",...]}
-    // interval: '15m' | '1h' (дефолт) | '4h' | '1d'. Неизвестный → '1h'.
     if (action === 'levelscan') {
       const universe = (Array.isArray(symbols) && symbols.length) ? symbols : LEVELSCAN_UNIVERSE;
       const intervalKey = req.body.interval || '1h';
       const scan = await levelScan(universe, intervalKey);
       return res.json({
         action: 'levelscan',
-        interval: scan.interval,     // фактический ключ ('15m'/'1h'/'4h'/'1d')
-        timeframe: scan.timeframe,   // человекочитаемая метка ('4 часа')
+        interval: scan.interval,
+        timeframe: scan.timeframe,
         count: scan.results.length,
         results: scan.results
       });
     }
 
-    // КАРТА СВЯЗЕЙ: с чем коррелирует тикер + опережающие индикаторы (за чем следить).
-    // Claude даёт каждому корреляту/индикатору Yahoo-прокси (WTI=CL=F и т.п.),
-    // бэк дотягивает по нему лайв-котировку — чтобы значение было видно сразу.
-    // Тело: {"action":"leading","ticker":"PBR"}
     if (action === 'leading') {
       if (!crKey) return res.status(500).json({ error: 'No API key' });
       const tk = (ticker || '').toUpperCase();
@@ -451,8 +460,8 @@ export default async function handler(req, res) {
       if (!crKey) return res.status(500).json({ error: 'No API key' });
 
       const marketQuery = isMoex
-        ? ticker + ' MOEX акция цена рублей котировка май 2026'
-        : ticker + ' stock price today May 2026';
+        ? ticker + ' MOEX акция цена рублей котировка 2026'
+        : ticker + ' stock price today 2026';
 
       const corrQuery = ticker + ' suppliers leading indicators correlation 2026';
 
@@ -460,44 +469,36 @@ export default async function handler(req, res) {
         ? ticker + ' инсайдеры крупный акционер сделки покупка продажа дата 2025 2026 МосБиржа раскрытие'
         : ticker + ' insider transactions Form 4 SEC OpenInsider buy sell date shares 2025 2026';
 
-      // Словарь опережающих индикаторов для каждого тикера
       const LEADING_INDICATOR_QUERIES = {
-        // Металлы и сырьё
-        'RUAL': 'aluminum LME price 3M futures today May 2026 USD per tonne',
-        'FCX':  'copper LME spot price futures May 2026 USD per tonne',
-        'NEM':  'gold spot price XAU May 2026 USD per ounce',
-        'GMKN': 'palladium nickel LME price May 2026 USD',
-        'NLMK': 'steel HRC price European market May 2026',
-        'CHMF': 'steel billet price Russia export May 2026',
-        // Энергетика
-        'CEG':  'PJM electricity wholesale price May 2026 nuclear power',
-        'VST':  'ERCOT Texas electricity spot price May 2026',
+        'RUAL': 'aluminum LME price 3M futures today 2026 USD per tonne',
+        'FCX':  'copper LME spot price futures 2026 USD per tonne',
+        'NEM':  'gold spot price XAU 2026 USD per ounce',
+        'GMKN': 'palladium nickel LME price 2026 USD',
+        'NLMK': 'steel HRC price European market 2026',
+        'CHMF': 'steel billet price Russia export 2026',
+        'CEG':  'PJM electricity wholesale price 2026 nuclear power',
+        'VST':  'ERCOT Texas electricity spot price 2026',
         'OKLO': 'nuclear energy policy SMR permits USA 2026',
-        'UEC':  'uranium spot price UX May 2026 USD per pound',
-        'CCJ':  'uranium spot price Cameco contract May 2026 USD per pound',
-        'PBR':  'Brent crude oil price Brazil pre-salt May 2026',
-        'LKOH': 'Brent crude oil price Urals May 2026 USD barrel',
-        'ROSN': 'Brent Urals oil price Russia export May 2026',
-        'NVTK': 'LNG natural gas price Europe TTF May 2026',
-        'GAZP': 'natural gas price Russia Europe TTF May 2026',
-        // Технологии и телеком
+        'UEC':  'uranium spot price UX 2026 USD per pound',
+        'CCJ':  'uranium spot price Cameco contract 2026 USD per pound',
+        'PBR':  'Brent crude oil price Brazil pre-salt 2026',
+        'LKOH': 'Brent crude oil price Urals 2026 USD barrel',
+        'ROSN': 'Brent Urals oil price Russia export 2026',
+        'NVTK': 'LNG natural gas price Europe TTF 2026',
+        'GAZP': 'natural gas price Russia Europe TTF 2026',
         'NOK':  'Nokia 5G contracts revenue telecom infrastructure 2026',
         'RKLB': 'rocket launch market satellite commercial contracts 2026',
         'FLNC': 'battery storage energy grid demand USA 2026',
-        // Потребительский сектор
-        'NKE':  'Nike footwear retail sales consumer spending USA Q2 2026',
+        'NKE':  'Nike footwear retail sales consumer spending USA 2026',
         'TTWO': 'GTA VI release date Take-Two gaming revenue 2026',
-        // Финансы
-        'SBER': 'ключевая ставка ЦБ РФ май 2026 банковский сектор',
+        'SBER': 'ключевая ставка ЦБ РФ 2026 банковский сектор',
         'SVCB': 'Совкомбанк финансовые результаты прибыль 2026',
         'TCSG': 'Т-Банк финансовые результаты клиенты 2026',
-        // Дефолтный запрос
-        'DEFAULT': ticker + ' suppliers supply chain input cost factory orders leading demand indicator May 2026'
+        'DEFAULT': ticker + ' suppliers supply chain input cost factory orders leading demand indicator 2026'
       };
 
       const leadingQuery = LEADING_INDICATOR_QUERIES[ticker.toUpperCase()] || LEADING_INDICATOR_QUERIES['DEFAULT'];
 
-      // Отдельный запрос на ПОДТВЕРЖДЁННУЮ дату ближайшего отчёта/событий
       const catalystQuery = isMoex
         ? ticker + ' дата отчёта МСФО РСБУ 2026 дивиденды календарь событий точная дата'
         : ticker + ' next earnings date confirmed report calendar 2026 dividend ex-date catalyst';
@@ -516,33 +517,53 @@ export default async function handler(req, res) {
       const correlations = results[3].status === 'fulfilled' ? results[3].value : '';
       const leadingData  = results[4] && results[4].status === 'fulfilled' ? results[4].value : '';
 
+      // ИСТОЧНИК ИСТИНЫ: US → FMP (price/52W/mktcap/PE/EPS + дивиденд). MOEX → Tavily-парсинг.
+      let fq = null, divY = null;
+      if (!isMoex) {
+        [fq, divY] = await Promise.all([fmpQuote(ticker), fmpDividendYield(ticker)]);
+      }
       const extracted = isMoex
         ? extractMoexPrice(news, (ticker||'').toUpperCase())
-        : extractUsdPrice(news);
+        : (fq
+            ? { price: fq.price, high52: fq.yearHigh, low52: fq.yearLow }
+            : extractUsdPrice(news)); // фоллбэк, если FMP молчит
       const currentPrice = extracted.price;
       const currencySymbol = isMoex ? '₽' : '$';
+      const pos = rangePosition(currentPrice, extracted.low52, extracted.high52);
 
-      const priceInstruction = currentPrice
-        ? '\n\nВАЖНО: Текущая цена ' + ticker + ' = ' + currencySymbol + currentPrice +
-          ' (из веб-поиска май 2026, ' + (isMoex ? 'РУБЛИ МОСБИРЖА' : 'USD') + ').' +
-          ' Используй ТОЛЬКО эту цену: price="' + currencySymbol + currentPrice + '", priceNum=' + currentPrice + '.' +
-          (isMoex ? ' ВСЕ цены в РУБЛЯХ ₽. exchange="MOEX".' : '') +
-          ' НЕ используй другие числа как цену акции.'
+      // Жёсткий блок реальных чисел — ЕДИНСТВЕННЫЙ источник для модели.
+      const factsBlock = (!isMoex && fq)
+        ? '\n\n=== ТОЧНЫЕ ЧИСЛА (FMP — ЕДИНСТВЕННЫЙ ИСТОЧНИК, НЕ МЕНЯТЬ, НЕ ВЫДУМЫВАТЬ) ===' +
+          '\nЦена = $' + fq.price +
+          '\nMarket cap = ' + fmtCap(fq.marketCap) +
+          '\nP/E = ' + (fq.pe != null ? (+fq.pe).toFixed(2) : 'н/д') +
+          '\nEPS = ' + (fq.eps != null ? (+fq.eps).toFixed(2) : 'н/д') +
+          '\n52W high = ' + (fq.yearHigh != null ? '$' + fq.yearHigh : 'н/д') +
+          '\n52W low = ' + (fq.yearLow != null ? '$' + fq.yearLow : 'н/д') +
+          '\nДивиденд (доходность) = ' + (divY != null ? divY + '%' : 'н/д') +
+          '\nПозиция в 52W диапазоне = ' + (pos != null ? pos + '% от минимума (0%=у годового дна, 100%=у годового пика)' : 'н/д') +
+          '\nЭТО единственный источник для полей price, priceNum, market cap, P/E, EPS, 52W high/low, дивиденда и позиции/ATH. ' +
+          'Любое поле "н/д" — оставь "н/д", НЕ подставляй своё число. Запрещено брать цифры из памяти или из текста веб-поиска для этих полей.'
         : '';
 
-      // БАГ 3 FIX: инструкция по инсайдерам — только реальные сделки с датой
+      const priceInstruction = currentPrice
+        ? '\n\nТекущая цена ' + ticker + ' = ' + currencySymbol + currentPrice +
+          (isMoex ? ' (РУБЛИ МОСБИРЖА, из веб-поиска).' : ' (USD).') +
+          ' price="' + currencySymbol + currentPrice + '", priceNum=' + currentPrice + '.' +
+          (isMoex ? ' ВСЕ цены в РУБЛЯХ ₽. exchange="MOEX".' : '') +
+          ' НЕ используй другие числа как цену акции.'
+        : '\n\nЦена не подтверждена источником — поле цены оставь "н/д", не выдумывай.';
+
       const insiderInstruction = '\n\nПОЛЕ insiders: бери ТОЛЬКО реальные сделки из веб-данных (Form 4 / OpenInsider / официальные раскрытия). Для каждой: name, role, type (buy/sell), amount, shares, date — точная дата сделки из Form 4 (формат "15 июн 2026"); если сделка есть в данных, но точной даты нет — укажи хотя бы месяц ("июн 2026"). НЕ показывай сделку, которой НЕТ в веб-данных. Нет подтверждённых сделок с источником — верни []. НИКОГДА не выдумывай инсайдеров, даты, суммы и количество акций.';
 
-      // ДАТЫ И СОБЫТИЯ — точность + достаточное количество
       const dateInstruction =
         '\n\n=== СОБЫТИЯ И ДАТЫ (ТОЧНОСТЬ) ===' +
-        '\nСегодня 29 мая 2026.' +
+        '\nСегодня 13 июня 2026.' +
         ' В events дай 4-6 событий: недавние подтверждённые факты (прошедшие отчёты/события с реальными датами — это контекст, urgent=false) И будущие катализаторы.' +
         ' Даты в events.date и insiders.date — ТОЛЬКО реальные из веб-данных (формат "15 июн 2026").' +
         ' Если точной даты будущего события в данных нет — напиши "ожидается Q3 2026" и т.п., но НЕ выдумывай конкретное число.' +
         ' urgent=true — только для подтверждённых будущих событий в пределах ~30 дней. Прошедшие события НИКОГДА не помечай urgent.';
 
-      // Базовая инструкция ПРЕДВОСХИЩЕНИЯ — для ЛЮБОГО тикера (есть он в словаре или нет)
       const anticipationInstruction =
         '\n\n=== БЛОК ПРЕДВОСХИЩЕНИЕ — 5 ИНДИКАТОРОВ (ОБЯЗАТЕЛЬНО) ===' +
         '\nПострой причинно-следственную цепочку ВВЕРХ по поставкам для ' + ticker + ':' +
@@ -553,14 +574,13 @@ export default async function handler(req, res) {
         ' Заполни anticipationInd1..anticipationInd5: название индикатора + механизм связи + лаг опережения.' +
         ' ТОЧНОСТЬ: конкретные числа бери ТОЛЬКО из веб-данных ниже; нет числа — опиши механизм качественно, без выдуманных цифр.';
 
-      // Опережающий индикатор — реальные числа для словарных тикеров
       const leadingNote = leadingData
-        ? '\n\n=== ОПЕРЕЖАЮЩИЙ ИНДИКАТОР (РЕАЛЬНЫЕ ДАННЫЕ МАЙ 2026) ===\n' + leadingData +
+        ? '\n\n=== ОПЕРЕЖАЮЩИЙ ИНДИКАТОР (РЕАЛЬНЫЕ ДАННЫЕ 2026) ===\n' + leadingData +
           '\nИспользуй эти реальные числа в anticipationInd1..5 где релевантно. НЕ бери данные из памяти.'
         : '';
 
       const rawData = [
-        '=== ЦЕНА И РЫНОК (май 2026) ===', news || 'нет данных', '',
+        '=== ЦЕНА И РЫНОК (2026) ===', news || 'нет данных', '',
         '=== ИНСАЙДЕРЫ И МАЖОРИТАРИИ (2025-2026) ===', insiders || 'нет данных', '',
         '=== КАТАЛИЗАТОРЫ И СОБЫТИЯ (2026) ===', catalysts || 'нет данных', '',
         '=== КОРРЕЛЯЦИИ И ПОСТАВЩИКИ ===', correlations || 'нет данных',
@@ -568,16 +588,15 @@ export default async function handler(req, res) {
       ].join('\n').trim();
 
       const analysisPrompt = prompt +
-        '\n\nРЕАЛЬНЫЕ ДАННЫЕ ИЗ ВЕБ-ПОИСКА (май 2026):\n' + rawData +
-        priceInstruction + insiderInstruction + anticipationInstruction + dateInstruction +
-        '\n\nКРИТИЧНО: Используй ТОЛЬКО данные выше. Все цены — только из этих данных.' +
+        '\n\nРЕАЛЬНЫЕ ДАННЫЕ ИЗ ВЕБ-ПОИСКА (2026):\n' + rawData +
+        factsBlock + priceInstruction + insiderInstruction + anticipationInstruction + dateInstruction +
+        '\n\nКРИТИЧНО: Числовые поля (цена, market cap, P/E, EPS, 52W, дивиденд) — ТОЛЬКО из блока ТОЧНЫЕ ЧИСЛА. Остальное — из данных выше. Нет данных → "н/д".' +
         (isMoex ? '\nБИРЖА МОСБИРЖА: цена РУБЛИ (₽). exchange="MOEX".' : '');
 
       const text = await callClaude([{ role: 'user', content: analysisPrompt }], 5000);
       return res.json({ text });
     }
 
-    // СКРИНЕР через FMP (free 250/день)
     if (action === 'screen') {
       if (!fmpKey) return res.json({ error: 'FMP_KEY не задан в окружении', results: [] });
       const f = req.body.filters || {};
@@ -595,8 +614,6 @@ export default async function handler(req, res) {
       params.set('limit', String(f.limit || 30));
       params.set('apikey', fmpKey);
 
-      // FMP перевёл скринер на /stable/. v3 теперь legacy и на НОВЫХ ключах
-      // часто отвечает ошибкой "legacy only". Бьём stable, при сбое — один раз v3.
       const STABLE = 'https://financialmodelingprep.com/stable/company-screener?';
       const V3 = 'https://financialmodelingprep.com/api/v3/stock-screener?';
       const tryScreen = async (base) => {
@@ -607,7 +624,6 @@ export default async function handler(req, res) {
       try {
         let data = await tryScreen(STABLE);
         if (!Array.isArray(data)) {
-          // stable не отдал список → пробуем legacy v3
           const v3data = await tryScreen(V3);
           if (Array.isArray(v3data)) {
             data = v3data;
