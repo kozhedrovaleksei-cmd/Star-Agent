@@ -173,10 +173,17 @@ async function yahooQuote(symbol) {
     const j = await r.json();
     const m = j?.chart?.result?.[0]?.meta;
     if (!m || m.regularMarketPrice == null) return null;
+    const price = m.regularMarketPrice;
+    const yearHigh = m.fiftyTwoWeekHigh ?? null;
+    const prevClose = m.chartPreviousClose ?? m.previousClose ?? null;
+    const changePct = (prevClose != null && prevClose !== 0) ? +(((price - prevClose) / prevClose) * 100).toFixed(2) : null;
+    const atHighPct = (yearHigh != null && yearHigh !== 0) ? +(((price / yearHigh) - 1) * 100).toFixed(1) : null;
     return {
-      price:    m.regularMarketPrice ?? null,
-      yearHigh: m.fiftyTwoWeekHigh ?? null,
-      yearLow:  m.fiftyTwoWeekLow ?? null
+      price:    price,
+      yearHigh: yearHigh,
+      yearLow:  m.fiftyTwoWeekLow ?? null,
+      changePct: changePct,
+      atHighPct: atHighPct
     };
   } catch (e) { return null; }
 }
@@ -232,6 +239,10 @@ async function moexQuote(ticker) {
     const last = (md[1] != null) ? md[1] : prevPrice;
     if (last == null) return null;
     if ((cap == null || cap === 0) && issueSize != null) cap = last * issueSize;
+    // дневное изменение: LASTTOPREVPRICE (md[2]) — официальный % ISS; в выходной торгов нет → null
+    let changePct = (md[2] != null) ? +Number(md[2]).toFixed(2)
+                   : (prevPrice && md[1] != null && prevPrice !== 0) ? +(((md[1] - prevPrice) / prevPrice) * 100).toFixed(2)
+                   : null;
 
     // 52W из месячных свечей за год (interval=31 = месяц) — один запрос
     let yearHigh = null, yearLow = null;
@@ -249,7 +260,8 @@ async function moexQuote(ticker) {
       }
     } catch (e) {}
 
-    return { price: last, marketCap: cap, yearHigh, yearLow };
+    const atHighPct = (yearHigh != null && yearHigh !== 0) ? +(((last / yearHigh) - 1) * 100).toFixed(1) : null;
+    return { price: last, marketCap: cap, yearHigh, yearLow, changePct, atHighPct };
   } catch (e) { return null; }
 }
 
@@ -405,18 +417,19 @@ export default async function handler(req, res) {
         if (isMoex) {
           const mq = await moexQuote(ticker);
           if (mq && mq.price != null) {
-            return res.json({ price: mq.price, high52: mq.yearHigh, low52: mq.yearLow, currency: 'RUB' });
+            return res.json({ price: mq.price, high52: mq.yearHigh, low52: mq.yearLow, changePct: mq.changePct, atHighPct: mq.atHighPct, currency: 'RUB' });
           }
+          // ISS не ответил (вероятно блок дата-центра): честное н/д, без выдёргивания мусора из новостей
+          return res.json({ price: null, currency: 'RUB', note: 'ISS unreachable' });
         } else {
           const yq = await yahooQuote(ticker);
-          if (yq && yq.price != null) return res.json({ price: yq.price, high52: yq.yearHigh, low52: yq.yearLow, currency: 'USD' });
+          if (yq && yq.price != null) return res.json({ price: yq.price, high52: yq.yearHigh, low52: yq.yearLow, changePct: yq.changePct, atHighPct: yq.atHighPct, currency: 'USD' });
           const q = await fmpQuote(ticker);
           if (q && q.price != null) return res.json({ price: q.price, high52: q.yearHigh, low52: q.yearLow, currency: 'USD' });
+          const priceData = await tavilySearch(ticker + ' stock price today 2026');
+          const extracted = extractUsdPrice(priceData);
+          return res.json({ price: extracted.price, high52: extracted.high52, low52: extracted.low52, currency: 'USD' });
         }
-        const searchQ = isMoex ? ticker + ' MOEX акция цена рублей сегодня котировка' : ticker + ' stock price today 2026';
-        const priceData = await tavilySearch(searchQ);
-        const extracted = isMoex ? extractMoexPrice(priceData, (ticker || '').toUpperCase()) : extractUsdPrice(priceData);
-        return res.json({ price: extracted.price, high52: extracted.high52, low52: extracted.low52, currency: isMoex ? 'RUB' : 'USD' });
       } catch (e) {}
       return res.json({ price: null });
     }
