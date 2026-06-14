@@ -225,10 +225,12 @@ async function fmpDividendYield(ticker) {
 // ====== MOEX ISS — официальный источник по российским акциям (бесплатно, без ключа) ======
 async function moexQuote(ticker) {
   try {
-    const u1 = `https://iss.moex.com/iss/engines/stock/markets/shares/securities/${encodeURIComponent(ticker)}.json`
+    // boards/TQBR — основной режим торгов акциями. Без этого ISS отдаёт первую попавшуюся
+    // строку (может прилететь неликвидный борд с искажённой ценой).
+    const u1 = `https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities/${encodeURIComponent(ticker)}.json`
       + `?iss.meta=off&iss.only=securities,marketdata`
       + `&securities.columns=SECID,PREVPRICE,ISSUECAPITALIZATION,ISSUESIZE`
-      + `&marketdata.columns=SECID,LAST,LASTTOPREVPRICE`;
+      + `&marketdata.columns=SECID,LAST,LASTTOPREVPRICE,MARKETPRICE`;
     const r1 = await fetch(u1);
     const j1 = await r1.json();
     const sec = j1?.securities?.data?.[0] || [];
@@ -236,7 +238,8 @@ async function moexQuote(ticker) {
     const prevPrice = sec[1] ?? null;
     let cap = sec[2] ?? null;
     const issueSize = sec[3] ?? null;
-    const last = (md[1] != null) ? md[1] : prevPrice;
+    // приоритет: LAST (последняя сделка) → MARKETPRICE (рыночная) → PREVPRICE (закрытие пред. дня)
+    const last = (md[1] != null) ? md[1] : (md[3] != null ? md[3] : prevPrice);
     if (last == null) return null;
     if ((cap == null || cap === 0) && issueSize != null) cap = last * issueSize;
     // дневное изменение: LASTTOPREVPRICE (md[2]) — официальный % ISS; в выходной торгов нет → null
@@ -244,12 +247,12 @@ async function moexQuote(ticker) {
                    : (prevPrice && md[1] != null && prevPrice !== 0) ? +(((md[1] - prevPrice) / prevPrice) * 100).toFixed(2)
                    : null;
 
-    // 52W из месячных свечей за год (interval=31 = месяц) — один запрос
+    // 52W из месячных свечей за год (interval=31 = месяц) — один запрос, борд TQBR
     let yearHigh = null, yearLow = null;
     try {
       const to = new Date(), from = new Date(); from.setFullYear(from.getFullYear() - 1);
       const fs = from.toISOString().slice(0, 10), ts = to.toISOString().slice(0, 10);
-      const u2 = `https://iss.moex.com/iss/engines/stock/markets/shares/securities/${encodeURIComponent(ticker)}/candles.json`
+      const u2 = `https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities/${encodeURIComponent(ticker)}/candles.json`
         + `?from=${fs}&till=${ts}&interval=31&iss.meta=off&iss.only=candles&candles.columns=high,low`;
       const r2 = await fetch(u2);
       const j2 = await r2.json();
@@ -633,7 +636,10 @@ export default async function handler(req, res) {
         '\n\n=== БЛОК ПРЕДВОСХИЩЕНИЕ — 5 ИНДИКАТОРОВ ===' +
         '\nПострой причинно-следственную цепочку ВВЕРХ по поставкам для ' + ticker + ': поставщики и их заказы, входное сырьё и цены, загрузка фабрик/OEM, законтрактованный пайплайн, опережающие сигналы спроса, регуляторика.' +
         ' Эталон: заказы тайваньских OEM (Feng Tay, Pou Chen) опережают выручку Nike на 1-2 квартала — примени ТАКУЮ ЖЕ логику к ' + ticker + '.' +
-        ' anticipationInd1..5: название + механизм + лаг. Числа ТОЛЬКО из веб-данных; нет числа — качественно, без выдумок.';
+        ' anticipationInd1..5: название + механизм + лаг. Числа ТОЛЬКО из веб-данных; нет числа — качественно, без выдумок.' +
+        (isMoex
+          ? '\nВАЖНО — ЭТО РОССИЙСКАЯ БУМАГА (МОСБИРЖА): запрещено притягивать американские макроиндикаторы (LEI/Leading Economic Index, ISM, Conference Board, US-нонфарм и т.п.) — они к РФ-эмитенту не относятся. Используй РЕЛЕВАНТНЫЕ для РФ опережающие сигналы: ключевая ставка ЦБ РФ и её траектория, инфляция РФ, RGBI/доходности ОФЗ, курс рубля; для банка — динамика кредитного портфеля, стоимость фондирования, чистая процентная маржа, резервы/NPL, норматив Н1.0; для экспортёра — мировые цены на его сырьё. Конкретное число индикатора называй ТОЛЬКО если оно есть в веб-данных выше.'
+          : '\nНе называй числовое значение макроиндикатора (индекс/ставка/%), которого нет в веб-данных выше — опиши механизм качественно.');
 
       const leadingNote = leadingData
         ? '\n\n=== ОПЕРЕЖАЮЩИЙ ИНДИКАТОР (РЕАЛЬНЫЕ ДАННЫЕ 2026) ===\n' + leadingData + '\nИспользуй эти реальные числа в anticipationInd1..5. НЕ бери из памяти.'
@@ -651,6 +657,7 @@ export default async function handler(req, res) {
         '\n\nРЕАЛЬНЫЕ ДАННЫЕ ИЗ ВЕБ-ПОИСКА (2026):\n' + rawData +
         factsBlock + priceInstruction + insiderInstruction + anticipationInstruction + dateInstruction +
         '\n\nКРИТИЧНО: Числовые поля (цена, 52W, market cap, P/E, дивиденд) — ТОЛЬКО из блока ТОЧНЫЕ ЧИСЛА. Остальное — из данных выше. Нет данных → "н/д"/пусто.' +
+        '\nВ bullCase/bearCase/verdict_text/anticipation тоже НЕ выдумывай числа: проценты, цели и уровни считай ТОЛЬКО от цены и 52W из блока ТОЧНЫЕ ЧИСЛА; конкретные цифры по прибыли/выручке/ставкам/индикаторам бери ТОЛЬКО из веб-данных, иначе формулируй качественно без числа.' +
         (isMoex ? '\nБИРЖА МОСБИРЖА: цена РУБЛИ (₽). exchange="MOEX".' : '');
 
       const text = await callClaude([{ role: 'user', content: analysisPrompt }], 5000);
