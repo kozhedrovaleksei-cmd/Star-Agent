@@ -1,9 +1,8 @@
 // Vercel: дефолт 10с убивает тяжёлый analyze. 180с даёт медленному crazyrouter время ответить.
 // ВАЖНО: значение >60 работает ТОЛЬКО при включённом Fluid Compute (Settings → Functions).
-// Без Fluid Compute Vercel молча обрежет до 60с.
 export const config = { maxDuration: 180 };
 
-// ====== LEVEL SCANNER (action 'levelscan') — STARK, выбираемый таймфрейм S/R ======
+// ====== LEVEL SCANNER (action 'levelscan') ======
 const LS_PIVOT_K     = 3;
 const LS_CLUSTER_TOL = 0.004;
 const LS_MIN_TOUCHES = 3;
@@ -165,8 +164,24 @@ async function leadQuote(symbol) {
   } catch (e) { return null; }
 }
 
-// ====== РЕАЛЬНЫЕ ФУНДАМЕНТАЛЬНЫЕ ЧИСЛА ИЗ FMP (US-тикеры) ======
-// Источник истины для цены, 52W, market cap, P/E, EPS. БЕЗ выдумок.
+// ====== ЦЕНА + 52W ИЗ YAHOO META (US, надёжно, бесплатно, проходит из Vercel) ======
+async function yahooQuote(symbol) {
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1y`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const m = j?.chart?.result?.[0]?.meta;
+    if (!m || m.regularMarketPrice == null) return null;
+    return {
+      price:    m.regularMarketPrice ?? null,
+      yearHigh: m.fiftyTwoWeekHigh ?? null,
+      yearLow:  m.fiftyTwoWeekLow ?? null
+    };
+  } catch (e) { return null; }
+}
+
+// ====== ФУНДАМЕНТАЛ ИЗ FMP (market cap надёжен; pe/52W на free-плане часто пустые) ======
 async function fmpQuote(ticker) {
   const key = process.env.FMP_KEY;
   if (!key) return null;
@@ -181,8 +196,7 @@ async function fmpQuote(ticker) {
       pe: q.pe ?? null,
       eps: q.eps ?? null,
       yearHigh: q.yearHigh ?? null,
-      yearLow: q.yearLow ?? null,
-      exchange: q.exchange ?? null
+      yearLow: q.yearLow ?? null
     };
   } catch (e) { return null; }
 }
@@ -197,7 +211,65 @@ async function fmpDividendYield(ticker) {
     if (!x) return null;
     const dy = x.dividendYieldTTM ?? x.dividendYielTTM ?? x.dividendYield ?? null;
     if (dy == null) return null;
-    return dy < 1 ? +(dy * 100).toFixed(2) : +Number(dy).toFixed(2); // нормализуем долю→%
+    return dy < 1 ? +(dy * 100).toFixed(2) : +Number(dy).toFixed(2);
+  } catch (e) { return null; }
+}
+
+// ====== MOEX ISS — официальный источник по российским акциям (бесплатно, без ключа) ======
+async function moexQuote(ticker) {
+  try {
+    const u1 = `https://iss.moex.com/iss/engines/stock/markets/shares/securities/${encodeURIComponent(ticker)}.json`
+      + `?iss.meta=off&iss.only=securities,marketdata`
+      + `&securities.columns=SECID,PREVPRICE,ISSUECAPITALIZATION,ISSUESIZE`
+      + `&marketdata.columns=SECID,LAST,LASTTOPREVPRICE`;
+    const r1 = await fetch(u1);
+    const j1 = await r1.json();
+    const sec = j1?.securities?.data?.[0] || [];
+    const md  = j1?.marketdata?.data?.[0] || [];
+    const prevPrice = sec[1] ?? null;
+    let cap = sec[2] ?? null;
+    const issueSize = sec[3] ?? null;
+    const last = (md[1] != null) ? md[1] : prevPrice;
+    if (last == null) return null;
+    if ((cap == null || cap === 0) && issueSize != null) cap = last * issueSize;
+
+    // 52W из месячных свечей за год (interval=31 = месяц) — один запрос
+    let yearHigh = null, yearLow = null;
+    try {
+      const to = new Date(), from = new Date(); from.setFullYear(from.getFullYear() - 1);
+      const fs = from.toISOString().slice(0, 10), ts = to.toISOString().slice(0, 10);
+      const u2 = `https://iss.moex.com/iss/engines/stock/markets/shares/securities/${encodeURIComponent(ticker)}/candles.json`
+        + `?from=${fs}&till=${ts}&interval=31&iss.meta=off&iss.only=candles&candles.columns=high,low`;
+      const r2 = await fetch(u2);
+      const j2 = await r2.json();
+      for (const row of (j2?.candles?.data || [])) {
+        const h = row[0], l = row[1];
+        if (h != null) yearHigh = yearHigh == null ? h : Math.max(yearHigh, h);
+        if (l != null) yearLow  = yearLow  == null ? l : Math.min(yearLow, l);
+      }
+    } catch (e) {}
+
+    return { price: last, marketCap: cap, yearHigh, yearLow };
+  } catch (e) { return null; }
+}
+
+async function moexDividends(ticker) {
+  try {
+    const r = await fetch(`https://iss.moex.com/iss/securities/${encodeURIComponent(ticker)}/dividends.json?iss.meta=off`);
+    const j = await r.json();
+    const cols = j?.dividends?.columns || [];
+    const rows = j?.dividends?.data || [];
+    const iVal = cols.indexOf('value');
+    const iDate = cols.indexOf('registryclosedate');
+    if (iVal < 0 || !rows.length) return null;
+    const yearAgo = new Date(); yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+    let ttm = 0, found = false;
+    for (const row of rows) {
+      const v = row[iVal];
+      const d = iDate >= 0 && row[iDate] ? new Date(row[iDate]) : null;
+      if (v != null && (!d || d >= yearAgo)) { ttm += Number(v); found = true; }
+    }
+    return found ? ttm : null; // сумма дивидендов на акцию за 12 мес
   } catch (e) { return null; }
 }
 
@@ -209,9 +281,19 @@ function fmtCap(v) {
   return '$' + v;
 }
 
+function fmtCapCur(v, moex) {
+  if (v == null) return 'н/д';
+  if (moex) {
+    if (v >= 1e9) return (v / 1e9).toFixed(0) + ' млрд ₽';
+    if (v >= 1e6) return (v / 1e6).toFixed(0) + ' млн ₽';
+    return Math.round(v) + ' ₽';
+  }
+  return fmtCap(v);
+}
+
 function rangePosition(price, low, high) {
   if (price == null || low == null || high == null || high <= low) return null;
-  return Math.round(((price - low) / (high - low)) * 100); // % от минимума
+  return Math.round(((price - low) / (high - low)) * 100);
 }
 
 export default async function handler(req, res) {
@@ -236,17 +318,11 @@ export default async function handler(req, res) {
       const r = await fetch('https://api.tavily.com/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          api_key: tvKey,
-          query: q,
-          search_depth: 'basic',
-          max_results: 5,
-          include_answer: true
-        })
+        body: JSON.stringify({ api_key: tvKey, query: q, search_depth: 'basic', max_results: 5, include_answer: true })
       });
       const data = await r.json();
       return data.answer || (data.results || []).map(x => x.title + ': ' + x.content).join('\n\n');
-    } catch(e) { return ''; }
+    } catch (e) { return ''; }
   }
 
   async function callClaude(messages, maxTokens) {
@@ -261,12 +337,7 @@ export default async function handler(req, res) {
     const timer = setTimeout(() => ctrl.abort(), 170000);
     let r;
     try {
-      r = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: maxTokens, messages }),
-        signal: ctrl.signal
-      });
+      r = await fetch(url, { method: 'POST', headers, body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: maxTokens, messages }), signal: ctrl.signal });
     } catch (e) {
       clearTimeout(timer);
       if (e && e.name === 'AbortError') throw new Error(who + ' не ответил за 170с (перегружен/недоступен) — повтори запрос');
@@ -281,7 +352,7 @@ export default async function handler(req, res) {
     return (d.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
   }
 
-  // MOEX: рублёвая цена из текста Tavily (FMP не покрывает MOEX). БЕЗ фабрикации диапазона.
+  // MOEX: фоллбэк-парсинг из текста Tavily (если ISS недоступен). БЕЗ фабрикации диапазона.
   function extractMoexPrice(text, tickerName) {
     if (!text) return { price: null, high52: null, low52: null };
     const PRICE_RANGES = {
@@ -306,16 +377,15 @@ export default async function handler(req, res) {
     }
     const h52 = text.match(/52.{0,10}(?:high|max|макс)[^\d]*([\d]+[.,][\d]*)/i);
     const l52 = text.match(/52.{0,10}(?:low|min|мин)[^\d]*([\d]+[.,][\d]*)/i);
-    if (h52) { const v = parseFloat(h52[1].replace(',','.')); if (v >= range[0] && v <= range[1]*1.5) high52 = v; }
-    if (l52) { const v = parseFloat(l52[1].replace(',','.')); if (v >= range[0]*0.5 && v <= range[1]) low52 = v; }
-    // коррекция явного мусора (цена не может быть вне своего диапазона)
+    if (h52) { const v = parseFloat(h52[1].replace(',', '.')); if (v >= range[0] && v <= range[1] * 1.5) high52 = v; }
+    if (l52) { const v = parseFloat(l52[1].replace(',', '.')); if (v >= range[0] * 0.5 && v <= range[1]) low52 = v; }
     if (price && high52 && price > high52) high52 = Math.round(price * 1.08 * 100) / 100;
     if (price && low52 && price < low52) low52 = Math.round(price * 0.92 * 100) / 100;
-    // НЕТ диапазона в данных → null. НЕ фабрикуем ±30% (это и был источник вранья).
+    // нет диапазона в тексте → null, без фабрикации ±%
     return { price, high52, low52 };
   }
 
-  // US-фоллбэк, если FMP не ответил. Тоже без фабрикации диапазона.
+  // US-фоллбэк, если Yahoo и FMP молчат. Тоже без фабрикации диапазона.
   function extractUsdPrice(text) {
     if (!text) return { price: null, high52: null, low52: null };
     const m = text.match(/\$\s*([\d]{1,5}\.[\d]{1,2})/);
@@ -326,34 +396,28 @@ export default async function handler(req, res) {
     let low52 = l ? parseFloat(l[1]) : null;
     if (price && high52 && price > high52) high52 = Math.round(price * 1.08 * 100) / 100;
     if (price && low52 && price < low52) low52 = Math.round(price * 0.92 * 100) / 100;
-    // НЕТ диапазона → null. Без выдумок.
     return { price, high52, low52 };
   }
 
   try {
     if (action === 'price') {
       try {
-        // US: реальные числа из FMP. Слайдер 52W теперь честный.
-        if (!isMoex) {
-          const q = await fmpQuote(ticker);
-          if (q && q.price != null) {
-            return res.json({ price: q.price, high52: q.yearHigh, low52: q.yearLow, currency: 'USD' });
+        if (isMoex) {
+          const mq = await moexQuote(ticker);
+          if (mq && mq.price != null) {
+            return res.json({ price: mq.price, high52: mq.yearHigh, low52: mq.yearLow, currency: 'RUB' });
           }
+        } else {
+          const yq = await yahooQuote(ticker);
+          if (yq && yq.price != null) return res.json({ price: yq.price, high52: yq.yearHigh, low52: yq.yearLow, currency: 'USD' });
+          const q = await fmpQuote(ticker);
+          if (q && q.price != null) return res.json({ price: q.price, high52: q.yearHigh, low52: q.yearLow, currency: 'USD' });
         }
-        const searchQ = isMoex
-          ? ticker + ' MOEX акция цена рублей сегодня котировка'
-          : ticker + ' stock price today 2026';
+        const searchQ = isMoex ? ticker + ' MOEX акция цена рублей сегодня котировка' : ticker + ' stock price today 2026';
         const priceData = await tavilySearch(searchQ);
-        const extracted = isMoex
-          ? extractMoexPrice(priceData, (ticker||'').toUpperCase())
-          : extractUsdPrice(priceData);
-        return res.json({
-          price: extracted.price,
-          high52: extracted.high52,
-          low52: extracted.low52,
-          currency: isMoex ? 'RUB' : 'USD'
-        });
-      } catch(e) {}
+        const extracted = isMoex ? extractMoexPrice(priceData, (ticker || '').toUpperCase()) : extractUsdPrice(priceData);
+        return res.json({ price: extracted.price, high52: extracted.high52, low52: extracted.low52, currency: isMoex ? 'RUB' : 'USD' });
+      } catch (e) {}
       return res.json({ price: null });
     }
 
@@ -389,13 +453,7 @@ export default async function handler(req, res) {
       const universe = (Array.isArray(symbols) && symbols.length) ? symbols : LEVELSCAN_UNIVERSE;
       const intervalKey = req.body.interval || '1h';
       const scan = await levelScan(universe, intervalKey);
-      return res.json({
-        action: 'levelscan',
-        interval: scan.interval,
-        timeframe: scan.timeframe,
-        count: scan.results.length,
-        results: scan.results
-      });
+      return res.json({ action: 'levelscan', interval: scan.interval, timeframe: scan.timeframe, count: scan.results.length, results: scan.results });
     }
 
     if (action === 'leading') {
@@ -408,13 +466,13 @@ export default async function handler(req, res) {
       const ldPrompt =
         'Ты — STARK AI. Для инструмента ' + tk + ' определи две вещи:\n' +
         '1) С ЧЕМ КОРРЕЛИРУЕТ (сырьё/макро/сектор/валюта) — прямо или обратно.\n' +
-        '2) ОПЕРЕЖАЮЩИЕ ИНДИКАТОРЫ — за чем следить, чтобы ПРЕДВИДЕТЬ движение ' + tk + ' (входное сырьё, поставщики, цены, спрос, регуляторика). Эталон: нефтяные компании → WTI/Brent; алюминий → LME aluminum; дата-центры → цена электричества; чипмейкеры → SOX.\n\n' +
+        '2) ОПЕРЕЖАЮЩИЕ ИНДИКАТОРЫ — за чем следить, чтобы ПРЕДВИДЕТЬ движение ' + tk + '. Эталон: нефтяные компании → WTI/Brent; алюминий → LME aluminum; дата-центры → цена электричества; чипмейкеры → SOX.\n\n' +
         'Для КАЖДОГО коррелята и индикатора дай Yahoo Finance тикер-ПРОКСИ, если торгуемый ориентир существует:\n' +
         '- WTI=CL=F, Brent=BZ=F, золото=GC=F, серебро=SI=F, медь=HG=F, природный газ=NG=F, палладий=PA=F, платина=PL=F\n' +
         '- индекс доллара=DX-Y.NYB, 10Y трежерис=^TNX, S&P500=^GSPC, VIX=^VIX, энергетика ETF=XLE, уран ETF=URA, золотодобыча=GDX, полупроводники=SOXX, биотех=XBI\n' +
         '- отдельные акции/ETF — их обычный тикер; крипта — например BTC-USD, ETH-USD\n' +
-        '- если торгуемого прокси НЕТ (напр. "загрузка фабрик") — symbol="".\n\n' +
-        'Верни СТРОГО валидный JSON, без markdown и текста вокруг:\n' +
+        '- если торгуемого прокси НЕТ — symbol="".\n\n' +
+        'Верни СТРОГО валидный JSON, без markdown:\n' +
         '{"ticker":"' + tk + '","name":"полное название","summary":"одно предложение: что это и от чего ходит цена",' +
         '"correlations":[{"name":"WTI нефть","symbol":"CL=F","direction":"прямая","note":"механизм одной строкой"}],' +
         '"leading":[{"name":"WTI Crude","symbol":"CL=F","direction":"прямая","mechanism":"как влияет на цену ' + tk + '","lag":"лаг, напр 0-1 нед или 1-2 квартала"}]}\n' +
@@ -440,31 +498,17 @@ export default async function handler(req, res) {
       const attach = (x) => {
         const sym = String(x.symbol || '').trim();
         const q = quotes[sym];
-        return {
-          name: x.name || '', symbol: sym,
-          direction: x.direction || '', note: x.note || '', mechanism: x.mechanism || '', lag: x.lag || '',
-          price: q ? q.price : null, changePct: q ? q.changePct : null
-        };
+        return { name: x.name || '', symbol: sym, direction: x.direction || '', note: x.note || '', mechanism: x.mechanism || '', lag: x.lag || '', price: q ? q.price : null, changePct: q ? q.changePct : null };
       };
 
-      return res.json({
-        ticker: obj.ticker || tk,
-        name: obj.name || '',
-        summary: obj.summary || '',
-        correlations: corr.map(attach),
-        leading: lead.map(attach)
-      });
+      return res.json({ ticker: obj.ticker || tk, name: obj.name || '', summary: obj.summary || '', correlations: corr.map(attach), leading: lead.map(attach) });
     }
 
     if (action === 'analyze') {
       if (!crKey) return res.status(500).json({ error: 'No API key' });
 
-      const marketQuery = isMoex
-        ? ticker + ' MOEX акция цена рублей котировка 2026'
-        : ticker + ' stock price today 2026';
-
+      const marketQuery = isMoex ? ticker + ' MOEX акция цена рублей котировка 2026' : ticker + ' stock price today 2026';
       const corrQuery = ticker + ' suppliers leading indicators correlation 2026';
-
       const insiderQuery = isMoex
         ? ticker + ' инсайдеры крупный акционер сделки покупка продажа дата 2025 2026 МосБиржа раскрытие'
         : ticker + ' insider transactions Form 4 SEC OpenInsider buy sell date shares 2025 2026';
@@ -496,7 +540,6 @@ export default async function handler(req, res) {
         'TCSG': 'Т-Банк финансовые результаты клиенты 2026',
         'DEFAULT': ticker + ' suppliers supply chain input cost factory orders leading demand indicator 2026'
       };
-
       const leadingQuery = LEADING_INDICATOR_QUERIES[ticker.toUpperCase()] || LEADING_INDICATOR_QUERIES['DEFAULT'];
 
       const catalystQuery = isMoex
@@ -504,11 +547,7 @@ export default async function handler(req, res) {
         : ticker + ' next earnings date confirmed report calendar 2026 dividend ex-date catalyst';
 
       const results = await Promise.allSettled([
-        tavilySearch(marketQuery),
-        tavilySearch(insiderQuery),
-        tavilySearch(catalystQuery),
-        tavilySearch(corrQuery),
-        tavilySearch(leadingQuery)
+        tavilySearch(marketQuery), tavilySearch(insiderQuery), tavilySearch(catalystQuery), tavilySearch(corrQuery), tavilySearch(leadingQuery)
       ]);
 
       const news         = results[0].status === 'fulfilled' ? results[0].value : '';
@@ -517,66 +556,74 @@ export default async function handler(req, res) {
       const correlations = results[3].status === 'fulfilled' ? results[3].value : '';
       const leadingData  = results[4] && results[4].status === 'fulfilled' ? results[4].value : '';
 
-      // ИСТОЧНИК ИСТИНЫ: US → FMP (price/52W/mktcap/PE/EPS + дивиденд). MOEX → Tavily-парсинг.
-      let fq = null, divY = null;
-      if (!isMoex) {
-        [fq, divY] = await Promise.all([fmpQuote(ticker), fmpDividendYield(ticker)]);
-      }
-      const extracted = isMoex
-        ? extractMoexPrice(news, (ticker||'').toUpperCase())
-        : (fq
-            ? { price: fq.price, high52: fq.yearHigh, low52: fq.yearLow }
-            : extractUsdPrice(news)); // фоллбэк, если FMP молчит
-      const currentPrice = extracted.price;
-      const currencySymbol = isMoex ? '₽' : '$';
-      const pos = rangePosition(currentPrice, extracted.low52, extracted.high52);
+      // ИСТОЧНИКИ ИСТИНЫ: US → Yahoo(цена,52W)+FMP(капа,PE,EPS,дивиденд). MOEX → ISS(цена,капа,52W,дивиденды).
+      let fq = null, yq = null, mq = null;
+      let px = null, yH = null, yL = null, cap = null, peVal = null, epsVal = null, divY = null;
 
-      // Жёсткий блок реальных чисел — ЕДИНСТВЕННЫЙ источник для модели.
-      const factsBlock = (!isMoex && fq)
-        ? '\n\n=== ТОЧНЫЕ ЧИСЛА (FMP — ЕДИНСТВЕННЫЙ ИСТОЧНИК, НЕ МЕНЯТЬ, НЕ ВЫДУМЫВАТЬ) ===' +
-          '\nЦена = $' + fq.price +
-          '\nMarket cap = ' + fmtCap(fq.marketCap) +
-          '\nP/E = ' + (fq.pe != null ? (+fq.pe).toFixed(2) : 'н/д') +
-          '\nEPS = ' + (fq.eps != null ? (+fq.eps).toFixed(2) : 'н/д') +
-          '\n52W high = ' + (fq.yearHigh != null ? '$' + fq.yearHigh : 'н/д') +
-          '\n52W low = ' + (fq.yearLow != null ? '$' + fq.yearLow : 'н/д') +
+      if (isMoex) {
+        let mDiv = null;
+        [mq, mDiv] = await Promise.all([moexQuote(ticker), moexDividends(ticker)]);
+        const ex = extractMoexPrice(news, (ticker || '').toUpperCase()); // фоллбэк, если ISS недоступен
+        px  = (mq && mq.price != null) ? mq.price : ex.price;
+        yH  = (mq && mq.yearHigh != null) ? mq.yearHigh : ex.high52;
+        yL  = (mq && mq.yearLow != null) ? mq.yearLow : ex.low52;
+        cap = mq ? mq.marketCap : null;
+        divY = (mDiv != null && px) ? +(mDiv / px * 100).toFixed(2) : null;
+        // P/E по MOEX нет надёжного API → н/д (не выдумываем)
+      } else {
+        [fq, yq, divY] = await Promise.all([fmpQuote(ticker), yahooQuote(ticker), fmpDividendYield(ticker)]);
+        px  = (yq && yq.price != null) ? yq.price : (fq ? fq.price : null);
+        yH  = (yq && yq.yearHigh != null) ? yq.yearHigh : (fq ? fq.yearHigh : null);
+        yL  = (yq && yq.yearLow != null) ? yq.yearLow : (fq ? fq.yearLow : null);
+        cap = fq ? fq.marketCap : null;
+        peVal = fq ? fq.pe : null;
+        epsVal = fq ? fq.eps : null;
+      }
+
+      const extracted = { price: px, high52: yH, low52: yL };
+      const currentPrice = px;
+      const currencySymbol = isMoex ? '₽' : '$';
+      const pos = rangePosition(px, yL, yH);
+
+      const factsBlock = (px != null || cap != null)
+        ? '\n\n=== ТОЧНЫЕ ЧИСЛА (' + (isMoex ? 'MOEX ISS' : 'Yahoo+FMP') + ' — ЕДИНСТВЕННЫЙ ИСТОЧНИК, НЕ ВЫДУМЫВАТЬ) ===' +
+          '\nЦена = ' + (px != null ? currencySymbol + px : 'н/д') +
+          '\nMarket cap = ' + fmtCapCur(cap, isMoex) +
+          '\nP/E = ' + (peVal != null ? (+peVal).toFixed(2) : 'н/д') +
+          (epsVal != null ? '\nEPS = ' + (+epsVal).toFixed(2) : '') +
+          '\n52W high = ' + (yH != null ? currencySymbol + yH : 'н/д') +
+          '\n52W low = ' + (yL != null ? currencySymbol + yL : 'н/д') +
           '\nДивиденд (доходность) = ' + (divY != null ? divY + '%' : 'н/д') +
-          '\nПозиция в 52W диапазоне = ' + (pos != null ? pos + '% от минимума (0%=у годового дна, 100%=у годового пика)' : 'н/д') +
-          '\nЭТО единственный источник для полей price, priceNum, market cap, P/E, EPS, 52W high/low, дивиденда и позиции/ATH. ' +
-          'Любое поле "н/д" — оставь "н/д", НЕ подставляй своё число. Запрещено брать цифры из памяти или из текста веб-поиска для этих полей.'
+          '\nПозиция в 52W = ' + (pos != null ? pos + '% от минимума (0%=у годового дна, 100%=у годового пика)' : 'н/д') +
+          '\nЭто единственный источник для price, priceNum, week52Low/High (+Num), marketCap, P/E, дивиденда, atHigh/позиции. ' +
+          'Поле "н/д" — оставь "н/д"/пусто, НЕ подставляй своё число. Запрещено брать эти цифры из памяти или из текста веб-поиска.'
         : '';
 
       const priceInstruction = currentPrice
         ? '\n\nТекущая цена ' + ticker + ' = ' + currencySymbol + currentPrice +
-          (isMoex ? ' (РУБЛИ МОСБИРЖА, из веб-поиска).' : ' (USD).') +
+          (isMoex ? ' (РУБЛИ МОСБИРЖА).' : ' (USD).') +
           ' price="' + currencySymbol + currentPrice + '", priceNum=' + currentPrice + '.' +
-          (isMoex ? ' ВСЕ цены в РУБЛЯХ ₽. exchange="MOEX".' : '') +
-          ' НЕ используй другие числа как цену акции.'
-        : '\n\nЦена не подтверждена источником — поле цены оставь "н/д", не выдумывай.';
+          (isMoex ? ' ВСЕ цены в РУБЛЯХ ₽. exchange="MOEX".' : '') + ' НЕ используй другие числа как цену акции.'
+        : '\n\nЦена не подтверждена источником — поле цены оставь пустым/«н/д», не выдумывай.';
 
-      const insiderInstruction = '\n\nПОЛЕ insiders: бери ТОЛЬКО реальные сделки из веб-данных (Form 4 / OpenInsider / официальные раскрытия). Для каждой: name, role, type (buy/sell), amount, shares, date — точная дата сделки из Form 4 (формат "15 июн 2026"); если сделка есть в данных, но точной даты нет — укажи хотя бы месяц ("июн 2026"). НЕ показывай сделку, которой НЕТ в веб-данных. Нет подтверждённых сделок с источником — верни []. НИКОГДА не выдумывай инсайдеров, даты, суммы и количество акций.';
+      const insiderInstruction = '\n\nПОЛЕ insiders: бери ТОЛЬКО реальные сделки из веб-данных (Form 4 / OpenInsider / раскрытия). Для каждой: name, role, type (buy/sell), amount, shares, date — точная дата из Form 4 ("15 июн 2026"); если даты нет — хотя бы месяц. НЕТ сделки в данных — не показывай. Нет подтверждённых сделок — верни []. НИКОГДА не выдумывай инсайдеров, даты, суммы, акции.';
 
       const dateInstruction =
         '\n\n=== СОБЫТИЯ И ДАТЫ (ТОЧНОСТЬ) ===' +
-        '\nСегодня 13 июня 2026.' +
-        ' В events дай 4-6 событий: недавние подтверждённые факты (прошедшие отчёты/события с реальными датами — это контекст, urgent=false) И будущие катализаторы.' +
-        ' Даты в events.date и insiders.date — ТОЛЬКО реальные из веб-данных (формат "15 июн 2026").' +
-        ' Если точной даты будущего события в данных нет — напиши "ожидается Q3 2026" и т.п., но НЕ выдумывай конкретное число.' +
-        ' urgent=true — только для подтверждённых будущих событий в пределах ~30 дней. Прошедшие события НИКОГДА не помечай urgent.';
+        '\nСегодня 14 июня 2026.' +
+        ' В events дай 4-6 событий: недавние подтверждённые факты (urgent=false) И будущие катализаторы.' +
+        ' Даты events.date и insiders.date — ТОЛЬКО реальные из веб-данных ("15 июн 2026").' +
+        ' Нет точной даты будущего события — "ожидается Q3 2026", без выдуманного числа.' +
+        ' urgent=true — только подтверждённые будущие события в пределах ~30 дней. Прошедшие НИКОГДА не urgent.';
 
       const anticipationInstruction =
-        '\n\n=== БЛОК ПРЕДВОСХИЩЕНИЕ — 5 ИНДИКАТОРОВ (ОБЯЗАТЕЛЬНО) ===' +
-        '\nПострой причинно-следственную цепочку ВВЕРХ по поставкам для ' + ticker + ':' +
-        ' поставщики и их заказы, входное сырьё и его цены, загрузка фабрик/OEM-подрядчиков,' +
-        ' законтрактованный пайплайн, опережающие сигналы спроса, регуляторные/тендерные решения.' +
-        ' Эталон логики: заказы тайваньских OEM (Feng Tay, Pou Chen) опережают выручку Nike на 1-2 квартала —' +
-        ' примени ТАКУЮ ЖЕ логику к ' + ticker + '.' +
-        ' Заполни anticipationInd1..anticipationInd5: название индикатора + механизм связи + лаг опережения.' +
-        ' ТОЧНОСТЬ: конкретные числа бери ТОЛЬКО из веб-данных ниже; нет числа — опиши механизм качественно, без выдуманных цифр.';
+        '\n\n=== БЛОК ПРЕДВОСХИЩЕНИЕ — 5 ИНДИКАТОРОВ ===' +
+        '\nПострой причинно-следственную цепочку ВВЕРХ по поставкам для ' + ticker + ': поставщики и их заказы, входное сырьё и цены, загрузка фабрик/OEM, законтрактованный пайплайн, опережающие сигналы спроса, регуляторика.' +
+        ' Эталон: заказы тайваньских OEM (Feng Tay, Pou Chen) опережают выручку Nike на 1-2 квартала — примени ТАКУЮ ЖЕ логику к ' + ticker + '.' +
+        ' anticipationInd1..5: название + механизм + лаг. Числа ТОЛЬКО из веб-данных; нет числа — качественно, без выдумок.';
 
       const leadingNote = leadingData
-        ? '\n\n=== ОПЕРЕЖАЮЩИЙ ИНДИКАТОР (РЕАЛЬНЫЕ ДАННЫЕ 2026) ===\n' + leadingData +
-          '\nИспользуй эти реальные числа в anticipationInd1..5 где релевантно. НЕ бери данные из памяти.'
+        ? '\n\n=== ОПЕРЕЖАЮЩИЙ ИНДИКАТОР (РЕАЛЬНЫЕ ДАННЫЕ 2026) ===\n' + leadingData + '\nИспользуй эти реальные числа в anticipationInd1..5. НЕ бери из памяти.'
         : '';
 
       const rawData = [
@@ -590,7 +637,7 @@ export default async function handler(req, res) {
       const analysisPrompt = prompt +
         '\n\nРЕАЛЬНЫЕ ДАННЫЕ ИЗ ВЕБ-ПОИСКА (2026):\n' + rawData +
         factsBlock + priceInstruction + insiderInstruction + anticipationInstruction + dateInstruction +
-        '\n\nКРИТИЧНО: Числовые поля (цена, market cap, P/E, EPS, 52W, дивиденд) — ТОЛЬКО из блока ТОЧНЫЕ ЧИСЛА. Остальное — из данных выше. Нет данных → "н/д".' +
+        '\n\nКРИТИЧНО: Числовые поля (цена, 52W, market cap, P/E, дивиденд) — ТОЛЬКО из блока ТОЧНЫЕ ЧИСЛА. Остальное — из данных выше. Нет данных → "н/д"/пусто.' +
         (isMoex ? '\nБИРЖА МОСБИРЖА: цена РУБЛИ (₽). exchange="MOEX".' : '');
 
       const text = await callClaude([{ role: 'user', content: analysisPrompt }], 5000);
@@ -616,35 +663,22 @@ export default async function handler(req, res) {
 
       const STABLE = 'https://financialmodelingprep.com/stable/company-screener?';
       const V3 = 'https://financialmodelingprep.com/api/v3/stock-screener?';
-      const tryScreen = async (base) => {
-        const r = await fetch(base + params.toString());
-        return r.json();
-      };
+      const tryScreen = async (base) => { const r = await fetch(base + params.toString()); return r.json(); };
 
       try {
         let data = await tryScreen(STABLE);
         if (!Array.isArray(data)) {
           const v3data = await tryScreen(V3);
-          if (Array.isArray(v3data)) {
-            data = v3data;
-          } else {
-            const msg = (data && (data['Error Message'] || data.error || data.message))
-              || (v3data && (v3data['Error Message'] || v3data.error || v3data.message))
-              || 'FMP вернул не список (проверь ключ/лимит)';
+          if (Array.isArray(v3data)) { data = v3data; }
+          else {
+            const msg = (data && (data['Error Message'] || data.error || data.message)) || (v3data && (v3data['Error Message'] || v3data.error || v3data.message)) || 'FMP вернул не список (проверь ключ/лимит)';
             return res.json({ error: msg, results: [] });
           }
         }
         const results = data.slice(0, f.limit || 30).map((x) => ({
-          symbol: x.symbol,
-          name: x.companyName || '',
-          price: x.price ?? null,
-          marketCap: x.marketCap ?? null,
-          sector: x.sector || '',
-          industry: x.industry || '',
-          volume: x.volume ?? null,
-          beta: x.beta ?? null,
-          exchange: x.exchangeShortName || x.exchange || '',
-          country: x.country || ''
+          symbol: x.symbol, name: x.companyName || '', price: x.price ?? null, marketCap: x.marketCap ?? null,
+          sector: x.sector || '', industry: x.industry || '', volume: x.volume ?? null, beta: x.beta ?? null,
+          exchange: x.exchangeShortName || x.exchange || '', country: x.country || ''
         }));
         return res.json({ results });
       } catch (e) {
