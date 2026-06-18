@@ -319,8 +319,12 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { action, ticker, prompt, query, symbols } = req.body;
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  const crKey = anthropicKey || process.env.CRAZYROUTER_KEY;
+  // === ПРОВАЙДЕРЫ МОДЕЛИ (failover) ===
+  // crazyrouter — primary, OpenRouter — fallback, Anthropic — если появится прямой ключ.
+  const anthropicKey   = process.env.ANTHROPIC_API_KEY;
+  const crazyrouterKey = process.env.CRAZYROUTER_KEY;
+  const openrouterKey  = process.env.OPENROUTER_KEY;
+  const hasModelProvider = !!(crazyrouterKey || openrouterKey || anthropicKey);
   const tvKey = process.env.TAVILY_KEY;
   const fmpKey = process.env.FMP_KEY;
 
@@ -340,31 +344,82 @@ export default async function handler(req, res) {
     } catch (e) { return ''; }
   }
 
+  // === callClaude с автоматическим перебором провайдеров ===
+  // Идём по списку: первый рабочий ответ возвращаем. На 502/HTML/таймаут/ошибку — следующий.
+  // Общий дедлайн 175с (< maxDuration=180), чтобы успеть к fallback, а не сгореть на первом.
   async function callClaude(messages, maxTokens) {
     maxTokens = maxTokens || 4000;
-    const direct = !!anthropicKey;
-    const url = direct ? 'https://api.anthropic.com/v1/messages' : 'https://crazyrouter.com/v1/messages';
-    const headers = direct
-      ? { 'content-type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' }
-      : { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + crKey, 'anthropic-version': '2023-06-01' };
-    const who = direct ? 'Anthropic' : 'crazyrouter';
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 170000);
-    let r;
-    try {
-      r = await fetch(url, { method: 'POST', headers, body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: maxTokens, messages }), signal: ctrl.signal });
-    } catch (e) {
-      clearTimeout(timer);
-      if (e && e.name === 'AbortError') throw new Error(who + ' не ответил за 170с (перегружен/недоступен) — повтори запрос');
-      throw new Error(who + ' недоступен: ' + (e?.message || String(e)));
+
+    const providers = [
+      crazyrouterKey && {
+        who: 'crazyrouter',
+        url: 'https://crazyrouter.com/v1/messages',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + crazyrouterKey, 'anthropic-version': '2023-06-01' },
+        model: 'claude-sonnet-4-5',
+      },
+      openrouterKey && {
+        who: 'OpenRouter',
+        url: 'https://openrouter.ai/api/v1/messages',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': openrouterKey, 'anthropic-version': '2023-06-01' },
+        model: 'anthropic/claude-sonnet-4.5',
+      },
+      anthropicKey && {
+        who: 'Anthropic',
+        url: 'https://api.anthropic.com/v1/messages',
+        headers: { 'content-type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
+        model: 'claude-sonnet-4-5',
+      },
+    ].filter(Boolean);
+
+    if (!providers.length) throw new Error('Не задан ни один ключ модели (CRAZYROUTER_KEY / OPENROUTER_KEY / ANTHROPIC_API_KEY)');
+
+    const HARD_DEADLINE = Date.now() + 175000;
+    let lastErr = '';
+
+    for (let i = 0; i < providers.length; i++) {
+      const p = providers[i];
+      const isLast = i === providers.length - 1;
+      const remaining = HARD_DEADLINE - Date.now();
+      if (remaining < 8000) { lastErr = 'исчерпан бюджет времени функции (' + lastErr + ')'; break; }
+      // не-последнему даём максимум 110с, чтобы остался запас на fallback
+      const budget = isLast ? remaining : Math.min(remaining, 110000);
+
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), budget);
+      try {
+        const r = await fetch(p.url, {
+          method: 'POST',
+          headers: p.headers,
+          body: JSON.stringify({ model: p.model, max_tokens: maxTokens, messages }),
+          signal: ctrl.signal,
+        });
+        clearTimeout(timer);
+        const raw = await r.text();
+
+        // Прокси при сбое (502/503) отдают HTML-страницу вместо JSON — ловим ДО JSON.parse.
+        if (!r.ok || raw.trim().startsWith('<')) {
+          lastErr = p.who + ' HTTP ' + r.status + ': ' + raw.slice(0, 120).replace(/\s+/g, ' ').trim();
+          continue;
+        }
+
+        let d;
+        try { d = JSON.parse(raw); }
+        catch { lastErr = p.who + ' вернул не-JSON (HTTP ' + r.status + ')'; continue; }
+
+        if (d.error) { lastErr = (d.error.message || JSON.stringify(d.error)) + ' [' + p.who + ']'; continue; }
+
+        const out = (d.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+        if (out) return out; // успех — выходим
+        lastErr = p.who + ' вернул пустой ответ';
+      } catch (e) {
+        clearTimeout(timer);
+        lastErr = (e && e.name === 'AbortError')
+          ? p.who + ' прерван по таймауту (' + Math.round(budget / 1000) + 'с)'
+          : p.who + ' недоступен: ' + (e?.message || String(e));
+      }
     }
-    clearTimeout(timer);
-    const raw = await r.text();
-    let d;
-    try { d = JSON.parse(raw); }
-    catch { throw new Error(who + ' вернул не-JSON (HTTP ' + r.status + '): ' + raw.slice(0, 160)); }
-    if (d.error) throw new Error((d.error.message || JSON.stringify(d.error)) + ' [' + who + ']');
-    return (d.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+
+    throw new Error('Все провайдеры модели недоступны → ' + lastErr);
   }
 
   // MOEX: фоллбэк-парсинг из текста Tavily (если ISS недоступен). БЕЗ фабрикации диапазона.
@@ -445,7 +500,7 @@ export default async function handler(req, res) {
     if (action === 'resolve') {
       const raw = (ticker || '').trim();
       if (!raw) return res.json({ ticker: '', name: '' });
-      if (!crKey) return res.json({ ticker: raw.toUpperCase(), name: '' });
+      if (!hasModelProvider) return res.json({ ticker: raw.toUpperCase(), name: '' });
       try {
         const r = await callClaude([{ role: 'user', content:
           'Определи биржевой тикер по вводу пользователя (это тикер ИЛИ название компании на русском/английском): "' + raw + '".\n' +
@@ -473,7 +528,7 @@ export default async function handler(req, res) {
     }
 
     if (action === 'leading') {
-      if (!crKey) return res.status(500).json({ error: 'No API key' });
+      if (!hasModelProvider) return res.status(500).json({ error: 'No API key' });
       const tk = (ticker || '').toUpperCase();
       if (!tk) return res.json({ ticker: '', correlations: [], leading: [] });
 
@@ -521,7 +576,7 @@ export default async function handler(req, res) {
     }
 
     if (action === 'analyze') {
-      if (!crKey) return res.status(500).json({ error: 'No API key' });
+      if (!hasModelProvider) return res.status(500).json({ error: 'No API key' });
 
       const marketQuery = isMoex ? ticker + ' MOEX акция цена рублей котировка 2026' : ticker + ' stock price today 2026';
       const corrQuery = ticker + ' suppliers leading indicators correlation 2026';
