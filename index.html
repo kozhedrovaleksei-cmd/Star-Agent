@@ -346,6 +346,57 @@ table.dt .nm { color: var(--dim); font-size: 12px; }
 .pf-tot-val { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; margin-top: 4px; }
 .refresh-btn { background: var(--text); color: #fff; border: none; font-family: var(--font); font-size: 13px; font-weight: 500; padding: 9px 18px; border-radius: 980px; cursor: pointer; transition: opacity 0.15s; }
 .refresh-btn:hover { opacity: 0.85; }
+
+/* ─── РЫНОК (МАКРО-ОБЗОР) ─── */
+.mc-hero { background: var(--bg2); border: 1px solid var(--border2); border-radius: 18px; padding: 24px 26px; margin-bottom: 16px; box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; flex-wrap: wrap; }
+.mc-regime-wrap { display: flex; flex-direction: column; gap: 10px; }
+.mc-regime { display: inline-flex; align-items: center; gap: 9px; font-family: var(--font); font-weight: 700; font-size: 24px; letter-spacing: -0.02em; padding: 8px 18px; border-radius: 980px; width: fit-content; }
+.mc-regime-dot { width: 11px; height: 11px; border-radius: 50%; }
+.mc-on  { background: #e9f9ef; color: var(--green); border: 1px solid #b8ebcb; }
+.mc-off { background: #fff0f0; color: var(--red);   border: 1px solid #f5c2c2; }
+.mc-mix { background: var(--bg4);  color: var(--dim); border: 1px solid var(--border); }
+.mc-regime-line { font-size: 14px; color: var(--text2); line-height: 1.6; max-width: 560px; }
+.mc-asof { font-size: 12px; color: var(--dim); white-space: nowrap; }
+.mc-refresh-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+
+.mc-idx-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.mc-idx-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 16px; padding: 18px 20px; box-shadow: var(--shadow); }
+.mc-idx-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+.mc-idx-name { font-size: 12px; color: var(--dim); font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; }
+.mc-idx-px { font-family: var(--font); font-weight: 700; font-size: 26px; letter-spacing: -0.02em; }
+.mc-idx-chg { font-size: 13px; font-weight: 600; margin-left: 8px; }
+.mc-idx-rows { display: flex; flex-direction: column; gap: 5px; }
+.mc-idx-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); }
+.mc-idx-row .v { font-weight: 600; }
+.mc-ma-above { color: var(--green); } .mc-ma-below { color: var(--red); }
+.mc-vix-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 16px; padding: 18px 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; justify-content: center; }
+.mc-vix-val { font-family: var(--font); font-weight: 700; font-size: 30px; letter-spacing: -0.02em; }
+.mc-vix-state { font-size: 12px; color: var(--dim); margin-top: 4px; }
+
+.mc-state-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 16px; padding: 18px 22px; margin-bottom: 16px; box-shadow: var(--shadow); }
+.mc-state-badge { display: inline-block; font-size: 13px; font-weight: 700; padding: 5px 14px; border-radius: 980px; margin-bottom: 10px; }
+.mc-state-over { background: #fff0f0; color: var(--red); border: 1px solid #f5c2c2; }
+.mc-state-under { background: #e9f9ef; color: var(--green); border: 1px solid #b8ebcb; }
+.mc-state-neutral { background: var(--bg4); color: var(--dim); border: 1px solid var(--border); }
+.mc-note { font-size: 14px; color: var(--text2); line-height: 1.65; }
+.mc-note + .mc-note { margin-top: 10px; }
+.mc-note b { color: var(--text); font-weight: 600; }
+
+.mc-assets { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.mc-asset { background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; padding: 14px 14px; text-align: center; box-shadow: var(--shadow); }
+.mc-asset-name { font-size: 11px; color: var(--dim); font-weight: 600; margin-bottom: 6px; }
+.mc-asset-px { font-family: var(--font); font-weight: 700; font-size: 18px; letter-spacing: -0.01em; }
+.mc-asset-chg { font-size: 12px; font-weight: 600; margin-top: 3px; }
+
+.mc-sectors { display: flex; flex-direction: column; gap: 8px; }
+.mc-sec-row { display: grid; grid-template-columns: 150px 1fr 64px; align-items: center; gap: 12px; }
+.mc-sec-name { font-size: 13px; color: var(--text2); font-weight: 500; }
+.mc-sec-track { height: 8px; background: var(--bg3); border-radius: 980px; position: relative; overflow: hidden; }
+.mc-sec-fill { position: absolute; top: 0; bottom: 0; border-radius: 980px; }
+.mc-sec-fill.up { background: var(--green); left: 50%; } .mc-sec-fill.down { background: var(--red); right: 50%; }
+.mc-sec-mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--border); }
+.mc-sec-val { font-size: 13px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.mc-rot-note { font-size: 12px; color: var(--dim); margin-top: 12px; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -386,6 +437,7 @@ table.dt .nm { color: var(--dim); font-size: 12px; }
     <button id="tabbtn-sizing" class="tab-btn" onclick="switchTab('sizing')">📐 Сайзинг</button>
     <button id="tabbtn-levels" class="tab-btn" onclick="switchTab('levels')">🎯 Уровни</button>
     <button id="tabbtn-leading" class="tab-btn" onclick="switchTab('leading')">🧭 Связи</button>
+    <button id="tabbtn-macro" class="tab-btn" onclick="switchTab('macro')">🌍 Рынок</button>
   </nav>
 
   <div id="tab-analyze" class="tab-panel active">
@@ -552,6 +604,16 @@ table.dt .nm { color: var(--dim); font-size: 12px; }
     <div id="ldError" class="error-box"></div>
     <div id="ldLoading" class="loading"><div class="load-title">🧭 STARK ИЩЕТ ОПЕРЕЖАЮЩИЕ ИНДИКАТОРЫ...</div></div>
     <div id="ldResult"></div>
+  </div>
+
+  <div id="tab-macro" class="tab-panel">
+    <div class="mc-refresh-row">
+      <button class="analyze-btn" id="mcBtn" style="flex:0 0 240px;height:52px;font-size:15px" onclick="runMacro()">🌍 ОБНОВИТЬ ОБЗОР РЫНКА</button>
+      <span style="font-size:12px;color:var(--dim);line-height:1.5">Один клик — полный срез рынка США: режим, индексы vs MA, VIX, активы, секторная ротация, потоки и катализаторы, вердикт. Цифры — живой Yahoo, аналитика — веб-поиск.</span>
+    </div>
+    <div id="mcError" class="error-box"></div>
+    <div id="mcLoading" class="loading"><div class="load-title">🌍 STARK СОБИРАЕТ ГЛОБАЛЬНЫЙ ОБЗОР...</div></div>
+    <div id="mcResult"></div>
   </div>
 </div>
 
@@ -1148,9 +1210,154 @@ function switchTab(name) {
   const btn = document.getElementById('tabbtn-' + name); if (btn) btn.classList.add('active');
   if (name === 'watchlist') renderWatchlist();
   if (name === 'portfolio') renderPortfolio();
+  if (name === 'macro' && !window.__macroLoaded) { window.__macroLoaded = true; runMacro(); }
   if (name === 'sizing' && window.__lastNorm && typeof window.__lastNorm.starkScore === 'number') {
     const f = document.getElementById('szScore'); if (f) f.value = window.__lastNorm.starkScore.toFixed(1);
   }
+}
+
+// ═══════════════ РЫНОК: ГЛОБАЛЬНЫЙ МАКРО-ОБЗОР ═══════════════
+function mcShowError(m){ const el=document.getElementById('mcError'); el.textContent='⚠ '+m; el.classList.add('show'); }
+function mcHideError(){ document.getElementById('mcError').classList.remove('show'); }
+function mcChg(v){
+  if(v==null||!isFinite(v)) return '';
+  const c=v>0?'var(--green)':(v<0?'var(--red)':'var(--dim)');
+  return '<span style="color:'+c+'">'+(v>0?'+':'')+v.toFixed(2)+'%</span>';
+}
+function mcFmtAsset(a){
+  if(a.price==null) return '<span style="color:var(--dim2)">н/д</span>';
+  const p=a.price;
+  if(a.unit==='%')   return p.toFixed(2)+'%';
+  if(a.unit==='big') return '$'+Math.round(p).toLocaleString('en-US');
+  if(a.unit==='idx') return p.toFixed(2);
+  return '$'+p.toFixed(2);
+}
+async function runMacro(){
+  mcHideError();
+  const crKey=localStorage.getItem('crazyrouter_key');
+  if(!crKey){ mcShowError('Сохрани Crazyrouter API ключ (вкладка Анализ)'); return; }
+  const btn=document.getElementById('mcBtn'); if(btn) btn.disabled=true;
+  document.getElementById('mcResult').innerHTML='';
+  document.getElementById('mcLoading').classList.add('show');
+  try{
+    const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'macro'})});
+    const d=await safeJson(r);
+    document.getElementById('mcLoading').classList.remove('show');
+    if(d.error){ mcShowError(typeof d.error==='string'?d.error:(d.error.message||JSON.stringify(d.error))); return; }
+    renderMacro(d);
+  }catch(e){
+    document.getElementById('mcLoading').classList.remove('show');
+    mcShowError(e.message||'Ошибка обзора рынка');
+  }finally{ if(btn) btn.disabled=false; }
+}
+function mcIdxCard(label, s){
+  if(!s) return '<div class="mc-idx-card"><div class="mc-idx-name">'+label+'</div><div style="color:var(--dim2);margin-top:10px">нет данных</div></div>';
+  const a50 = s.above50==null?'':(s.above50?'mc-ma-above':'mc-ma-below');
+  const a200 = s.above200==null?'':(s.above200?'mc-ma-above':'mc-ma-below');
+  return '<div class="mc-idx-card">'+
+    '<div class="mc-idx-top"><span class="mc-idx-name">'+label+'</span></div>'+
+    '<div style="margin-bottom:12px"><span class="mc-idx-px">'+s.price.toLocaleString('en-US')+'</span><span class="mc-idx-chg">'+mcChg(s.changePct)+'</span></div>'+
+    '<div class="mc-idx-rows">'+
+      '<div class="mc-idx-row"><span>50 DMA</span><span class="v '+a50+'">'+(s.sma50!=null?s.sma50.toLocaleString('en-US'):'н/д')+(s.above50==null?'':(s.above50?' · выше':' · ниже'))+'</span></div>'+
+      '<div class="mc-idx-row"><span>200 DMA</span><span class="v '+a200+'">'+(s.sma200!=null?s.sma200.toLocaleString('en-US'):'н/д')+(s.above200==null?'':(s.above200?' · выше':' · ниже'))+'</span></div>'+
+      '<div class="mc-idx-row"><span>От 52W-хая</span><span class="v">'+(s.fromHighPct!=null?(s.fromHighPct>0?'+':'')+s.fromHighPct+'%':'н/д')+'</span></div>'+
+      '<div class="mc-idx-row"><span>Позиция в 52W</span><span class="v">'+(s.pos!=null?s.pos+'%':'н/д')+'</span></div>'+
+    '</div></div>';
+}
+function renderMacro(d){
+  const el=document.getElementById('mcResult');
+  const ai=d.ai||{};
+  const idx=d.indices||{};
+  const reg=(ai.regime||'').toUpperCase();
+  const regCls = reg.includes('ON')?'mc-on':(reg.includes('OFF')?'mc-off':'mc-mix');
+  const regDot = reg.includes('ON')?'var(--green)':(reg.includes('OFF')?'var(--red)':'var(--dim)');
+
+  // VIX-состояние (детерминированно по уровню)
+  const vix=idx.vix;
+  let vixState='';
+  if(vix!=null){ vixState = vix<15?'низкая волатильность · спокойствие':(vix<20?'умеренная волатильность':(vix<30?'повышенная волатильность · нервозность':'высокий страх')); }
+
+  const st=(ai.marketState||'').toUpperCase();
+  const stCls = st.includes('ПЕРЕКУП')?'mc-state-over':(st.includes('ПЕРЕПРОД')?'mc-state-under':'mc-state-neutral');
+
+  // активы
+  const assets=Array.isArray(d.assets)?d.assets:[];
+  const assetsHtml=assets.map(a=>'<div class="mc-asset"><div class="mc-asset-name">'+a.name+'</div><div class="mc-asset-px">'+mcFmtAsset(a)+'</div><div class="mc-asset-chg">'+(a.changePct!=null?mcChg(a.changePct):'')+'</div></div>').join('');
+
+  // сектора — масштаб по максимальному абсолютному изменению
+  const sectors=Array.isArray(d.sectors)?d.sectors:[];
+  const maxAbs=Math.max(0.1,...sectors.map(s=>Math.abs(s.changePct||0)));
+  const sectorsHtml=sectors.map(s=>{
+    const v=s.changePct||0; const w=Math.min(50, Math.abs(v)/maxAbs*50);
+    const fill = v>=0?'<div class="mc-sec-fill up" style="width:'+w+'%"></div>':'<div class="mc-sec-fill down" style="width:'+w+'%"></div>';
+    const c=v>0?'var(--green)':(v<0?'var(--red)':'var(--dim)');
+    return '<div class="mc-sec-row"><span class="mc-sec-name">'+s.name+'</span><div class="mc-sec-track"><div class="mc-sec-mid"></div>'+fill+'</div><span class="mc-sec-val" style="color:'+c+'">'+(v>0?'+':'')+v.toFixed(2)+'%</span></div>';
+  }).join('');
+  const rotNote = (d.cycAvg!=null&&d.defAvg!=null)
+    ? 'Среднее по циклическим '+(d.cycAvg>0?'+':'')+d.cycAvg+'% против защитных '+(d.defAvg>0?'+':'')+d.defAvg+'%. '+(d.cycAvg>d.defAvg?'Деньги в риске — циклика впереди.':'Деньги в обороне — защита впереди.')
+    : '';
+
+  // предвосхищение
+  const ant=Array.isArray(ai.anticipation)?ai.anticipation:[];
+  const tagMeta={ flow:{t:'ПОТОК',cls:'tag-catalyst'}, catalyst:{t:'КАТАЛИЗАТОР',cls:'tag-catalyst'}, risk:{t:'РИСК',cls:'tag-urgent'} };
+  const antHtml=ant.map((x,i)=>{
+    const tm=tagMeta[(x.tag||'').toLowerCase()]||{t:'СОБЫТИЕ',cls:'tag-catalyst'};
+    return '<div class="indicator-item">'+
+      '<div class="indicator-num">'+(i+1)+'</div>'+
+      '<div class="indicator-body">'+
+        '<div class="indicator-name" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><span>'+(x.title||'')+'<span class="event-tag '+tm.cls+'" style="margin-left:8px">'+tm.t+'</span></span><span style="color:var(--accent);font-weight:600">'+(x.date||'')+'</span></div>'+
+        '<div class="indicator-desc">'+(x.detail||'')+'</div>'+
+      '</div></div>';
+  }).join('');
+
+  // инсайд
+  const ins=Array.isArray(ai.insiders)?ai.insiders:[];
+  const insHtml=ins.length?ins.map(i=>{
+    const buy=(i.type||'').toLowerCase().includes('buy');
+    return '<div class="insider-item"><div><div class="insider-name">'+(i.name||'—')+'</div><div class="insider-role">'+(i.role||'')+'</div></div>'+
+      '<div class="insider-amount '+(buy?'insider-buy':'insider-sell')+'"><span class="trade-badge '+(buy?'buy':'sell')+'"><span class="arr">'+(buy?'↑':'↓')+'</span>'+(buy?'Покупка':'Продажа')+'</span><span style="font-size:13px;font-weight:500;color:var(--text2)">'+(i.detail||'')+'</span></div>'+
+      '<div class="insider-date">'+(i.date||'—')+'</div></div>';
+  }).join(''):'<div style="font-size:12px;color:var(--dim)">Нет подтверждённых сделок в данных</div>';
+
+  const stance=(ai.stance||'').toUpperCase();
+  const stanceCls = stance.includes('ON')?'var(--green)':(stance.includes('DEF')?'var(--red)':'var(--dim)');
+
+  el.innerHTML=
+    '<div class="mc-hero">'+
+      '<div class="mc-regime-wrap">'+
+        '<span class="mc-regime '+regCls+'"><span class="mc-regime-dot" style="background:'+regDot+'"></span>'+(ai.regime||'—')+'</span>'+
+        (ai.regimeLine?'<div class="mc-regime-line">'+ai.regimeLine+'</div>':'')+
+      '</div>'+
+      '<div class="mc-asof">'+(d.asOf||'')+'</div>'+
+    '</div>'+
+
+    '<div class="mc-idx-grid">'+
+      mcIdxCard('S&P 500', idx.spx)+
+      mcIdxCard('NASDAQ Comp', idx.ndx)+
+      '<div class="mc-vix-card"><div class="mc-idx-name">VIX — индекс страха</div><div style="margin-top:8px"><span class="mc-vix-val">'+(vix!=null?vix.toFixed(2):'н/д')+'</span> <span style="font-size:13px;font-weight:600">'+(idx.vixChange!=null?mcChg(idx.vixChange):'')+'</span></div><div class="mc-vix-state">'+vixState+'</div></div>'+
+    '</div>'+
+
+    '<div class="mc-state-card">'+
+      (st?'<span class="mc-state-badge '+stCls+'">'+ai.marketState+'</span>':'')+
+      (ai.stateNote?'<div class="mc-note">'+ai.stateNote+'</div>':'')+
+      (ai.breadth?'<div class="mc-note"><b>Ширина:</b> '+ai.breadth+'</div>':'')+
+    '</div>'+
+
+    (assetsHtml?'<div class="section-card"><div class="section-title">🪙 Ключевые активы</div><div class="mc-assets" style="margin-bottom:0">'+assetsHtml+'</div>'+(ai.goldNote?'<div class="mc-rot-note" style="margin-top:14px">'+ai.goldNote+'</div>':'')+'</div>':'')+
+
+    (sectorsHtml?'<div class="section-card"><div class="section-title">🔄 Секторная ротация (день)</div><div class="mc-sectors">'+sectorsHtml+'</div>'+(rotNote?'<div class="mc-rot-note">'+rotNote+'</div>':'')+(ai.sectorNote?'<div class="mc-note" style="margin-top:10px">'+ai.sectorNote+'</div>':'')+'</div>':'')+
+
+    (antHtml?'<div class="anticipation-section"><div class="anticipation-title">🔮 ПРЕДВОСХИЩЕНИЕ — ПОТОКИ И КАТАЛИЗАТОРЫ СЕЙЧАС</div><div class="indicator-list">'+antHtml+'</div></div>':'')+
+
+    '<div class="section-card"><div class="section-title">🏛 Инсайд и институционалы</div>'+insHtml+'</div>'+
+
+    ((ai.bullCase||ai.bearCase)?'<div class="cases"><div class="case-item"><div class="case-title bull">↑ Бычий сценарий</div><div class="case-text">'+(ai.bullCase||'—')+'</div></div><div class="case-item"><div class="case-title bear">↓ Медвежий сценарий</div><div class="case-text">'+(ai.bearCase||'—')+'</div></div></div>':'')+
+
+    (ai.verdict?'<div class="verdict-section"><div class="verdict-title">🎯 Вердикт STARK по рынку'+(stance?' · <span style="color:'+stanceCls+'">'+ai.stance+'</span>':'')+'</div><div class="verdict-text">'+ai.verdict+'</div><div class="verdict-phrase">ВОТ ТАК ЗАКАЛЯЕТСЯ ХАРАКТЕР.</div></div>':'')+
+
+    '<div class="sz-note" style="margin-top:10px">Цифры (индексы, MA, 52W, цены активов, секторная ротация) — живой Yahoo на момент запроса. Текст (режим, потоки, инсайд, вердикт) — синтез веб-поиска. Карта рынка, не рекомендация.</div>';
+
+  el.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 // ═══════════════ ВОТЧЛИСТ ═══════════════
