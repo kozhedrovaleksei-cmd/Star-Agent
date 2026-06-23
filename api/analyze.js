@@ -164,6 +164,24 @@ async function leadQuote(symbol) {
   } catch (e) { return null; }
 }
 
+// ====== ТОП-ГЕЙНЕРЫ/ЛУЗЕРЫ ДНЯ — реальные лидеры движения (Yahoo predefined screener) ======
+// Может быть заблокирован с Vercel IP (как intraday). Обёрнут в try → при null лидеры придут из Tavily.
+async function macroMovers(scrId, count) {
+  try {
+    const url = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?scrIds=${scrId}&count=${count || 12}`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    if (!r.ok) return [];
+    const j = await r.json();
+    const rows = j?.finance?.result?.[0]?.quotes || [];
+    return rows.map(q => ({
+      ticker: q.symbol,
+      name: q.shortName || q.longName || q.symbol,
+      price: q.regularMarketPrice ?? null,
+      changePct: q.regularMarketChangePercent != null ? +q.regularMarketChangePercent.toFixed(2) : null,
+    })).filter(x => x.ticker && x.changePct != null).slice(0, count || 12);
+  } catch (e) { return []; }
+}
+
 // ====== MACRO: снимок индекса с 50/200 DMA, 52W, позицией (action 'macro') ======
 async function macroIndexSnapshot(symbol) {
   try {
@@ -649,15 +667,21 @@ export default async function handler(req, res) {
       const weekPhase = dow <= 1 ? 'начало недели' : (dow <= 3 ? 'середина недели' : (dow <= 5 ? 'конец недели' : 'выходные (рынок США закрыт)'));
       const ymd = nowD.toLocaleDateString('en-CA', { timeZone: tz });               // YYYY-MM-DD
       const monthYear = nowD.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: tz });
+      // дни до конца месяца — для прогноза «до конца месяца» и логики month-end ребаланса
+      const dayNum = +nowD.toLocaleDateString('en-CA', { timeZone: tz }).slice(8, 10);
+      const monthIdx = nowD.getMonth();
+      const yearNum = nowD.getFullYear();
+      const lastDay = new Date(yearNum, monthIdx + 1, 0).getDate();
+      const daysToMonthEnd = Math.max(0, lastDay - dayNum);
       // Свежесть новостных запросов: в начале недели заглядываем чуть глубже (захватить выходные/понедельник).
       const FRESH = (dow <= 1 || dow >= 6) ? 4 : 3;
 
-      // 10 параллельных Tavily-запросов — отдельный по каждому классу активов (режим «максимум»).
+      // Параллельные запросы — отдельный по каждому классу активов (режим «максимум») + срывы поставок + лидеры + реальные гейнеры дня.
       // topic:news + окно дней → каждый клик подтягивает именно сегодняшние материалы, а не кэш.
       const Q = (s) => s + ' ' + monthYear;  // привязка к реальному месяцу/году
       const [
-        spx, ndx, rut, vixQ, assetQs, sectorQs,
-        news, flows, rotation, commod, oil, ratesFx, crypto, eurasia, calendar, insiderCtx
+        spx, ndx, rut, vixQ, assetQs, sectorQs, gainers,
+        news, flows, rotation, commod, oil, ratesFx, crypto, eurasia, supply, leadersCtx, calendar, insiderCtx
       ] = await Promise.all([
         macroIndexSnapshot('^GSPC'),
         macroIndexSnapshot('^IXIC'),
@@ -665,6 +689,7 @@ export default async function handler(req, res) {
         leadQuote('^VIX'),
         Promise.all(ASSET_DEFS.map(a => leadQuote(a.symbol))),
         Promise.all(SECTOR_DEFS.map(s => leadQuote(s.symbol))),
+        macroMovers('day_gainers', 12),
         tavilySearch(Q('US stock market today S&P 500 Nasdaq outlook sentiment overbought oversold breadth'), { days: FRESH, max: 6 }),
         tavilySearch(Q('institutional fund flows month-end quarter-end rebalancing pension fund forced selling buying billions'), { days: FRESH, max: 6 }),
         tavilySearch(Q('stock market sector rotation today leaders laggards tech consumer staples money flow'), { days: FRESH, max: 5 }),
@@ -673,9 +698,16 @@ export default async function handler(req, res) {
         tavilySearch(Q('US 10 year treasury yield dollar index DXY Fed rate path direction today'), { days: FRESH, max: 5 }),
         tavilySearch(Q('Bitcoin Ethereum crypto market today risk sentiment ETF flows'), { days: FRESH, max: 5 }),
         tavilySearch(Q('European Asian stock markets today DAX Nikkei Hang Seng global risk'), { days: FRESH, max: 5 }),
+        tavilySearch(Q('supply chain disruption shortage bottleneck shipping semiconductor chips logistics which companies affected winners'), { days: 7, max: 6 }),
+        tavilySearch(Q('strongest stocks leaders this week month momentum breakout which sectors stocks to buy analysts top picks'), { days: FRESH, max: 6 }),
         tavilySearch(Q('US economic calendar this week Fed FOMC CPI PCE jobs report earnings OPEX options expiration'), { days: 7, max: 6 }),
         tavilySearch(Q('notable insider buying CEO CFO purchase institutional 13F large position latest'), { days: 14, max: 5 }),
       ]);
+
+      // Текстовый блок реальных гейнеров дня (если Yahoo screener прошёл)
+      const gainersLine = (gainers && gainers.length)
+        ? gainers.map(g => g.ticker + ' (' + g.name + ') +' + g.changePct + '%').join('\n')
+        : 'н/д (источник недоступен — лидеров бери из веб-контекста)';
 
       const assets = ASSET_DEFS.map((a, i) => ({
         name: a.name, symbol: a.symbol, unit: a.unit,
@@ -713,40 +745,47 @@ export default async function handler(req, res) {
         'АКТИВЫ:\n' + assetsLine + '\n\n' +
         'СЕКТОРНАЯ РОТАЦИЯ (дневное изменение SPDR-секторов, отсортировано):\n' + sectorsLine + '\n' +
         'Среднее циклических (XLK/XLF/XLE/XLY/XLI) = ' + (cycAvg != null ? (cycAvg >= 0 ? '+' : '') + cycAvg.toFixed(2) + '%' : 'н/д') +
-        '; среднее защитных (XLV/XLP/XLU) = ' + (defAvg != null ? (defAvg >= 0 ? '+' : '') + defAvg.toFixed(2) + '%' : 'н/д');
+        '; среднее защитных (XLV/XLP/XLU) = ' + (defAvg != null ? (defAvg >= 0 ? '+' : '') + defAvg.toFixed(2) + '%' : 'н/д') + '\n\n' +
+        'РЕАЛЬНЫЕ ЛИДЕРЫ ДВИЖЕНИЯ СЕГОДНЯ (топ-гейнеры дня, Yahoo — фактические тикеры, можно использовать как лидеров):\n' + gainersLine;
 
       const macroPrompt =
-        'Ты — STARK AI, рыночный аналитик Алексея. Дай ГЛОБАЛЬНЫЙ обзор рынка на сегодня.\n' +
-        'СЕГОДНЯ: ' + today + ', ' + weekdayRu + '. Сейчас ' + weekPhase + '. До конца торговой недели (пятница) осталось дней: ' + daysToFriday + '.\n' +
-        'Пиши ПРОСТО и ясно — так, чтобы понял даже новичок: короткие фразы, без жаргона без расшифровки. Но по сути — как опытный трейдер.\n' +
-        'Все числовые факты (уровни индексов, MA, %, цены активов, проценты секторов) бери ТОЛЬКО из блока ТОЧНЫЕ ЧИСЛА ниже — они посчитаны по живым данным Yahoo. НЕ выдумывай и НЕ меняй их.\n' +
-        'Текстовую аналитику строй ТОЛЬКО на контексте веб-поиска ниже (он свежий, за последние дни). Нет факта/числа в данных — формулируй качественно, без выдуманной цифры. Даты — только реальные из веб-поиска; нет точной — пиши "ожидается".\n' +
-        'anticipation: реальные ТЕКУЩИЕ потоки и катализаторы — month-/quarter-end ребалансировки (пример: «фонды должны продать ~$X к концу месяца»), OPEX/quad witching, ФРС, CPI/PCE/jobs, крупные корп. события. Каждый пункт — с датой и тегом.\n' +
-        'weeklyOutlook: что важного выходит ПО ДНЯМ до конца этой недели (используй [КАЛЕНДАРЬ]) и общий вектор до пятницы.\n' +
-        'playbook: конкретный план по секторам/классам активов в стиле Алексея — глагол + причина. Пример мышления: «технологии — покупать на откатах к поддержке», «потребительский защитный сектор — распродавать в силу», «золото — держать как страховку». Опирайся на ротацию (циклика vs защита) и веб-контекст.\n\n' +
+        'Ты — STARK AI, рыночный аналитик Алексея. Дай ГЛОБАЛЬНЫЙ обзор рынка на сегодня — ЖИВОЙ, КОНКРЕТНЫЙ, С ИМЕНАМИ.\n' +
+        'СЕГОДНЯ: ' + today + ', ' + weekdayRu + '. Сейчас ' + weekPhase + '. До конца недели (пятница): ' + daysToFriday + ' дн. До конца месяца: ' + daysToMonthEnd + ' дн.\n' +
+        'ГЛАВНОЕ: пиши так, чтобы даже новичок понял ЧТО ПРОИСХОДИТ и ЧТО ДЕЛАТЬ. Короткие фразы, ноль воды. Но всегда КОНКРЕТНО: называй сектора И тикеры-лидеры внутри них, а не общие слова.\n' +
+        'Все ЧИСЛА бери ТОЛЬКО из блока ТОЧНЫЕ ЧИСЛА — НЕ выдумывай и НЕ меняй.\n' +
+        'Тикеры-лидеры бери из РЕАЛЬНЫХ источников: список гейнеров дня выше и веб-контекст [ЛИДЕРЫ]. НЕ выдумывай тикеры — только реально упомянутые.\n' +
+        'Текст строй ТОЛЬКО на свежем веб-контексте ниже (последние дни). Нет данных — пиши качественно, без выдуманных цифр. Даты — только реальные; нет точной — "ожидается".\n' +
+        'supplyChain: что РЕАЛЬНО рвётся в цепочках поставок прямо сейчас (дефициты, узкие места, логистика, чипы, сырьё) → и КТО от этого выигрывает (конкретные тикеры-бенефициары). Это твоя коронная тема предвосхищения. Бери из [СРЫВЫ ПОСТАВОК].\n' +
+        'weeklyOutlook: прогноз ДО ПЯТНИЦЫ — события по дням + вектор. monthlyOutlook: ДО КОНЦА МЕСЯЦА — month-end ребаланс, крупные потоки, общий вектор.\n' +
+        'topLeaders: КТО будет в лидерах до конца недели/месяца — 4-6 конкретных имён с тикером и причиной (импульс, катализатор, поставки).\n' +
+        'playbook: по каждому сектору/классу — глагол + ЛИДЕРЫ (тикеры). Пример мышления: «Технологии — покупать на откатах, лидеры NVDA/AVGO», «Защитный потреб — распродавать в силу».\n\n' +
         'Верни СТРОГО валидный JSON без markdown, без текста вокруг:\n' +
         '{\n' +
         '  "regime": "RISK-ON" | "RISK-OFF" | "СМЕШАННЫЙ",\n' +
-        '  "regimeLine": "одно ёмкое предложение простым языком: какой сейчас режим и почему",\n' +
-        '  "weekToday": "одно предложение: какой сегодня день недели и где мы в торговой неделе",\n' +
+        '  "regimeLine": "одно ёмкое предложение простым языком: какой режим и почему",\n' +
+        '  "weekToday": "одно предложение: какой сегодня день и где мы в торговой неделе",\n' +
         '  "marketState": "ПЕРЕКУПЛЕН" | "ПЕРЕПРОДАН" | "НЕЙТРАЛЕН",\n' +
         '  "stateNote": "1-2 простых предложения: где S&P относительно хаёв/MA, что говорит VIX",\n' +
-        '  "breadth": "1-2 предложения о ширине рынка простыми словами: узкое ли ралли, кто тянет (подсказка: сравни Russell 2000 с S&P)",\n' +
-        '  "sectorNote": "1-2 предложения: куда идут деньги, в риск (циклика) или в оборону (защита)",\n' +
+        '  "breadth": "1-2 предложения про ширину рынка простыми словами (сравни Russell 2000 с S&P)",\n' +
+        '  "sectorNote": "1-2 предложения: деньги идут в риск (циклика) или в оборону (защита)",\n' +
         '  "goldNote": "1 предложение: куда смотрит золото и почему",\n' +
-        '  "anticipation": [ {"title":"кратко","detail":"механизм/суть и влияние на рынок простыми словами","date":"дата или ожидается","tag":"flow"} ],\n' +
-        '  "weeklyOutlook": "2-4 предложения: чего ждать до конца недели, ключевые события по дням, общий вектор",\n' +
-        '  "playbook": [ {"asset":"Технологии","action":"BUY_DIP","note":"коротко почему"} ],\n' +
+        '  "whatsHappening": "2-3 предложения КРУПНЫМ МАЗКОМ: что реально творится на рынке прямо сейчас, самое важное",\n' +
+        '  "anticipation": [ {"title":"кратко","detail":"механизм и влияние простыми словами","date":"дата или ожидается","tag":"flow"} ],\n' +
+        '  "supplyChain": [ {"what":"что рвётся/дефицит","impact":"кого бьёт и кому в плюс","winners":["TICKER"],"date":"дата или ожидается"} ],\n' +
+        '  "weeklyOutlook": "2-4 предложения: чего ждать до конца недели, события по дням, вектор",\n' +
+        '  "monthlyOutlook": "2-3 предложения: чего ждать до конца месяца, потоки, вектор",\n' +
+        '  "topLeaders": [ {"ticker":"NVDA","name":"кратко кто","why":"почему в лидерах","horizon":"неделя"|"месяц"} ],\n' +
+        '  "playbook": [ {"asset":"Технологии","action":"BUY_DIP","leaders":["NVDA","AVGO"],"note":"коротко почему"} ],\n' +
         '  "insiders": [ {"name":"кто","role":"должность/фонд","detail":"что сделал","date":"дата","type":"buy"} ],\n' +
         '  "bullCase": "2-3 простых предложения за рост",\n' +
         '  "bearCase": "2-3 простых предложения за падение/риск",\n' +
-        '  "verdict": "2-3 предложения: чистая позиция STARK по рынку сейчас, простым языком",\n' +
+        '  "verdict": "2-3 предложения: чистая позиция STARK по рынку сейчас, простым языком + что делать",\n' +
         '  "stance": "RISK-ON" | "НЕЙТРАЛЬНО" | "DEFENSE"\n' +
         '}\n' +
-        'tag в anticipation — одно из: "flow" (поток/ребаланс), "catalyst" (событие/отчёт), "risk" (риск-фактор). ' +
-        'action в playbook — СТРОГО одно из: "BUY_DIP" (покупать на откатах), "BUY" (покупать в силу), "HOLD" (держать), "DISTRIBUTE" (распродавать/фиксировать), "AVOID" (избегать/шортить). ' +
-        'type в insiders — "buy" или "sell". ' +
-        'anticipation — 3-6 пунктов. playbook — 4-7 пунктов (секторы и/или классы активов: акции/золото/нефть/крипта). insiders — 0-5 реальных (нет подтверждённых — пустой массив, НЕ выдумывай). bull/bear обязательны оба.\n\n' +
+        'tag в anticipation: "flow" | "catalyst" | "risk". ' +
+        'action в playbook СТРОГО: "BUY_DIP" (на откатах) | "BUY" (в силу) | "HOLD" (держать) | "DISTRIBUTE" (распродавать) | "AVOID" (избегать/шорт). ' +
+        'type в insiders: "buy" | "sell". horizon в topLeaders: "неделя" | "месяц".\n' +
+        'ОБЪЁМЫ: anticipation 3-6 · supplyChain 2-5 · topLeaders 4-6 · playbook 4-7 (с реальными тикерами в leaders) · insiders 0-5 реальных (нет — пустой массив). bull/bear оба обязательны. КАЖДЫЙ playbook-пункт ОБЯЗАН иметь хотя бы 1 тикер в leaders, если это акции/сектор.\n\n' +
         factsBlock + '\n\n' +
         '=== КОНТЕКСТ ВЕБ-ПОИСКА (свежий, ' + monthYear + ') ===\n' +
         '[РЫНОК/НАСТРОЕНИЕ]\n' + (news || 'нет данных') + '\n\n' +
@@ -757,12 +796,14 @@ export default async function handler(req, res) {
         '[СТАВКИ И ДОЛЛАР]\n' + (ratesFx || 'нет данных') + '\n\n' +
         '[КРИПТА]\n' + (crypto || 'нет данных') + '\n\n' +
         '[ЕВРОПА/АЗИЯ]\n' + (eurasia || 'нет данных') + '\n\n' +
+        '[СРЫВЫ ПОСТАВОК]\n' + (supply || 'нет данных') + '\n\n' +
+        '[ЛИДЕРЫ / СИЛЬНЕЙШИЕ]\n' + (leadersCtx || 'нет данных') + '\n\n' +
         '[КАЛЕНДАРЬ/КАТАЛИЗАТОРЫ НЕДЕЛИ]\n' + (calendar || 'нет данных') + '\n\n' +
         '[ИНСАЙД/ИНСТИТУЦИОНАЛЫ]\n' + (insiderCtx || 'нет данных');
 
       let ai = null;
       try {
-        const r = await callClaude([{ role: 'user', content: macroPrompt }], 4800);
+        const r = await callClaude([{ role: 'user', content: macroPrompt }], 6000);
         const clean = (r || '').replace(/```json|```/g, '').trim();
         const m = clean.match(/\{[\s\S]*\}/);
         ai = m ? JSON.parse(m[0]) : null;
@@ -776,9 +817,11 @@ export default async function handler(req, res) {
         weekday: weekdayRu,
         weekPhase,
         daysToFriday,
+        daysToMonthEnd,
         indices: { spx, ndx, rut, vix, vixChange: vixQ ? vixQ.changePct : null },
         assets,
         sectors,
+        gainers: (gainers || []).slice(0, 8),
         cycAvg: cycAvg != null ? +cycAvg.toFixed(2) : null,
         defAvg: defAvg != null ? +defAvg.toFixed(2) : null,
         ai,
