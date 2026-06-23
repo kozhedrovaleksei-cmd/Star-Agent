@@ -397,6 +397,37 @@ table.dt .nm { color: var(--dim); font-size: 12px; }
 .mc-sec-mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--border); }
 .mc-sec-val { font-size: 13px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
 .mc-rot-note { font-size: 12px; color: var(--dim); margin-top: 12px; line-height: 1.5; }
+
+/* ── день недели в шапке ── */
+.mc-weekday { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-soft); padding: 3px 10px; border-radius: 980px; margin-top: 6px; width: fit-content; }
+.mc-asof-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+
+/* ── легенда «как читать» ── */
+.mc-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; background: var(--bg2); border: 1px dashed var(--border); border-radius: 14px; padding: 12px 16px; margin-bottom: 16px; }
+.mc-legend-title { width: 100%; font-size: 11px; font-weight: 700; color: var(--dim); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 2px; }
+.mc-legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); }
+.mc-legend-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+
+/* ── до конца недели ── */
+.mc-week-card { background: linear-gradient(135deg, #f4f9ff 0%, #fbfbfd 100%); border: 1px solid #cfe2fb; border-radius: 18px; padding: 20px 24px; margin-bottom: 16px; box-shadow: var(--shadow); }
+.mc-week-head { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.mc-week-text { font-size: 14px; color: var(--text2); line-height: 1.7; }
+
+/* ── playbook по секторам ── */
+.mc-pb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.mc-pb-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; padding: 14px 16px; box-shadow: var(--shadow); border-left: 4px solid var(--border); }
+.mc-pb-card.act-buy_dip, .mc-pb-card.act-buy { border-left-color: var(--green); }
+.mc-pb-card.act-distribute, .mc-pb-card.act-avoid { border-left-color: var(--red); }
+.mc-pb-card.act-hold { border-left-color: var(--dim); }
+.mc-pb-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+.mc-pb-asset { font-size: 14px; font-weight: 700; color: var(--text); }
+.mc-pb-badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 980px; white-space: nowrap; }
+.mc-pb-badge.act-buy_dip { background: #e9f9ef; color: var(--green); border: 1px solid #b8ebcb; }
+.mc-pb-badge.act-buy { background: #1d8f4e; color: #fff; }
+.mc-pb-badge.act-hold { background: var(--bg4); color: var(--dim); border: 1px solid var(--border); }
+.mc-pb-badge.act-distribute { background: #fff6e6; color: #bf6a00; border: 1px solid #ffd699; }
+.mc-pb-badge.act-avoid { background: #fff0f0; color: var(--red); border: 1px solid #f5c2c2; }
+.mc-pb-note { font-size: 12px; color: var(--text2); line-height: 1.55; }
 </style>
 </head>
 <body>
@@ -609,7 +640,7 @@ table.dt .nm { color: var(--dim); font-size: 12px; }
   <div id="tab-macro" class="tab-panel">
     <div class="mc-refresh-row">
       <button class="analyze-btn" id="mcBtn" style="flex:0 0 240px;height:52px;font-size:15px" onclick="runMacro()">🌍 ОБНОВИТЬ ОБЗОР РЫНКА</button>
-      <span style="font-size:12px;color:var(--dim);line-height:1.5">Один клик — полный срез рынка США: режим, индексы vs MA, VIX, активы, секторная ротация, потоки и катализаторы, вердикт. Цифры — живой Yahoo, аналитика — веб-поиск.</span>
+      <span style="font-size:12px;color:var(--dim);line-height:1.5">Один клик — полная картина рынка простыми словами: что сегодня за день, рынок дорогой или дешёвый, куда идут деньги, чего ждать до конца недели и что делать по секторам. Цифры — живой Yahoo, выводы — свежий веб-поиск за последние дни.</span>
     </div>
     <div id="mcError" class="error-box"></div>
     <div id="mcLoading" class="loading"><div class="load-title">🌍 STARK СОБИРАЕТ ГЛОБАЛЬНЫЙ ОБЗОР...</div></div>
@@ -1322,30 +1353,68 @@ function renderMacro(d){
   const stance=(ai.stance||'').toUpperCase();
   const stanceCls = stance.includes('ON')?'var(--green)':(stance.includes('DEF')?'var(--red)':'var(--dim)');
 
+  // ── день недели / фаза недели ──
+  const weekdayTxt = (d.weekday||'') + (d.weekPhase?(' · '+d.weekPhase):'');
+
+  // ── playbook: глагол действия по каждому сектору/активу ──
+  const PB_LABEL = { BUY_DIP:'Покупать на откатах', BUY:'Покупать в силу', HOLD:'Держать', DISTRIBUTE:'Распродавать', AVOID:'Избегать / шорт' };
+  const pb = Array.isArray(ai.playbook)?ai.playbook:[];
+  const pbHtml = pb.map(p=>{
+    const act=(p.action||'HOLD').toUpperCase();
+    const cls='act-'+act.toLowerCase();
+    const label=PB_LABEL[act]||act;
+    return '<div class="mc-pb-card '+cls+'">'+
+      '<div class="mc-pb-top"><span class="mc-pb-asset">'+(p.asset||'—')+'</span><span class="mc-pb-badge '+cls+'">'+label+'</span></div>'+
+      (p.note?'<div class="mc-pb-note">'+p.note+'</div>':'')+
+    '</div>';
+  }).join('');
+
+  // ── легенда «как читать» (детский режим) ──
+  const legendHtml =
+    '<div class="mc-legend">'+
+      '<div class="mc-legend-title">Как читать этот экран</div>'+
+      '<span class="mc-legend-item"><span class="mc-legend-dot" style="background:var(--green)"></span>зелёный = за рост / покупать</span>'+
+      '<span class="mc-legend-item"><span class="mc-legend-dot" style="background:var(--red)"></span>красный = за падение / продавать</span>'+
+      '<span class="mc-legend-item"><span class="mc-legend-dot" style="background:var(--dim)"></span>серый = нейтрально / ждать</span>'+
+      '<span class="mc-legend-item">RISK-ON = рынок смелый · RISK-OFF = рынок прячется в защиту</span>'+
+      '<span class="mc-legend-item">VIX = «индекс страха»: ниже 15 спокойно, выше 30 паника</span>'+
+    '</div>';
+
   el.innerHTML=
     '<div class="mc-hero">'+
       '<div class="mc-regime-wrap">'+
         '<span class="mc-regime '+regCls+'"><span class="mc-regime-dot" style="background:'+regDot+'"></span>'+(ai.regime||'—')+'</span>'+
         (ai.regimeLine?'<div class="mc-regime-line">'+ai.regimeLine+'</div>':'')+
+        (ai.weekToday?'<div class="mc-regime-line" style="font-size:13px;color:var(--dim)">'+ai.weekToday+'</div>':'')+
       '</div>'+
-      '<div class="mc-asof">'+(d.asOf||'')+'</div>'+
+      '<div class="mc-asof-wrap">'+
+        '<div class="mc-asof">'+(d.asOf||'')+'</div>'+
+        (weekdayTxt?'<div class="mc-weekday">📅 '+weekdayTxt+'</div>':'')+
+      '</div>'+
     '</div>'+
+
+    legendHtml+
 
     '<div class="mc-idx-grid">'+
       mcIdxCard('S&P 500', idx.spx)+
       mcIdxCard('NASDAQ Comp', idx.ndx)+
+      mcIdxCard('Russell 2000 (малые)', idx.rut)+
       '<div class="mc-vix-card"><div class="mc-idx-name">VIX — индекс страха</div><div style="margin-top:8px"><span class="mc-vix-val">'+(vix!=null?vix.toFixed(2):'н/д')+'</span> <span style="font-size:13px;font-weight:600">'+(idx.vixChange!=null?mcChg(idx.vixChange):'')+'</span></div><div class="mc-vix-state">'+vixState+'</div></div>'+
     '</div>'+
 
     '<div class="mc-state-card">'+
       (st?'<span class="mc-state-badge '+stCls+'">'+ai.marketState+'</span>':'')+
       (ai.stateNote?'<div class="mc-note">'+ai.stateNote+'</div>':'')+
-      (ai.breadth?'<div class="mc-note"><b>Ширина:</b> '+ai.breadth+'</div>':'')+
+      (ai.breadth?'<div class="mc-note"><b>Ширина рынка:</b> '+ai.breadth+'</div>':'')+
     '</div>'+
+
+    ((ai.weeklyOutlook)?'<div class="mc-week-card"><div class="mc-week-head">📅 До конца недели</div><div class="mc-week-text">'+ai.weeklyOutlook+'</div></div>':'')+
 
     (assetsHtml?'<div class="section-card"><div class="section-title">🪙 Ключевые активы</div><div class="mc-assets" style="margin-bottom:0">'+assetsHtml+'</div>'+(ai.goldNote?'<div class="mc-rot-note" style="margin-top:14px">'+ai.goldNote+'</div>':'')+'</div>':'')+
 
     (sectorsHtml?'<div class="section-card"><div class="section-title">🔄 Секторная ротация (день)</div><div class="mc-sectors">'+sectorsHtml+'</div>'+(rotNote?'<div class="mc-rot-note">'+rotNote+'</div>':'')+(ai.sectorNote?'<div class="mc-note" style="margin-top:10px">'+ai.sectorNote+'</div>':'')+'</div>':'')+
+
+    (pbHtml?'<div class="section-card"><div class="section-title">🎮 План по секторам — что делать</div><div class="mc-pb-grid">'+pbHtml+'</div></div>':'')+
 
     (antHtml?'<div class="anticipation-section"><div class="anticipation-title">🔮 ПРЕДВОСХИЩЕНИЕ — ПОТОКИ И КАТАЛИЗАТОРЫ СЕЙЧАС</div><div class="indicator-list">'+antHtml+'</div></div>':'')+
 
@@ -1355,7 +1424,7 @@ function renderMacro(d){
 
     (ai.verdict?'<div class="verdict-section"><div class="verdict-title">🎯 Вердикт STARK по рынку'+(stance?' · <span style="color:'+stanceCls+'">'+ai.stance+'</span>':'')+'</div><div class="verdict-text">'+ai.verdict+'</div><div class="verdict-phrase">ВОТ ТАК ЗАКАЛЯЕТСЯ ХАРАКТЕР.</div></div>':'')+
 
-    '<div class="sz-note" style="margin-top:10px">Цифры (индексы, MA, 52W, цены активов, секторная ротация) — живой Yahoo на момент запроса. Текст (режим, потоки, инсайд, вердикт) — синтез веб-поиска. Карта рынка, не рекомендация.</div>';
+    '<div class="sz-note" style="margin-top:10px">Цифры (индексы, MA, 52W, цены активов, секторная ротация) — живой Yahoo на момент запроса. Текст (режим, план, потоки, инсайд, вердикт) — синтез свежего веб-поиска за последние дни. Карта рынка, не рекомендация.</div>';
 
   el.scrollIntoView({behavior:'smooth',block:'start'});
 }
