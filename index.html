@@ -428,6 +428,62 @@ table.dt .nm { color: var(--dim); font-size: 12px; }
 .mc-pb-badge.act-distribute { background: #fff6e6; color: #bf6a00; border: 1px solid #ffd699; }
 .mc-pb-badge.act-avoid { background: #fff0f0; color: var(--red); border: 1px solid #f5c2c2; }
 .mc-pb-note { font-size: 12px; color: var(--text2); line-height: 1.55; }
+.mc-pb-leaders { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 2px; }
+.mc-chip { font-family: var(--font); font-size: 11px; font-weight: 700; letter-spacing: 0.01em; padding: 3px 9px; border-radius: 7px; background: var(--bg3); color: var(--text); border: 1px solid var(--border2); cursor: pointer; transition: transform 0.12s, box-shadow 0.12s, background 0.12s; }
+.mc-chip:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.10); background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+/* ── анимации появления ── */
+@keyframes mcRise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.mc-anim { opacity: 0; animation: mcRise 0.5s cubic-bezier(0.22,0.61,0.36,1) forwards; }
+@keyframes mcPulse { 0% { box-shadow: 0 0 0 0 currentColor; opacity: 1; } 70% { box-shadow: 0 0 0 7px transparent; opacity: 0.85; } 100% { box-shadow: 0 0 0 0 transparent; opacity: 1; } }
+.mc-regime-dot { animation: mcPulse 1.8s ease-out infinite; }
+
+/* ── бегущая лента ── */
+.mc-tape-wrap { overflow: hidden; border: 1px solid var(--border2); border-radius: 14px; background: var(--bg2); margin-bottom: 16px; box-shadow: var(--shadow); position: relative; -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
+.mc-tape { display: inline-flex; gap: 0; white-space: nowrap; animation: mcTape 38s linear infinite; padding: 11px 0; }
+.mc-tape-wrap:hover .mc-tape { animation-play-state: paused; }
+@keyframes mcTape { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.mc-tape-item { display: inline-flex; align-items: baseline; gap: 7px; padding: 0 20px; border-right: 1px solid var(--border2); font-size: 13px; }
+.mc-tape-sym { font-weight: 700; color: var(--text); }
+.mc-tape-px { font-variant-numeric: tabular-nums; color: var(--text2); font-weight: 600; }
+.mc-tape-chg { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ── что происходит (крупный баннер) ── */
+.mc-happening { background: linear-gradient(135deg, #0071e3 0%, #0a84ff 100%); color: #fff; border-radius: 18px; padding: 22px 26px; margin-bottom: 16px; box-shadow: 0 8px 24px rgba(0,113,227,0.28); }
+.mc-happening-label { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.9; margin-bottom: 8px; display: flex; align-items: center; gap: 7px; }
+.mc-happening-text { font-size: 17px; font-weight: 600; line-height: 1.55; letter-spacing: -0.01em; }
+@keyframes mcBlink { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+.mc-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: mcBlink 1.2s ease-in-out infinite; }
+
+/* ── срывы поставок ── */
+.mc-supply-card { background: #fffaf3; border: 1px solid #ffe0b3; border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; }
+.mc-supply-what { font-size: 14px; font-weight: 700; color: #b8541a; display: flex; align-items: center; gap: 8px; }
+.mc-supply-flow { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.mc-supply-impact { font-size: 13px; color: var(--text2); line-height: 1.5; flex: 1 1 220px; }
+@keyframes mcArrow { 0%,100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+.mc-supply-arrow { color: #f0852b; font-weight: 800; animation: mcArrow 1s ease-in-out infinite; }
+.mc-supply-win { display: flex; flex-wrap: wrap; gap: 5px; }
+.mc-supply-date { font-size: 11px; color: var(--dim); margin-top: 6px; }
+
+/* ── кто в лидерах ── */
+.mc-lead-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.mc-lead-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; padding: 14px 16px; box-shadow: var(--shadow); border-top: 3px solid var(--green); transition: transform 0.15s; }
+.mc-lead-card:hover { transform: translateY(-3px); }
+.mc-lead-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 5px; }
+.mc-lead-tk { font-family: var(--font); font-size: 18px; font-weight: 800; color: var(--text); letter-spacing: -0.01em; cursor: pointer; }
+.mc-lead-tk:hover { color: var(--accent); }
+.mc-lead-hz { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 980px; background: var(--accent-soft); color: var(--accent); }
+.mc-lead-hz.month { background: #f3eaff; color: #7a3fd0; }
+.mc-lead-name { font-size: 11px; color: var(--dim); margin-bottom: 6px; }
+.mc-lead-why { font-size: 12px; color: var(--text2); line-height: 1.5; }
+
+/* ── план: что делать (крупная плашка) ── */
+.mc-do-banner { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 12px; padding: 10px 16px; margin-bottom: 12px; }
+
+/* ── два прогноза рядом ── */
+.mc-outlook-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+@media (max-width: 640px) { .mc-outlook-grid { grid-template-columns: 1fr; } }
+.mc-week-card.month { background: linear-gradient(135deg, #faf6ff 0%, #fbfbfd 100%); border-color: #e2d2f7; }
 </style>
 </head>
 <body>
@@ -1287,7 +1343,7 @@ function mcIdxCard(label, s){
   const a200 = s.above200==null?'':(s.above200?'mc-ma-above':'mc-ma-below');
   return '<div class="mc-idx-card">'+
     '<div class="mc-idx-top"><span class="mc-idx-name">'+label+'</span></div>'+
-    '<div style="margin-bottom:12px"><span class="mc-idx-px">'+s.price.toLocaleString('en-US')+'</span><span class="mc-idx-chg">'+mcChg(s.changePct)+'</span></div>'+
+    '<div style="margin-bottom:12px"><span class="mc-idx-px">'+mcCup(s.price,2)+'</span><span class="mc-idx-chg">'+mcChg(s.changePct)+'</span></div>'+
     '<div class="mc-idx-rows">'+
       '<div class="mc-idx-row"><span>50 DMA</span><span class="v '+a50+'">'+(s.sma50!=null?s.sma50.toLocaleString('en-US'):'н/д')+(s.above50==null?'':(s.above50?' · выше':' · ниже'))+'</span></div>'+
       '<div class="mc-idx-row"><span>200 DMA</span><span class="v '+a200+'">'+(s.sma200!=null?s.sma200.toLocaleString('en-US'):'н/д')+(s.above200==null?'':(s.above200?' · выше':' · ниже'))+'</span></div>'+
@@ -1303,7 +1359,6 @@ function renderMacro(d){
   const regCls = reg.includes('ON')?'mc-on':(reg.includes('OFF')?'mc-off':'mc-mix');
   const regDot = reg.includes('ON')?'var(--green)':(reg.includes('OFF')?'var(--red)':'var(--dim)');
 
-  // VIX-состояние (детерминированно по уровню)
   const vix=idx.vix;
   let vixState='';
   if(vix!=null){ vixState = vix<15?'низкая волатильность · спокойствие':(vix<20?'умеренная волатильность':(vix<30?'повышенная волатильность · нервозность':'высокий страх')); }
@@ -1311,16 +1366,14 @@ function renderMacro(d){
   const st=(ai.marketState||'').toUpperCase();
   const stCls = st.includes('ПЕРЕКУП')?'mc-state-over':(st.includes('ПЕРЕПРОД')?'mc-state-under':'mc-state-neutral');
 
-  // активы
   const assets=Array.isArray(d.assets)?d.assets:[];
   const assetsHtml=assets.map(a=>'<div class="mc-asset"><div class="mc-asset-name">'+a.name+'</div><div class="mc-asset-px">'+mcFmtAsset(a)+'</div><div class="mc-asset-chg">'+(a.changePct!=null?mcChg(a.changePct):'')+'</div></div>').join('');
 
-  // сектора — масштаб по максимальному абсолютному изменению
   const sectors=Array.isArray(d.sectors)?d.sectors:[];
   const maxAbs=Math.max(0.1,...sectors.map(s=>Math.abs(s.changePct||0)));
   const sectorsHtml=sectors.map(s=>{
     const v=s.changePct||0; const w=Math.min(50, Math.abs(v)/maxAbs*50);
-    const fill = v>=0?'<div class="mc-sec-fill up" style="width:'+w+'%"></div>':'<div class="mc-sec-fill down" style="width:'+w+'%"></div>';
+    const fill = v>=0?'<div class="mc-sec-fill up" data-w="'+w+'" style="width:0%"></div>':'<div class="mc-sec-fill down" data-w="'+w+'" style="width:0%"></div>';
     const c=v>0?'var(--green)':(v<0?'var(--red)':'var(--dim)');
     return '<div class="mc-sec-row"><span class="mc-sec-name">'+s.name+'</span><div class="mc-sec-track"><div class="mc-sec-mid"></div>'+fill+'</div><span class="mc-sec-val" style="color:'+c+'">'+(v>0?'+':'')+v.toFixed(2)+'%</span></div>';
   }).join('');
@@ -1352,38 +1405,77 @@ function renderMacro(d){
 
   const stance=(ai.stance||'').toUpperCase();
   const stanceCls = stance.includes('ON')?'var(--green)':(stance.includes('DEF')?'var(--red)':'var(--dim)');
-
-  // ── день недели / фаза недели ──
   const weekdayTxt = (d.weekday||'') + (d.weekPhase?(' · '+d.weekPhase):'');
 
-  // ── playbook: глагол действия по каждому сектору/активу ──
+  // ── бегущая лента ──
+  const chip=(sym,px,chg,dec)=>'<span class="mc-tape-item"><span class="mc-tape-sym">'+sym+'</span><span class="mc-tape-px">'+(px!=null?Number(px).toLocaleString('en-US',{maximumFractionDigits:dec!=null?dec:2}):'—')+'</span>'+(chg!=null?'<span class="mc-tape-chg" style="color:'+(chg>=0?'var(--green)':'var(--red)')+'">'+(chg>=0?'▲':'▼')+Math.abs(chg).toFixed(2)+'%</span>':'')+'</span>';
+  let tapeItems='';
+  if(idx.spx) tapeItems+=chip('S&P 500', idx.spx.price, idx.spx.changePct);
+  if(idx.ndx) tapeItems+=chip('NASDAQ', idx.ndx.price, idx.ndx.changePct);
+  if(idx.rut) tapeItems+=chip('RUSSELL', idx.rut.price, idx.rut.changePct);
+  if(vix!=null) tapeItems+=chip('VIX', vix, idx.vixChange);
+  assets.forEach(a=>{ tapeItems+=chip(a.name.toUpperCase(), a.price, a.changePct, a.unit==='big'?0:2); });
+  (d.gainers||[]).slice(0,5).forEach(g=>{ tapeItems+=chip('🔥'+g.ticker, g.price, g.changePct); });
+  const tapeHtml = tapeItems?'<div class="mc-tape-wrap"><div class="mc-tape">'+tapeItems+tapeItems+'</div></div>':'';
+
+  // ── playbook с лидерами ──
   const PB_LABEL = { BUY_DIP:'Покупать на откатах', BUY:'Покупать в силу', HOLD:'Держать', DISTRIBUTE:'Распродавать', AVOID:'Избегать / шорт' };
   const pb = Array.isArray(ai.playbook)?ai.playbook:[];
   const pbHtml = pb.map(p=>{
     const act=(p.action||'HOLD').toUpperCase();
     const cls='act-'+act.toLowerCase();
     const label=PB_LABEL[act]||act;
+    const leaders=Array.isArray(p.leaders)?p.leaders:[];
+    const chips=leaders.length?'<div class="mc-pb-leaders">'+leaders.map(t=>'<span class="mc-chip" onclick="mcOpen(\''+(''+t).toUpperCase()+'\')">'+t+'</span>').join('')+'</div>':'';
     return '<div class="mc-pb-card '+cls+'">'+
       '<div class="mc-pb-top"><span class="mc-pb-asset">'+(p.asset||'—')+'</span><span class="mc-pb-badge '+cls+'">'+label+'</span></div>'+
+      chips+
       (p.note?'<div class="mc-pb-note">'+p.note+'</div>':'')+
     '</div>';
   }).join('');
 
-  // ── легенда «как читать» (детский режим) ──
+  // ── срывы поставок ──
+  const sc=Array.isArray(ai.supplyChain)?ai.supplyChain:[];
+  const scHtml=sc.map(x=>{
+    const wins=Array.isArray(x.winners)?x.winners:[];
+    const winChips=wins.length?'<div class="mc-supply-win">'+wins.map(t=>'<span class="mc-chip" onclick="mcOpen(\''+(''+t).toUpperCase()+'\')">'+t+'</span>').join('')+'</div>':'';
+    return '<div class="mc-supply-card">'+
+      '<div class="mc-supply-what">⛓️‍💥 '+(x.what||'—')+'</div>'+
+      '<div class="mc-supply-flow"><div class="mc-supply-impact">'+(x.impact||'')+'</div>'+(winChips?'<span class="mc-supply-arrow">→</span>'+winChips:'')+'</div>'+
+      (x.date?'<div class="mc-supply-date">'+x.date+'</div>':'')+
+    '</div>';
+  }).join('');
+
+  // ── кто в лидерах ──
+  const tl=Array.isArray(ai.topLeaders)?ai.topLeaders:[];
+  const tlHtml=tl.map(x=>{
+    const hz=(x.horizon||'').toLowerCase().includes('месяц')?'month':'';
+    return '<div class="mc-lead-card">'+
+      '<div class="mc-lead-top"><span class="mc-lead-tk" onclick="mcOpen(\''+((x.ticker||'')+'').toUpperCase()+'\')">'+(x.ticker||'—')+'</span><span class="mc-lead-hz '+hz+'">'+(x.horizon||'')+'</span></div>'+
+      (x.name?'<div class="mc-lead-name">'+x.name+'</div>':'')+
+      (x.why?'<div class="mc-lead-why">'+x.why+'</div>':'')+
+    '</div>';
+  }).join('');
+
   const legendHtml =
     '<div class="mc-legend">'+
       '<div class="mc-legend-title">Как читать этот экран</div>'+
       '<span class="mc-legend-item"><span class="mc-legend-dot" style="background:var(--green)"></span>зелёный = за рост / покупать</span>'+
       '<span class="mc-legend-item"><span class="mc-legend-dot" style="background:var(--red)"></span>красный = за падение / продавать</span>'+
       '<span class="mc-legend-item"><span class="mc-legend-dot" style="background:var(--dim)"></span>серый = нейтрально / ждать</span>'+
-      '<span class="mc-legend-item">RISK-ON = рынок смелый · RISK-OFF = рынок прячется в защиту</span>'+
+      '<span class="mc-legend-item">RISK-ON = рынок смелый · RISK-OFF = прячется в защиту</span>'+
       '<span class="mc-legend-item">VIX = «индекс страха»: ниже 15 спокойно, выше 30 паника</span>'+
+      '<span class="mc-legend-item">тикер можно нажать → откроется анализ</span>'+
     '</div>';
 
   el.innerHTML=
+    tapeHtml+
+
+    (ai.whatsHappening?'<div class="mc-happening"><div class="mc-happening-label"><span class="mc-live-dot"></span>ЧТО СЕЙЧАС НА РЫНКЕ</div><div class="mc-happening-text">'+ai.whatsHappening+'</div></div>':'')+
+
     '<div class="mc-hero">'+
       '<div class="mc-regime-wrap">'+
-        '<span class="mc-regime '+regCls+'"><span class="mc-regime-dot" style="background:'+regDot+'"></span>'+(ai.regime||'—')+'</span>'+
+        '<span class="mc-regime '+regCls+'"><span class="mc-regime-dot" style="background:'+regDot+';color:'+regDot+'"></span>'+(ai.regime||'—')+'</span>'+
         (ai.regimeLine?'<div class="mc-regime-line">'+ai.regimeLine+'</div>':'')+
         (ai.weekToday?'<div class="mc-regime-line" style="font-size:13px;color:var(--dim)">'+ai.weekToday+'</div>':'')+
       '</div>'+
@@ -1399,7 +1491,7 @@ function renderMacro(d){
       mcIdxCard('S&P 500', idx.spx)+
       mcIdxCard('NASDAQ Comp', idx.ndx)+
       mcIdxCard('Russell 2000 (малые)', idx.rut)+
-      '<div class="mc-vix-card"><div class="mc-idx-name">VIX — индекс страха</div><div style="margin-top:8px"><span class="mc-vix-val">'+(vix!=null?vix.toFixed(2):'н/д')+'</span> <span style="font-size:13px;font-weight:600">'+(idx.vixChange!=null?mcChg(idx.vixChange):'')+'</span></div><div class="mc-vix-state">'+vixState+'</div></div>'+
+      '<div class="mc-vix-card"><div class="mc-idx-name">VIX — индекс страха</div><div style="margin-top:8px"><span class="mc-vix-val">'+mcCup(vix,2)+'</span> <span style="font-size:13px;font-weight:600">'+(idx.vixChange!=null?mcChg(idx.vixChange):'')+'</span></div><div class="mc-vix-state">'+vixState+'</div></div>'+
     '</div>'+
 
     '<div class="mc-state-card">'+
@@ -1408,13 +1500,20 @@ function renderMacro(d){
       (ai.breadth?'<div class="mc-note"><b>Ширина рынка:</b> '+ai.breadth+'</div>':'')+
     '</div>'+
 
-    ((ai.weeklyOutlook)?'<div class="mc-week-card"><div class="mc-week-head">📅 До конца недели</div><div class="mc-week-text">'+ai.weeklyOutlook+'</div></div>':'')+
+    ((ai.weeklyOutlook||ai.monthlyOutlook)?'<div class="mc-outlook-grid">'+
+      (ai.weeklyOutlook?'<div class="mc-week-card"><div class="mc-week-head">📅 До конца недели'+(d.daysToFriday!=null?' · '+d.daysToFriday+' дн.':'')+'</div><div class="mc-week-text">'+ai.weeklyOutlook+'</div></div>':'')+
+      (ai.monthlyOutlook?'<div class="mc-week-card month"><div class="mc-week-head">🗓 До конца месяца'+(d.daysToMonthEnd!=null?' · '+d.daysToMonthEnd+' дн.':'')+'</div><div class="mc-week-text">'+ai.monthlyOutlook+'</div></div>':'')+
+    '</div>':'')+
+
+    (tlHtml?'<div class="section-card"><div class="section-title">🏆 Кто будет в лидерах</div><div class="mc-lead-grid">'+tlHtml+'</div></div>':'')+
+
+    (scHtml?'<div class="section-card"><div class="section-title">⛓️‍💥 Срывы поставок — что рвётся и кто выигрывает</div>'+scHtml+'</div>':'')+
 
     (assetsHtml?'<div class="section-card"><div class="section-title">🪙 Ключевые активы</div><div class="mc-assets" style="margin-bottom:0">'+assetsHtml+'</div>'+(ai.goldNote?'<div class="mc-rot-note" style="margin-top:14px">'+ai.goldNote+'</div>':'')+'</div>':'')+
 
     (sectorsHtml?'<div class="section-card"><div class="section-title">🔄 Секторная ротация (день)</div><div class="mc-sectors">'+sectorsHtml+'</div>'+(rotNote?'<div class="mc-rot-note">'+rotNote+'</div>':'')+(ai.sectorNote?'<div class="mc-note" style="margin-top:10px">'+ai.sectorNote+'</div>':'')+'</div>':'')+
 
-    (pbHtml?'<div class="section-card"><div class="section-title">🎮 План по секторам — что делать</div><div class="mc-pb-grid">'+pbHtml+'</div></div>':'')+
+    (pbHtml?'<div class="section-card"><div class="mc-do-banner">🎮 ПЛАН ПО СЕКТОРАМ — ЧТО ДЕЛАТЬ ПРЯМО СЕЙЧАС</div><div class="mc-pb-grid">'+pbHtml+'</div></div>':'')+
 
     (antHtml?'<div class="anticipation-section"><div class="anticipation-title">🔮 ПРЕДВОСХИЩЕНИЕ — ПОТОКИ И КАТАЛИЗАТОРЫ СЕЙЧАС</div><div class="indicator-list">'+antHtml+'</div></div>':'')+
 
@@ -1424,9 +1523,38 @@ function renderMacro(d){
 
     (ai.verdict?'<div class="verdict-section"><div class="verdict-title">🎯 Вердикт STARK по рынку'+(stance?' · <span style="color:'+stanceCls+'">'+ai.stance+'</span>':'')+'</div><div class="verdict-text">'+ai.verdict+'</div><div class="verdict-phrase">ВОТ ТАК ЗАКАЛЯЕТСЯ ХАРАКТЕР.</div></div>':'')+
 
-    '<div class="sz-note" style="margin-top:10px">Цифры (индексы, MA, 52W, цены активов, секторная ротация) — живой Yahoo на момент запроса. Текст (режим, план, потоки, инсайд, вердикт) — синтез свежего веб-поиска за последние дни. Карта рынка, не рекомендация.</div>';
+    '<div class="sz-note" style="margin-top:10px">Цифры (индексы, MA, 52W, цены активов, ротация, гейнеры дня) — живой Yahoo на момент запроса. Текст (режим, план, лидеры, поставки, потоки, инсайд, вердикт) — синтез свежего веб-поиска за последние дни. Карта рынка, не рекомендация.</div>';
 
+  // ── оживляем: стаггер-появление блоков, выезд баров, count-up чисел ──
+  mcAnimate(el);
   el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// открыть тикер в анализе
+function mcOpen(tk){ if(!tk) return; switchTab('analyze'); const i=document.getElementById('tickerInput'); if(i){ i.value=tk; } if(typeof analyze==='function') analyze(); }
+
+// число с эффектом накрутки: возвращает span, mcAnimate его оживит
+function mcCup(val,dec){
+  if(val==null) return 'н/д';
+  return '<span class="mc-cup" data-to="'+val+'" data-dec="'+(dec!=null?dec:0)+'">0</span>';
+}
+
+// запуск анимаций после рендера
+function mcAnimate(root){
+  // 1) стаггер появления секций верхнего уровня
+  const kids=Array.from(root.children);
+  kids.forEach((k,i)=>{ k.classList.add('mc-anim'); k.style.animationDelay=(i*0.06)+'s'; });
+  // 2) выезд баров секторов
+  setTimeout(()=>{ root.querySelectorAll('.mc-sec-fill').forEach(b=>{ const w=b.getAttribute('data-w'); if(w!=null){ b.style.transition='width 0.9s cubic-bezier(0.22,0.61,0.36,1)'; b.style.width=w+'%'; } }); }, 220);
+  // 3) count-up чисел
+  root.querySelectorAll('.mc-cup').forEach(span=>{
+    const to=parseFloat(span.getAttribute('data-to')); const dec=parseInt(span.getAttribute('data-dec')||'0',10);
+    if(!isFinite(to)){ span.textContent='н/д'; return; }
+    const dur=900, t0=performance.now();
+    const fmt=(v)=>v.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+    function step(t){ const p=Math.min(1,(t-t0)/dur); const e=1-Math.pow(1-p,3); span.textContent=fmt(to*e); if(p<1) requestAnimationFrame(step); else span.textContent=fmt(to); }
+    requestAnimationFrame(step);
+  });
 }
 
 // ═══════════════ ВОТЧЛИСТ ═══════════════
