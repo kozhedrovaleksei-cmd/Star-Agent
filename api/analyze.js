@@ -164,6 +164,30 @@ async function leadQuote(symbol) {
   } catch (e) { return null; }
 }
 
+// ====== MACRO: снимок индекса с 50/200 DMA, 52W, позицией (action 'macro') ======
+async function macroIndexSnapshot(symbol) {
+  try {
+    const bars = await lsFetchBars(symbol, '1d', '1y');
+    if (!bars || bars.length < 50) return null;
+    const closes = bars.map(b => b.c);
+    const price = closes[closes.length - 1];
+    const prev  = closes.length > 1 ? closes[closes.length - 2] : price;
+    const changePct = prev ? +(((price - prev) / prev) * 100).toFixed(2) : null;
+    const sma = (n) => { if (closes.length < n) return null; const s = closes.slice(-n); return +(s.reduce((a, b) => a + b, 0) / n).toFixed(2); };
+    const sma50  = sma(50);
+    const sma200 = sma(200);
+    const high52 = +Math.max(...bars.map(b => b.h)).toFixed(2);
+    const low52  = +Math.min(...bars.map(b => b.l)).toFixed(2);
+    const fromHighPct = high52 ? +(((price / high52) - 1) * 100).toFixed(2) : null;
+    const pos = (high52 > low52) ? Math.round(((price - low52) / (high52 - low52)) * 100) : null;
+    return {
+      symbol, price: +price.toFixed(2), changePct, sma50, sma200, high52, low52, fromHighPct, pos,
+      above50:  sma50  != null ? price > sma50  : null,
+      above200: sma200 != null ? price > sma200 : null,
+    };
+  } catch (e) { return null; }
+}
+
 // ====== ЦЕНА + 52W ИЗ YAHOO META (US, надёжно, бесплатно, проходит из Vercel) ======
 async function yahooQuote(symbol) {
   try {
@@ -573,6 +597,140 @@ export default async function handler(req, res) {
       };
 
       return res.json({ ticker: obj.ticker || tk, name: obj.name || '', summary: obj.summary || '', correlations: corr.map(attach), leading: lead.map(attach) });
+    }
+
+    // ====== ГЛОБАЛЬНЫЙ ОБЗОР РЫНКА (action 'macro') ======
+    // Числа (индексы, MA, 52W, цены активов, секторная ротация) — ДЕТЕРМИНИРОВАННО с Yahoo.
+    // Claude поверх даёт ТОЛЬКО аналитику из Tavily: режим, ширина, предвосхищение, инсайд, вердикт.
+    if (action === 'macro') {
+      if (!hasModelProvider) return res.status(500).json({ error: 'No API key' });
+
+      const ASSET_DEFS = [
+        { name: 'Золото',           symbol: 'GC=F',      unit: '$'   },
+        { name: 'WTI нефть',        symbol: 'CL=F',      unit: '$'   },
+        { name: '10Y трежерис',     symbol: '^TNX',      unit: '%'   },
+        { name: 'Индекс доллара',   symbol: 'DX-Y.NYB',  unit: 'idx' },
+        { name: 'Bitcoin',          symbol: 'BTC-USD',   unit: 'big' },
+        { name: 'Медь',             symbol: 'HG=F',      unit: '$'   },
+        { name: 'Серебро',          symbol: 'SI=F',      unit: '$'   },
+      ];
+      const SECTOR_DEFS = [
+        { name: 'Технологии',       symbol: 'XLK', kind: 'cyc' },
+        { name: 'Финансы',          symbol: 'XLF', kind: 'cyc' },
+        { name: 'Энергетика',       symbol: 'XLE', kind: 'cyc' },
+        { name: 'Здравоохранение',  symbol: 'XLV', kind: 'def' },
+        { name: 'Потреб. цикл.',    symbol: 'XLY', kind: 'cyc' },
+        { name: 'Потреб. защита',   symbol: 'XLP', kind: 'def' },
+        { name: 'Промышленность',   symbol: 'XLI', kind: 'cyc' },
+        { name: 'Коммуналка',       symbol: 'XLU', kind: 'def' },
+      ];
+
+      const [spx, ndx, vixQ, assetQs, sectorQs, news, flows, rotation, goldCtx, calendar, insiderCtx] = await Promise.all([
+        macroIndexSnapshot('^GSPC'),
+        macroIndexSnapshot('^IXIC'),
+        leadQuote('^VIX'),
+        Promise.all(ASSET_DEFS.map(a => leadQuote(a.symbol))),
+        Promise.all(SECTOR_DEFS.map(s => leadQuote(s.symbol))),
+        tavilySearch('US stock market today S&P 500 outlook sentiment overbought oversold breadth 2026'),
+        tavilySearch('institutional fund flows month-end quarter-end rebalancing pension fund selling buying billions 2026'),
+        tavilySearch('stock market sector rotation today leaders laggards money flow 2026'),
+        tavilySearch('gold price outlook forecast direction safe haven today 2026'),
+        tavilySearch('economic calendar this week Fed FOMC CPI PCE jobs report OPEX options expiration 2026'),
+        tavilySearch('notable insider buying CEO CFO institutional 13F large positions latest 2026'),
+      ]);
+
+      const assets = ASSET_DEFS.map((a, i) => ({
+        name: a.name, symbol: a.symbol, unit: a.unit,
+        price: assetQs[i] ? assetQs[i].price : null,
+        changePct: assetQs[i] ? assetQs[i].changePct : null,
+      }));
+
+      const sectors = SECTOR_DEFS.map((s, i) => ({
+        name: s.name, symbol: s.symbol, kind: s.kind,
+        changePct: sectorQs[i] ? sectorQs[i].changePct : null,
+      })).filter(s => s.changePct != null).sort((a, b) => b.changePct - a.changePct);
+
+      const vix = vixQ ? vixQ.price : null;
+
+      // Детерминированная подсказка режима по циклика-vs-защита (для контекста модели)
+      const cycAvg = (() => { const a = sectors.filter(s => s.kind === 'cyc'); return a.length ? a.reduce((x, y) => x + y.changePct, 0) / a.length : null; })();
+      const defAvg = (() => { const a = sectors.filter(s => s.kind === 'def'); return a.length ? a.reduce((x, y) => x + y.changePct, 0) / a.length : null; })();
+
+      const today = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Moscow' });
+
+      const idxLine = (label, s) => s ? (
+        label + ': ' + s.price + ' (день ' + (s.changePct >= 0 ? '+' : '') + s.changePct + '%), ' +
+        '50DMA ' + (s.sma50 ?? 'н/д') + ' → цена ' + (s.above50 == null ? 'н/д' : s.above50 ? 'ВЫШЕ' : 'НИЖЕ') + '; ' +
+        '200DMA ' + (s.sma200 ?? 'н/д') + ' → цена ' + (s.above200 == null ? 'н/д' : s.above200 ? 'ВЫШЕ' : 'НИЖЕ') + '; ' +
+        'от 52W-хая ' + (s.fromHighPct != null ? s.fromHighPct + '%' : 'н/д') + '; позиция в 52W ' + (s.pos != null ? s.pos + '%' : 'н/д')
+      ) : (label + ': н/д');
+
+      const assetsLine = assets.map(a => a.name + ' (' + a.symbol + ') = ' + (a.price != null ? a.price : 'н/д') + (a.changePct != null ? ' (' + (a.changePct >= 0 ? '+' : '') + a.changePct + '%)' : '')).join('\n');
+      const sectorsLine = sectors.map(s => s.name + ' (' + s.symbol + '): ' + (s.changePct >= 0 ? '+' : '') + s.changePct + '%').join('\n');
+
+      const factsBlock =
+        '=== ТОЧНЫЕ ЧИСЛА РЫНКА (Yahoo, ' + today + ' — ЕДИНСТВЕННЫЙ ИСТОЧНИК ЦИФР, НЕ ВЫДУМЫВАТЬ) ===\n' +
+        idxLine('S&P 500 (^GSPC)', spx) + '\n' +
+        idxLine('NASDAQ Comp (^IXIC)', ndx) + '\n' +
+        'VIX (^VIX) = ' + (vix != null ? vix : 'н/д') + (vixQ && vixQ.changePct != null ? ' (' + (vixQ.changePct >= 0 ? '+' : '') + vixQ.changePct + '%)' : '') + '\n\n' +
+        'АКТИВЫ:\n' + assetsLine + '\n\n' +
+        'СЕКТОРНАЯ РОТАЦИЯ (дневное изменение SPDR-секторов, отсортировано):\n' + sectorsLine + '\n' +
+        'Среднее циклических (XLK/XLF/XLE/XLY/XLI) = ' + (cycAvg != null ? (cycAvg >= 0 ? '+' : '') + cycAvg.toFixed(2) + '%' : 'н/д') +
+        '; среднее защитных (XLV/XLP/XLU) = ' + (defAvg != null ? (defAvg >= 0 ? '+' : '') + defAvg.toFixed(2) + '%' : 'н/д');
+
+      const macroPrompt =
+        'Ты — STARK AI, рыночный аналитик Алексея. Дай ГЛОБАЛЬНЫЙ обзор рынка США на сегодня (' + today + ').\n' +
+        'Все числовые факты (уровни индексов, MA, %, цены активов, проценты секторов) бери ТОЛЬКО из блока ТОЧНЫЕ ЧИСЛА ниже — они уже посчитаны по живым данным Yahoo. НЕ выдумывай и НЕ меняй их.\n' +
+        'Текстовую аналитику (режим, ширина, предвосхищение, инсайд, кейсы, вердикт) строй ТОЛЬКО на контексте веб-поиска ниже. Если факта/числа в данных нет — формулируй качественно, без выдуманной цифры. Даты — только реальные из веб-поиска ("сегодня", "18 июн", "на этой неделе"); нет точной — пиши "ожидается".\n' +
+        'Для блока anticipation дай реальные ТЕКУЩИЕ потоки и катализаторы: month-/quarter-end ребалансировки и расторговки (пример формулировки: «фонды должны продать ~$X к концу месяца»), OPEX/quad witching, заседания ФРС, CPI/PCE/jobs, крупные корпоративные события. Каждый пункт — с датой и тегом.\n\n' +
+        'Верни СТРОГО валидный JSON без markdown, без текста вокруг:\n' +
+        '{\n' +
+        '  "regime": "RISK-ON" | "RISK-OFF" | "СМЕШАННЫЙ",\n' +
+        '  "regimeLine": "одно ёмкое предложение: какой сейчас режим и почему",\n' +
+        '  "marketState": "ПЕРЕКУПЛЕН" | "ПЕРЕПРОДАН" | "НЕЙТРАЛЕН",\n' +
+        '  "stateNote": "1-2 предложения: где S&P относительно хаёв/MA, что говорит VIX",\n' +
+        '  "breadth": "1-2 предложения о ширине рынка: узкое ли ралли, кто тянет",\n' +
+        '  "sectorNote": "1-2 предложения: куда идут деньги, циклика или защита",\n' +
+        '  "goldNote": "1 предложение: куда смотрит золото и почему",\n' +
+        '  "anticipation": [ {"title":"кратко","detail":"механизм/суть и влияние на рынок","date":"дата или ожидается","tag":"flow"} ],\n' +
+        '  "insiders": [ {"name":"кто","role":"должность/фонд","detail":"что сделал","date":"дата","type":"buy"} ],\n' +
+        '  "bullCase": "2-3 предложения за рост",\n' +
+        '  "bearCase": "2-3 предложения за падение/риск",\n' +
+        '  "verdict": "2-3 предложения: чистая позиция STARK по рынку сейчас",\n' +
+        '  "stance": "RISK-ON" | "НЕЙТРАЛЬНО" | "DEFENSE"\n' +
+        '}\n' +
+        'tag в anticipation — одно из: "flow" (поток/ребаланс), "catalyst" (событие/отчёт), "risk" (риск-фактор). ' +
+        'type в insiders — "buy" или "sell". ' +
+        'anticipation — 3-6 пунктов. insiders — 0-5 реальных пунктов (нет подтверждённых — пустой массив, НЕ выдумывай). bull/bear обязательны оба.\n\n' +
+        factsBlock + '\n\n' +
+        '=== КОНТЕКСТ ВЕБ-ПОИСКА (2026) ===\n' +
+        '[РЫНОК/НАСТРОЕНИЕ]\n' + (news || 'нет данных') + '\n\n' +
+        '[ПОТОКИ ФОНДОВ]\n' + (flows || 'нет данных') + '\n\n' +
+        '[СЕКТОРНАЯ РОТАЦИЯ]\n' + (rotation || 'нет данных') + '\n\n' +
+        '[ЗОЛОТО]\n' + (goldCtx || 'нет данных') + '\n\n' +
+        '[КАЛЕНДАРЬ/КАТАЛИЗАТОРЫ]\n' + (calendar || 'нет данных') + '\n\n' +
+        '[ИНСАЙД/ИНСТИТУЦИОНАЛЫ]\n' + (insiderCtx || 'нет данных');
+
+      let ai = null;
+      try {
+        const r = await callClaude([{ role: 'user', content: macroPrompt }], 3500);
+        const clean = (r || '').replace(/```json|```/g, '').trim();
+        const m = clean.match(/\{[\s\S]*\}/);
+        ai = m ? JSON.parse(m[0]) : null;
+      } catch (e) {
+        return res.status(500).json({ error: 'Модель не ответила по обзору — повтори. (' + (e.message || e) + ')' });
+      }
+      if (!ai) return res.status(500).json({ error: 'Пустой/битый ответ модели по обзору — повтори' });
+
+      return res.json({
+        asOf: today,
+        indices: { spx, ndx, vix, vixChange: vixQ ? vixQ.changePct : null },
+        assets,
+        sectors,
+        cycAvg: cycAvg != null ? +cycAvg.toFixed(2) : null,
+        defAvg: defAvg != null ? +defAvg.toFixed(2) : null,
+        ai,
+      });
     }
 
     if (action === 'analyze') {
