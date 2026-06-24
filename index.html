@@ -2162,6 +2162,12 @@ async function starkLoad(){
     __stark = starkLoadLocal() || starkDefaults();
     starkMerge(__stark, starkDefaults());
     setSyncBadge(__starkRemote ? 'ok' : 'local');
+    // Облако подключено, но пустое, а локально уже есть данные → сразу заливаем наверх.
+    if (__starkRemote) {
+      const hasData = (__stark.journal && __stark.journal.length) || (__stark.portfolio && __stark.portfolio.length)
+        || (__stark.habits && __stark.habits.checks && Object.keys(__stark.habits.checks).length);
+      if (hasData) starkSave();
+    }
   }
 
   // миграция старого портфеля из отдельного ключа (одноразово)
