@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STARK · ГЛОБУС</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/globe.gl"></script>
+<style>
+  :root{
+    --bg:#05070d; --bg2:#0a0e16;
+    --glass:rgba(16,20,30,.62);
+    --line:rgba(255,255,255,.08);
+    --blue:#0071e3; --blue-soft:rgba(0,113,227,.16);
+    --bull:#30d158; --bear:#ff453a; --neutral:#8a9099;
+    --text:#f5f7fa; --dim:#9aa3af;
+    --r:18px;
+    --mono:'Inter',ui-monospace,'SF Mono',Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:radial-gradient(120% 90% at 50% -10%,#0c1220 0%,var(--bg) 60%);color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;overflow:hidden}
+  #globe{position:fixed;inset:0;z-index:1}
+  #globe canvas{display:block}
+
+  /* ── Header (frosted sticky) ── */
+  header{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;justify-content:space-between;
+    padding:14px 22px;background:linear-gradient(180deg,rgba(5,7,13,.85),rgba(5,7,13,0));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--blue);box-shadow:0 0 14px var(--blue);animation:beat 2.4s ease-in-out infinite}
+  @keyframes beat{0%,100%{opacity:.55;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
+  .brand h1{font-size:15px;font-weight:800;letter-spacing:.14em}
+  .brand h1 span{color:var(--blue)}
+  .brand small{display:block;font-size:9.5px;letter-spacing:.32em;color:var(--dim);font-weight:600;margin-top:1px}
+  .status{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--dim);font-weight:600}
+  .status .live{width:7px;height:7px;border-radius:50%;background:var(--bull);box-shadow:0 0 10px var(--bull)}
+  .status b{color:var(--text);font-variant-numeric:tabular-nums}
+
+  /* ── Legend ── */
+  .legend{position:fixed;left:22px;bottom:96px;z-index:9;display:flex;flex-direction:column;gap:7px;
+    background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+  .legend .row{display:flex;align-items:center;gap:9px;font-size:11px;font-weight:600;color:var(--dim)}
+  .legend .sw{width:9px;height:9px;border-radius:50%}
+  .legend .arc-sw{width:18px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--blue),transparent)}
+
+  /* ── Detail panel ── */
+  #panel{position:fixed;top:0;right:0;bottom:0;width:360px;max-width:88vw;z-index:20;
+    background:var(--glass);backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px);border-left:1px solid var(--line);
+    transform:translateX(102%);transition:transform .42s cubic-bezier(.22,1,.36,1);padding:78px 24px 24px;overflow-y:auto}
+  #panel.open{transform:translateX(0)}
+  #panel .close{position:absolute;top:18px;right:18px;width:30px;height:30px;border:none;border-radius:50%;
+    background:rgba(255,255,255,.08);color:var(--text);font-size:16px;cursor:pointer;line-height:1}
+  .p-tick{display:flex;align-items:baseline;gap:10px}
+  .p-tick h2{font-size:30px;font-weight:800;letter-spacing:.02em;font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .p-badge{font-size:10px;font-weight:800;letter-spacing:.12em;padding:4px 9px;border-radius:8px;text-transform:uppercase}
+  .p-name{font-size:12.5px;color:var(--dim);margin:3px 0 18px;font-weight:500}
+  .ring-wrap{display:flex;align-items:center;gap:18px;margin-bottom:20px}
+  .ring-wrap .val{display:flex;flex-direction:column}
+  .ring-wrap .val .big{font-size:34px;font-weight:800;font-family:var(--mono);line-height:1}
+  .ring-wrap .val .lab{font-size:10px;letter-spacing:.22em;color:var(--dim);font-weight:700;margin-top:4px}
+  .geo{font-size:11px;color:var(--dim);margin-bottom:18px;font-weight:600}
+  .sec-t{font-size:10px;letter-spacing:.2em;color:var(--dim);font-weight:700;text-transform:uppercase;margin:18px 0 9px}
+  .sig{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+  .sig .k{color:var(--dim);font-weight:500}
+  .sig .v{font-weight:700;font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .chain{display:flex;flex-direction:column;gap:8px}
+  .chain .lnk{display:flex;align-items:center;gap:9px;font-size:12px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+  .chain .lnk .arr{color:var(--blue);font-weight:800}
+  .chain .lnk b{font-family:var(--mono)}
+  .seed-note{margin-top:22px;font-size:10.5px;line-height:1.5;color:var(--dim);background:var(--blue-soft);border:1px solid rgba(0,113,227,.3);border-radius:12px;padding:11px 13px}
+
+  /* ── Ticker tape ── */
+  .tape{position:fixed;left:0;right:0;bottom:0;z-index:9;height:46px;display:flex;align-items:center;overflow:hidden;
+    background:linear-gradient(0deg,rgba(5,7,13,.92),rgba(5,7,13,.4));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line)}
+  .tape .lbl{flex:0 0 auto;font-size:10px;letter-spacing:.18em;font-weight:800;color:var(--blue);padding:0 16px;border-right:1px solid var(--line)}
+  .tape .track{display:flex;gap:30px;white-space:nowrap;animation:slide 36s linear infinite;padding-left:30px}
+  .tape:hover .track{animation-play-state:paused}
+  @keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  .chip{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600}
+  .chip .t{font-family:var(--mono);font-weight:800;color:var(--text)}
+  .chip .px{font-variant-numeric:tabular-nums;color:var(--dim)}
+  .chip .trg{font-size:10px;color:var(--blue);font-weight:700}
+
+  @media (max-width:560px){
+    .brand small{display:none}.legend{bottom:84px;left:14px}#panel{width:100%;max-width:100%}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+
+<div id="globe"></div>
+
+<header>
+  <div class="brand">
+    <div class="dot"></div>
+    <div>
+      <h1><span>STARK</span> · ГЛОБУС</h1>
+      <small>I AM IRON MAN · GLOBAL SIGNAL TERMINAL</small>
+    </div>
+  </div>
+  <div class="status">
+    <span class="live"></span>
+    <span><b id="nodeCount">0</b> узлов · <b id="chainCount">0</b> цепочек</span>
+  </div>
+</header>
+
+<div class="legend">
+  <div class="row"><span class="sw" style="background:var(--bull)"></span>BULL — тезис в силе</div>
+  <div class="row"><span class="sw" style="background:var(--bear)"></span>BEAR — давление</div>
+  <div class="row"><span class="sw" style="background:var(--neutral)"></span>НЕЙТРАЛ — ждём триггер</div>
+  <div class="row"><span class="arc-sw"></span>цепочка поставок / лид</div>
+</div>
+
+<div id="panel">
+  <button class="close" onclick="closePanel()">✕</button>
+  <div id="panelBody"></div>
+</div>
+
+<div class="tape">
+  <div class="lbl">КРИПТО · KUCOIN</div>
+  <div class="track" id="tapeTrack"></div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   PHASE 0 SEED DATA — статичная посевная.
+   Фаза 1 заменит это live-потоком из Supabase
+   (GDELT + Tavily → Claude-classifier → STARK Score).
+   Редактируй массивы ниже под свою вселенную.
+═══════════════════════════════════════════════════════════════ */
+
+const NODES = [
+  // US equities — гео по штаб-квартире
+  {t:'NVDA', name:'NVIDIA — Santa Clara, CA',      lat:37.37, lng:-121.96, score:84, dir:'bull',    sector:'Semis / AI',  scThesis:90, scAntic:82, scInsider:70, scMom:88, scRR:80, scSent:86},
+  {t:'TSM',  name:'TSMC — Hsinchu, Taiwan',        lat:24.78, lng:121.00,  score:79, dir:'bull',    sector:'Foundry',     scThesis:84, scAntic:88, scInsider:60, scMom:75, scRR:78, scSent:80},
+  {t:'AMD',  name:'AMD — Santa Clara, CA',         lat:37.36, lng:-121.97, score:72, dir:'bull',    sector:'Semis / AI',  scThesis:76, scAntic:70, scInsider:55, scMom:80, scRR:72, scSent:74},
+  {t:'META', name:'Meta — Menlo Park, CA',         lat:37.48, lng:-122.15, score:68, dir:'bull',    sector:'Mega-cap',    scThesis:72, scAntic:60, scInsider:50, scMom:78, scRR:66, scSent:72},
+  {t:'AAPL', name:'Apple — Cupertino, CA',         lat:37.33, lng:-122.03, score:61, dir:'neutral', sector:'Mega-cap',    scThesis:64, scAntic:55, scInsider:45, scMom:62, scRR:60, scSent:68},
+  {t:'NKE',  name:'Nike — Beaverton, OR',          lat:45.51, lng:-122.78, score:58, dir:'neutral', sector:'Consumer',    scThesis:60, scAntic:72, scInsider:40, scMom:48, scRR:58, scSent:54},
+  {t:'LMT',  name:'Lockheed Martin — Bethesda, MD',lat:39.00, lng:-77.10,  score:55, dir:'neutral', sector:'Defense',     scThesis:58, scAntic:65, scInsider:50, scMom:46, scRR:56, scSent:50},
+  {t:'TSLA', name:'Tesla — Austin, TX',            lat:30.27, lng:-97.74,  score:44, dir:'bear',    sector:'Auto / EV',   scThesis:42, scAntic:38, scInsider:35, scMom:40, scRR:48, scSent:52},
+  // Узлы цепочки поставок (леад-индикаторы, не торгуем напрямую)
+  {t:'OEM·TW',name:'Pou Chen / Feng Tay — Taichung (OEM Nike)', lat:24.15, lng:120.67, score:0, dir:'chain', sector:'Supply node'},
+  {t:'FOX·CN',name:'Foxconn — Zhengzhou (сборка Apple)',        lat:34.75, lng:113.62, score:0, dir:'chain', sector:'Supply node'},
+];
+
+// Цепочки поставок / лаговые зависимости — твой эдж
+const ARCS = [
+  {from:'NKE',  to:'OEM·TW', label:'Nike ← заказы тайваньскому OEM (лид ~1 кв.)'},
+  {from:'NVDA', to:'TSM',    label:'NVDA ← мощности TSMC (foundry-зависимость)'},
+  {from:'AMD',  to:'TSM',    label:'AMD ← мощности TSMC'},
+  {from:'AAPL', to:'FOX·CN', label:'Apple ← сборка Foxconn'},
+];
+
+// Криптовотчлист (KuCoin) — лента внизу
+const CRYPTO = [
+  {t:'TAO',  px:'$259',  trg:'AI compute'},
+  {t:'RNDR', px:'$1.90', trg:'вход на пробой $1.95'},
+  {t:'FET',  px:'$0.17', trg:'вход на пробой $0.27'},
+  {t:'SUI',  px:'—',     trg:'next Solana'},
+  {t:'LINK', px:'—',     trg:'DeFi infra'},
+];
+
+/* ════════════════ движок ════════════════ */
+const COL = {bull:'#30d158', bear:'#ff453a', neutral:'#8a9099', chain:'#0071e3'};
+const byT = Object.fromEntries(NODES.map(n=>[n.t,n]));
+
+const arcData = ARCS.map(a=>{
+  const f=byT[a.from], t=byT[a.to];
+  return {startLat:f.lat,startLng:f.lng,endLat:t.lat,endLng:t.lng,label:a.label};
+});
+const ringData = NODES.filter(n=>n.score>=70).map(n=>({lat:n.lat,lng:n.lng,col:COL[n.dir]}));
+
+let world;
+function boot(){
+  if(typeof Globe==='undefined'){
+    document.getElementById('globe').innerHTML =
+      '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9aa3af;font-size:13px;text-align:center;padding:30px">Не загрузился globe.gl с CDN.<br>На Vercel в реальном браузере загрузится — это ограничение песочницы предпросмотра.</div>';
+    return;
+  }
+  world = Globe()(document.getElementById('globe'))
+    .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
+    .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+    .backgroundColor('rgba(0,0,0,0)')
+    .showAtmosphere(true).atmosphereColor('#0071e3').atmosphereAltitude(0.16)
+    // точки
+    .pointsData(NODES)
+    .pointLat('lat').pointLng('lng')
+    .pointColor(d=>COL[d.dir])
+    .pointAltitude(d=> d.dir==='chain' ? 0.006 : 0.01 + d.score/900)
+    .pointRadius(d=> d.dir==='chain' ? 0.22 : 0.28 + d.score/240)
+    .pointLabel(d=> `<div style="font-family:Inter;font-size:12px;color:#fff;background:rgba(10,14,22,.92);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:8px 11px"><b style="font-size:14px">${d.t}</b>${d.dir!=='chain'?' · STARK '+d.score:''}<br><span style="color:#9aa3af">${d.sector}</span></div>`)
+    .onPointClick(d=>{ if(d.dir!=='chain') openPanel(d); world.controls().autoRotate=false; })
+    // дуги — цепочки
+    .arcsData(arcData)
+    .arcColor(()=>['rgba(0,113,227,.1)','rgba(0,113,227,.95)'])
+    .arcDashLength(0.5).arcDashGap(0.25).arcDashAnimateTime(2600)
+    .arcStroke(0.5).arcAltitude(0.22)
+    .arcLabel('label')
+    // пульсы на сильных узлах
+    .ringsData(ringData)
+    .ringColor(d=>t=>`rgba(${hexRgb(d.col)},${1-t})`)
+    .ringMaxRadius(3.2).ringPropagationSpeed(1.6).ringRepeatPeriod(1700);
+
+  world.controls().autoRotate = true;
+  world.controls().autoRotateSpeed = 0.45;
+  world.controls().enableZoom = true;
+
+  // начальный кадр — на США
+  world.pointOfView({lat:34, lng:-110, altitude:2.1}, 0);
+  setTimeout(()=>world.pointOfView({lat:30, lng:-40, altitude:2.4}, 4000), 600);
+
+  document.getElementById('nodeCount').textContent = NODES.filter(n=>n.dir!=='chain').length;
+  document.getElementById('chainCount').textContent = ARCS.length;
+  window.addEventListener('resize',()=>world.width(innerWidth).height(innerHeight));
+}
+function hexRgb(h){const n=parseInt(h.slice(1),16);return `${(n>>16)&255},${(n>>8)&255},${n&255}`;}
+
+/* ── панель ── */
+function ring(score,col){
+  const c=2*Math.PI*42, off=c*(1-score/100);
+  return `<svg width="92" height="92" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="8"/>
+    <circle cx="50" cy="50" r="42" fill="none" stroke="${col}" stroke-width="8" stroke-linecap="round"
+      stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 50 50)"/>
+  </svg>`;
+}
+const SIGNALS=[['scThesis','Тезис','25%'],['scAntic','Предвосхищение','25%'],['scInsider','Инсайдеры','15%'],['scMom','Моментум','15%'],['scRR','R:R','10%'],['scSent','Сентимент','10%']];
+function openPanel(d){
+  const col=COL[d.dir];
+  const badge={bull:['BULL','var(--bull)'],bear:['BEAR','var(--bear)'],neutral:['НЕЙТРАЛ','var(--neutral)']}[d.dir];
+  const chains=ARCS.filter(a=>a.from===d.t||a.to===d.t)
+    .map(a=>`<div class="lnk"><b>${a.from}</b><span class="arr">→</span><b>${a.to}</b></div><div style="font-size:11px;color:var(--dim);margin:-2px 0 4px 2px">${a.label}</div>`).join('')||'<div style="font-size:12px;color:var(--dim)">прямых лид-зависимостей в посеве нет</div>';
+  document.getElementById('panelBody').innerHTML=`
+    <div class="p-tick"><h2>${d.t}</h2><span class="p-badge" style="background:${col}22;color:${col}">${badge[0]}</span></div>
+    <div class="p-name">${d.name}</div>
+    <div class="ring-wrap">
+      <div style="position:relative">${ring(d.score,col)}
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:800;font-size:22px">${d.score}</div></div>
+      <div class="val"><span class="big" style="color:${col}">${d.score}</span><span class="lab">STARK SCORE</span></div>
+    </div>
+    <div class="geo">📍 ${d.lat.toFixed(2)}, ${d.lng.toFixed(2)} · ${d.sector}</div>
+    <div class="sec-t">Сигналы</div>
+    ${SIGNALS.map(([k,l,w])=>`<div class="sig"><span class="k">${l} <span style="opacity:.5">${w}</span></span><span class="v" style="color:${d[k]>=70?'var(--bull)':d[k]<50?'var(--bear)':'var(--text)'}">${d[k]??'—'}</span></div>`).join('')}
+    <div class="sec-t">Цепочки поставок / лиды</div>
+    <div class="chain">${chains}</div>
+    <div class="seed-note"><b>ФАЗА 0 · посевные данные.</b> Score и сигналы — статичные плейсхолдеры. Фаза 1 подключит live-поток: GDELT + Tavily → Claude-классификатор → STARK Score → Supabase realtime.</div>`;
+  document.getElementById('panel').classList.add('open');
+}
+function closePanel(){
+  document.getElementById('panel').classList.remove('open');
+  if(world) world.controls().autoRotate=true;
+}
+
+/* ── лента крипты ── */
+(function(){
+  const tape=CRYPTO.map(c=>`<span class="chip"><span class="t">${c.t}</span><span class="px">${c.px}</span><span class="trg">${c.trg}</span></span>`).join('');
+  document.getElementById('tapeTrack').innerHTML=tape+tape; // дубль для бесшовной прокрутки
+})();
+
+boot();
+</script>
+</body>
+</html>
