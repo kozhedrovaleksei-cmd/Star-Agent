@@ -169,7 +169,13 @@ async function leadQuote(symbol) {
 async function macroMovers(scrId, count) {
   try {
     const url = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?scrIds=${scrId}&count=${count || 12}`;
-    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    // Жёсткий таймаут: с IP Vercel этот эндпоинт может зависнуть без ответа и съесть весь бюджет функции.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 6000);
+    let r;
+    try {
+      r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: ctrl.signal });
+    } finally { clearTimeout(timer); }
     if (!r.ok) return [];
     const j = await r.json();
     const rows = j?.finance?.result?.[0]?.quotes || [];
@@ -388,11 +394,17 @@ export default async function handler(req, res) {
       };
       // Окно свежести: переключаем в новостной режим, чтобы тянуть именно последние материалы.
       if (opts.days) { body.topic = 'news'; body.days = opts.days; }
-      const r = await fetch('https://api.tavily.com/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), opts.timeout || 14000);
+      let r;
+      try {
+        r = await fetch('https://api.tavily.com/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: ctrl.signal,
+        });
+      } finally { clearTimeout(timer); }
       const data = await r.json();
       return data.answer || (data.results || []).map(x => x.title + ': ' + x.content).join('\n\n');
     } catch (e) { return ''; }
