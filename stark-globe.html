@@ -12,7 +12,7 @@
   :root{
     --bg:#03050b; --glass:rgba(14,18,28,.66);
     --line:rgba(255,255,255,.08);
-    --blue:#0a84ff; --blue-deep:#0071e3; --blue-soft:rgba(10,132,255,.16);
+    --blue:#0a84ff; --blue-soft:rgba(10,132,255,.16);
     --bull:#30d158; --bear:#ff453a; --neutral:#8a9099;
     --text:#f5f7fa; --dim:#9aa3af; --r:18px;
     --mono:'Inter',ui-monospace,'SF Mono',Menlo,monospace;
@@ -21,73 +21,60 @@
   html,body{height:100%;background:#03050b;color:var(--text);font-family:'Inter',-apple-system,sans-serif;overflow:hidden}
   #globe{position:fixed;inset:0;z-index:1}
   #globe canvas{display:block}
-  /* HUD-виньетка поверх шара */
   .vignette{position:fixed;inset:0;z-index:2;pointer-events:none;
     background:radial-gradient(120% 120% at 50% 45%,transparent 52%,rgba(3,5,11,.55) 82%,rgba(3,5,11,.92) 100%)}
 
-  /* парящие лейблы */
-  .floatlab{transform:translate(-50%,-50%);pointer-events:none;white-space:nowrap;
-    display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;font-weight:800;
-    background:rgba(8,12,20,.72);border:1px solid rgba(10,132,255,.45);border-radius:9px;padding:4px 8px;
-    box-shadow:0 0 16px rgba(10,132,255,.35);backdrop-filter:blur(4px)}
+  .floatlab{transform:translate(-50%,-50%);pointer-events:none;white-space:nowrap;display:flex;align-items:center;gap:6px;
+    font-family:var(--mono);font-size:11px;font-weight:800;background:rgba(8,12,20,.72);border:1px solid rgba(10,132,255,.45);
+    border-radius:9px;padding:4px 8px;box-shadow:0 0 16px rgba(10,132,255,.35);backdrop-filter:blur(4px)}
   .floatlab .s{font-size:10px;font-weight:700}
 
-  /* header */
   header{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;justify-content:space-between;
     padding:14px 22px;background:linear-gradient(180deg,rgba(3,5,11,.9),transparent);backdrop-filter:blur(14px)}
   .brand{display:flex;align-items:center;gap:12px}
   .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--blue);box-shadow:0 0 16px var(--blue);animation:beat 2.4s ease-in-out infinite}
   @keyframes beat{0%,100%{opacity:.55;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
-  .brand h1{font-size:15px;font-weight:900;letter-spacing:.14em}
-  .brand h1 span{color:var(--blue)}
+  .brand h1{font-size:15px;font-weight:900;letter-spacing:.14em}.brand h1 span{color:var(--blue)}
   .brand small{display:block;font-size:9.5px;letter-spacing:.32em;color:var(--dim);font-weight:600;margin-top:1px}
-  .status{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--dim);font-weight:600}
-  .status .live{width:7px;height:7px;border-radius:50%;background:var(--bull);box-shadow:0 0 10px var(--bull)}
+  .status{display:flex;align-items:center;gap:14px;font-size:11px;color:var(--dim);font-weight:600}
+  .status .grp{display:flex;align-items:center;gap:7px}
+  .status .live{width:7px;height:7px;border-radius:50%;background:var(--bull);box-shadow:0 0 10px var(--bull);animation:beat 2s infinite}
   .status b{color:var(--text);font-variant-numeric:tabular-nums}
 
-  .legend{position:fixed;left:22px;bottom:96px;z-index:9;display:flex;flex-direction:column;gap:7px;
+  .legend{position:fixed;left:22px;bottom:24px;z-index:9;display:flex;flex-direction:column;gap:7px;
     background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
   .legend .row{display:flex;align-items:center;gap:9px;font-size:11px;font-weight:600;color:var(--dim)}
   .legend .sw{width:9px;height:9px;border-radius:50%}
   .legend .arc-sw{width:18px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--blue),transparent)}
 
-  #panel{position:fixed;top:0;right:0;bottom:0;width:360px;max-width:88vw;z-index:20;
-    background:var(--glass);backdrop-filter:blur(26px);border-left:1px solid var(--line);
-    transform:translateX(102%);transition:transform .42s cubic-bezier(.22,1,.36,1);padding:78px 24px 24px;overflow-y:auto}
-  #panel.open{transform:translateX(0)}
-  #panel .close{position:absolute;top:18px;right:18px;width:30px;height:30px;border:none;border-radius:50%;
-    background:rgba(255,255,255,.08);color:var(--text);font-size:16px;cursor:pointer;line-height:1}
-  .p-tick{display:flex;align-items:baseline;gap:10px}
-  .p-tick h2{font-size:30px;font-weight:900;font-family:var(--mono)}
-  .p-badge{font-size:10px;font-weight:800;letter-spacing:.12em;padding:4px 9px;border-radius:8px;text-transform:uppercase}
-  .p-name{font-size:12.5px;color:var(--dim);margin:3px 0 18px;font-weight:500}
-  .ring-wrap{display:flex;align-items:center;gap:18px;margin-bottom:20px}
-  .ring-wrap .val .big{font-size:34px;font-weight:900;font-family:var(--mono);line-height:1}
-  .ring-wrap .val .lab{font-size:10px;letter-spacing:.22em;color:var(--dim);font-weight:700;margin-top:4px}
-  .geo{font-size:11px;color:var(--dim);margin-bottom:18px;font-weight:600}
-  .sec-t{font-size:10px;letter-spacing:.2em;color:var(--dim);font-weight:700;text-transform:uppercase;margin:18px 0 9px}
-  .sig{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px}
-  .sig .k{color:var(--dim);font-weight:500}
-  .sig .v{font-weight:700;font-family:var(--mono);font-variant-numeric:tabular-nums}
-  .chain{display:flex;flex-direction:column;gap:8px}
-  .chain .lnk{display:flex;align-items:center;gap:9px;font-size:12px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
-  .chain .lnk .arr{color:var(--blue);font-weight:800}.chain .lnk b{font-family:var(--mono)}
-  .seed-note{margin-top:22px;font-size:10.5px;line-height:1.5;color:var(--dim);background:var(--blue-soft);border:1px solid rgba(10,132,255,.3);border-radius:12px;padding:11px 13px}
+  /* ЛЕНТА СИГНАЛОВ */
+  #feed{position:fixed;top:64px;right:0;bottom:0;width:340px;max-width:86vw;z-index:8;
+    background:linear-gradient(270deg,rgba(3,5,11,.78),transparent);padding:14px 16px 24px;overflow-y:auto;
+    transition:transform .4s cubic-bezier(.22,1,.36,1)}
+  #feed.hidden{transform:translateX(102%)}
+  #feed .ft{display:flex;align-items:center;justify-content:space-between;font-size:10px;letter-spacing:.22em;
+    font-weight:800;color:var(--blue);margin-bottom:12px}
+  #feed .ft .upd{color:var(--dim);letter-spacing:.04em;font-weight:600}
+  .sigcard{background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:14px;
+    padding:11px 13px;margin-bottom:9px;cursor:pointer;transition:.2s;animation:slidein .5s ease}
+  .sigcard:hover{border-color:rgba(10,132,255,.5);transform:translateX(-3px)}
+  @keyframes slidein{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+  .sigcard .top{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+  .sigcard .tk{font-family:var(--mono);font-weight:800;font-size:13px}
+  .sigcard .dir{font-size:9px;font-weight:800;letter-spacing:.08em;padding:2px 6px;border-radius:6px;text-transform:uppercase}
+  .sigcard .imp{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--dim)}
+  .sigcard .hl{font-size:12px;line-height:1.4;color:var(--text);opacity:.92}
+  .sigcard .meta{font-size:10px;color:var(--dim);margin-top:5px;font-weight:500}
+  .feed-empty{font-size:12px;color:var(--dim);text-align:center;padding:30px 10px;line-height:1.6}
 
-  .tape{position:fixed;left:0;right:0;bottom:0;z-index:9;height:46px;display:flex;align-items:center;overflow:hidden;
-    background:linear-gradient(0deg,rgba(3,5,11,.94),rgba(3,5,11,.4));backdrop-filter:blur(14px);border-top:1px solid var(--line)}
-  .tape .lbl{flex:0 0 auto;font-size:10px;letter-spacing:.18em;font-weight:800;color:var(--blue);padding:0 16px;border-right:1px solid var(--line)}
-  .tape .track{display:flex;gap:30px;white-space:nowrap;animation:slide 36s linear infinite;padding-left:30px}
-  .tape:hover .track{animation-play-state:paused}
-  @keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-  .chip{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600}
-  .chip .t{font-family:var(--mono);font-weight:800}.chip .px{font-variant-numeric:tabular-nums;color:var(--dim)}.chip .trg{font-size:10px;color:var(--blue);font-weight:700}
+  #feedToggle{position:fixed;top:64px;right:14px;z-index:11;background:var(--glass);backdrop-filter:blur(16px);
+    border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:11px;font-weight:700;
+    padding:7px 11px;cursor:pointer;display:none}
+  @media (max-width:760px){#feed{width:100%}#feedToggle{display:block}}
 
   .booting{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:#03050b;
     font-size:12px;letter-spacing:.3em;color:var(--blue);font-weight:800;transition:opacity .6s}
   .booting.gone{opacity:0;pointer-events:none}
-
-  @media (max-width:560px){.brand small{display:none}.legend{bottom:84px;left:14px}#panel{width:100%;max-width:100%}}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -102,123 +89,147 @@
     <div class="dot"></div>
     <div><h1><span>STARK</span> · ГЛОБУС</h1><small>I AM IRON MAN · GLOBAL SIGNAL TERMINAL</small></div>
   </div>
-  <div class="status"><span class="live"></span><span><b id="nodeCount">0</b> узлов · <b id="chainCount">0</b> цепочек</span></div>
+  <div class="status">
+    <span class="grp"><span class="live"></span>LIVE</span>
+    <span class="grp"><b id="sigCount">0</b> сигналов</span>
+    <span class="grp">обновлено <b id="updTime">—</b></span>
+  </div>
 </header>
 
+<button id="feedToggle" onclick="document.getElementById('feed').classList.toggle('hidden')">☰ Лента</button>
+
 <div class="legend">
-  <div class="row"><span class="sw" style="background:var(--bull)"></span>BULL — тезис в силе</div>
-  <div class="row"><span class="sw" style="background:var(--bear)"></span>BEAR — давление</div>
-  <div class="row"><span class="sw" style="background:var(--neutral)"></span>НЕЙТРАЛ — ждём триггер</div>
-  <div class="row"><span class="arc-sw"></span>цепочка / лид-индикатор</div>
+  <div class="row"><span class="sw" style="background:var(--bull)"></span>BULL</div>
+  <div class="row"><span class="sw" style="background:var(--bear)"></span>BEAR</div>
+  <div class="row"><span class="sw" style="background:var(--neutral)"></span>НЕЙТРАЛ</div>
+  <div class="row"><span class="arc-sw"></span>цепочка / лид</div>
 </div>
 
-<div id="panel"><button class="close" onclick="closePanel()">✕</button><div id="panelBody"></div></div>
-
-<div class="tape"><div class="lbl">КРИПТО · KUCOIN</div><div class="track" id="tapeTrack"></div></div>
+<div id="feed">
+  <div class="ft"><span>ЛЕНТА СИГНАЛОВ</span><span class="upd" id="feedUpd"></span></div>
+  <div id="feedList"><div class="feed-empty">Подключаюсь к потоку…</div></div>
+</div>
 
 <script>
-/* ════════ PHASE 0 SEED — Фаза 1 заменит live-потоком из Supabase ════════ */
+/* ════════ КОНФИГ ════════ */
+const SUPA_URL = 'https://wfoyypwscvcxriqbsnew.supabase.co';
+const SUPA_KEY = 'sb_publishable_EwMdgEUXGLLlygEgzfNwYw_XcirqHgg';
+const POLL_MS = 60000; // обновление каждые 60 сек
+
+/* ════════ БАЗОВЫЙ ВОТЧЛИСТ (скелет, статичный) ════════ */
 const NODES = [
-  {t:'NVDA', name:'NVIDIA — Santa Clara, CA',       lat:37.37, lng:-121.96, score:84, dir:'bull',    sector:'Semis / AI',  scThesis:90, scAntic:82, scInsider:70, scMom:88, scRR:80, scSent:86},
-  {t:'TSM',  name:'TSMC — Hsinchu, Taiwan',         lat:24.78, lng:121.00,  score:79, dir:'bull',    sector:'Foundry',     scThesis:84, scAntic:88, scInsider:60, scMom:75, scRR:78, scSent:80},
-  {t:'AMD',  name:'AMD — Santa Clara, CA',          lat:37.36, lng:-121.97, score:72, dir:'bull',    sector:'Semis / AI',  scThesis:76, scAntic:70, scInsider:55, scMom:80, scRR:72, scSent:74},
-  {t:'META', name:'Meta — Menlo Park, CA',          lat:37.48, lng:-122.15, score:68, dir:'bull',    sector:'Mega-cap',    scThesis:72, scAntic:60, scInsider:50, scMom:78, scRR:66, scSent:72},
-  {t:'AAPL', name:'Apple — Cupertino, CA',          lat:37.33, lng:-122.03, score:61, dir:'neutral', sector:'Mega-cap',    scThesis:64, scAntic:55, scInsider:45, scMom:62, scRR:60, scSent:68},
-  {t:'NKE',  name:'Nike — Beaverton, OR',           lat:45.51, lng:-122.78, score:58, dir:'neutral', sector:'Consumer',    scThesis:60, scAntic:72, scInsider:40, scMom:48, scRR:58, scSent:54},
-  {t:'LMT',  name:'Lockheed Martin — Bethesda, MD', lat:39.00, lng:-77.10,  score:55, dir:'neutral', sector:'Defense',     scThesis:58, scAntic:65, scInsider:50, scMom:46, scRR:56, scSent:50},
-  {t:'TSLA', name:'Tesla — Austin, TX',             lat:30.27, lng:-97.74,  score:44, dir:'bear',    sector:'Auto / EV',   scThesis:42, scAntic:38, scInsider:35, scMom:40, scRR:48, scSent:52},
-  {t:'OEM·TW',name:'Pou Chen / Feng Tay — Taichung (OEM Nike)', lat:24.15, lng:120.67, score:0, dir:'chain', sector:'Supply node'},
-  {t:'FOX·CN',name:'Foxconn — Zhengzhou (сборка Apple)',        lat:34.75, lng:113.62, score:0, dir:'chain', sector:'Supply node'},
+  {t:'NVDA',name:'NVIDIA — Santa Clara, CA',lat:37.37,lng:-121.96,score:84,dir:'bull',sector:'Semis / AI'},
+  {t:'TSM',name:'TSMC — Hsinchu, Taiwan',lat:24.78,lng:121.00,score:79,dir:'bull',sector:'Foundry'},
+  {t:'AMD',name:'AMD — Santa Clara, CA',lat:37.36,lng:-121.97,score:72,dir:'bull',sector:'Semis / AI'},
+  {t:'META',name:'Meta — Menlo Park, CA',lat:37.48,lng:-122.15,score:68,dir:'bull',sector:'Mega-cap'},
+  {t:'AAPL',name:'Apple — Cupertino, CA',lat:37.33,lng:-122.03,score:61,dir:'neutral',sector:'Mega-cap'},
+  {t:'NKE',name:'Nike — Beaverton, OR',lat:45.51,lng:-122.78,score:58,dir:'neutral',sector:'Consumer'},
+  {t:'LMT',name:'Lockheed Martin — Bethesda, MD',lat:39.00,lng:-77.10,score:55,dir:'neutral',sector:'Defense'},
+  {t:'TSLA',name:'Tesla — Austin, TX',lat:30.27,lng:-97.74,score:44,dir:'bear',sector:'Auto / EV'},
 ];
 const ARCS = [
-  {from:'NKE',  to:'OEM·TW', label:'Nike ← заказы тайваньскому OEM (лид ~1 кв.)'},
-  {from:'NVDA', to:'TSM',    label:'NVDA ← мощности TSMC'},
-  {from:'AMD',  to:'TSM',    label:'AMD ← мощности TSMC'},
-  {from:'AAPL', to:'FOX·CN', label:'Apple ← сборка Foxconn'},
+  {from:'NKE',to:[24.15,120.67],label:'Nike ← тайваньский OEM'},
+  {from:'NVDA',to:[24.78,121.00],label:'NVDA ← TSMC'},
+  {from:'AMD',to:[24.78,121.00],label:'AMD ← TSMC'},
+  {from:'AAPL',to:[34.75,113.62],label:'Apple ← Foxconn'},
 ];
-const CRYPTO = [
-  {t:'TAO',px:'$259',trg:'AI compute'},{t:'RNDR',px:'$1.90',trg:'вход на пробой $1.95'},
-  {t:'FET',px:'$0.17',trg:'вход на пробой $0.27'},{t:'SUI',px:'—',trg:'next Solana'},{t:'LINK',px:'—',trg:'DeFi infra'},
-];
-
-/* ════════ движок v2 ════════ */
 const COL={bull:'#30d158',bear:'#ff453a',neutral:'#8a9099',chain:'#0a84ff'};
-const HOT=['United States of America','Taiwan','China']; // страны с активными узлами
+const HOT=['United States of America','Taiwan','China'];
 const byT=Object.fromEntries(NODES.map(n=>[n.t,n]));
-const arcData=ARCS.map(a=>{const f=byT[a.from],t=byT[a.to];return{startLat:f.lat,startLng:f.lng,endLat:t.lat,endLng:t.lng,label:a.label};});
-const ringData=NODES.filter(n=>n.score>=70).map(n=>({lat:n.lat,lng:n.lng,col:COL[n.dir]}));
-const labels=NODES.filter(n=>n.score>=72);
+const arcData=ARCS.map(a=>{const f=byT[a.from];return{startLat:f.lat,startLng:f.lng,endLat:a.to[0],endLng:a.to[1],label:a.label};});
 function hexRgb(h){const n=parseInt(h.slice(1),16);return`${(n>>16)&255},${(n>>8)&255},${n&255}`;}
 
-let world;
+let world, liveSignals=[];
+
 function init(){
-  if(typeof Globe==='undefined'){fail('Не загрузился globe.gl с CDN. На Vercel в реальном браузере загрузится.');return;}
+  if(typeof Globe==='undefined'){fail('Не загрузился globe.gl. На Vercel загрузится.');return;}
   world=Globe()(document.getElementById('globe'))
     .backgroundColor('#03050b')
     .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
-    .showGlobe(true).showAtmosphere(true).atmosphereColor('#0a84ff').atmosphereAltitude(0.22)
+    .showAtmosphere(true).atmosphereColor('#0a84ff').atmosphereAltitude(0.22)
     .pointsData(NODES).pointLat('lat').pointLng('lng')
-    .pointColor(d=>COL[d.dir])
-    .pointAltitude(d=>d.dir==='chain'?0.01:0.04+d.score/260)
-    .pointRadius(d=>d.dir==='chain'?0.2:0.32)
-    .pointResolution(18)
-    .pointLabel(d=>`<div style="font-family:Inter;font-size:12px;color:#fff;background:rgba(8,12,20,.92);border:1px solid rgba(10,132,255,.4);border-radius:10px;padding:8px 11px"><b style="font-size:14px">${d.t}</b>${d.dir!=='chain'?' · STARK '+d.score:''}<br><span style="color:#9aa3af">${d.sector}</span></div>`)
-    .onPointClick(d=>{if(d.dir!=='chain'){openPanel(d);world.controls().autoRotate=false;}})
-    .arcsData(arcData)
-    .arcColor(()=>['rgba(10,132,255,.05)','rgba(10,132,255,1)'])
+    .pointColor(d=>COL[d.dir]).pointAltitude(d=>0.04+d.score/260).pointRadius(0.32).pointResolution(18)
+    .pointLabel(d=>`<div style="font-family:Inter;font-size:12px;color:#fff;background:rgba(8,12,20,.92);border:1px solid rgba(10,132,255,.4);border-radius:10px;padding:8px 11px"><b style="font-size:14px">${d.t}</b> · ${d.sector}</div>`)
+    .arcsData(arcData).arcColor(()=>['rgba(10,132,255,.05)','rgba(10,132,255,1)'])
     .arcDashLength(0.5).arcDashGap(0.22).arcDashAnimateTime(2400).arcStroke(0.55).arcAltitude(0.28).arcLabel('label')
-    .ringsData(ringData).ringColor(d=>t=>`rgba(${hexRgb(d.col)},${1-t})`)
-    .ringMaxRadius(3.4).ringPropagationSpeed(1.6).ringRepeatPeriod(1600)
-    .htmlElementsData(labels).htmlLat('lat').htmlLng('lng').htmlAltitude(d=>0.05+d.score/240)
-    .htmlElement(d=>{const el=document.createElement('div');el.className='floatlab';
-      el.innerHTML=`<span style="color:${COL[d.dir]}">${d.t}</span><span class="s" style="color:#9aa3af">${d.score}</span>`;return el;});
+    .htmlElementsData(NODES.filter(n=>n.score>=72)).htmlLat('lat').htmlLng('lng').htmlAltitude(d=>0.05+d.score/240)
+    .htmlElement(d=>{const el=document.createElement('div');el.className='floatlab';el.innerHTML=`<span style="color:${COL[d.dir]}">${d.t}</span><span class="s" style="color:#9aa3af">${d.score}</span>`;return el;});
 
-  // голографическая гекс-сетка стран
-  fetch('https://unpkg.com/world-atlas@2/countries-110m.json')
-    .then(r=>r.json())
-    .then(topo=>{
-      const feats=topojson.feature(topo,topo.objects.countries).features;
-      world.hexPolygonsData(feats).hexPolygonResolution(3).hexPolygonMargin(0.32)
-        .hexPolygonUseDots(true)
-        .hexPolygonColor(f=>HOT.includes(f.properties.name)?'rgba(10,132,255,.95)':'rgba(10,132,255,.32)')
-        .hexPolygonAltitude(f=>HOT.includes(f.properties.name)?0.012:0.004);
-    })
-    .catch(()=>{ // фоллбэк: фото-Земля, если гекс не загрузился
-      world.globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg');
-    });
+  fetch('https://unpkg.com/world-atlas@2/countries-110m.json').then(r=>r.json()).then(topo=>{
+    const feats=topojson.feature(topo,topo.objects.countries).features;
+    world.hexPolygonsData(feats).hexPolygonResolution(3).hexPolygonMargin(0.32).hexPolygonUseDots(true)
+      .hexPolygonColor(f=>HOT.includes(f.properties.name)?'rgba(10,132,255,.95)':'rgba(10,132,255,.32)')
+      .hexPolygonAltitude(f=>HOT.includes(f.properties.name)?0.012:0.004);
+  }).catch(()=>world.globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg'));
 
   world.controls().autoRotate=true; world.controls().autoRotateSpeed=0.42; world.controls().enableZoom=true;
   world.pointOfView({lat:34,lng:-110,altitude:2.2},0);
   setTimeout(()=>world.pointOfView({lat:28,lng:-30,altitude:2.5},4500),700);
-  document.getElementById('nodeCount').textContent=NODES.filter(n=>n.dir!=='chain').length;
-  document.getElementById('chainCount').textContent=ARCS.length;
   window.addEventListener('resize',()=>world.width(innerWidth).height(innerHeight));
   setTimeout(()=>document.getElementById('boot').classList.add('gone'),900);
+
+  pollSignals();
+  setInterval(pollSignals, POLL_MS);
 }
 function fail(msg){const b=document.getElementById('boot');b.textContent=msg;b.style.letterSpacing='normal';b.style.fontWeight='500';b.style.color='#9aa3af';b.style.padding='30px';b.style.textAlign='center';}
 
-/* панель */
-function ring(score,col){const c=2*Math.PI*42,off=c*(1-score/100);
-  return`<svg width="92" height="92" viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="8"/><circle cx="50" cy="50" r="42" fill="none" stroke="${col}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 50 50)"/></svg>`;}
-const SIG=[['scThesis','Тезис','25%'],['scAntic','Предвосхищение','25%'],['scInsider','Инсайдеры','15%'],['scMom','Моментум','15%'],['scRR','R:R','10%'],['scSent','Сентимент','10%']];
-function openPanel(d){
-  const col=COL[d.dir],badge={bull:['BULL'],bear:['BEAR'],neutral:['НЕЙТРАЛ']}[d.dir];
-  const chains=ARCS.filter(a=>a.from===d.t||a.to===d.t).map(a=>`<div class="lnk"><b>${a.from}</b><span class="arr">→</span><b>${a.to}</b></div><div style="font-size:11px;color:var(--dim);margin:-2px 0 4px 2px">${a.label}</div>`).join('')||'<div style="font-size:12px;color:var(--dim)">прямых лид-зависимостей в посеве нет</div>';
-  document.getElementById('panelBody').innerHTML=`
-    <div class="p-tick"><h2>${d.t}</h2><span class="p-badge" style="background:${col}22;color:${col}">${badge[0]}</span></div>
-    <div class="p-name">${d.name}</div>
-    <div class="ring-wrap"><div style="position:relative">${ring(d.score,col)}<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:900;font-size:22px">${d.score}</div></div>
-    <div class="val"><span class="big" style="color:${col}">${d.score}</span><span class="lab">STARK SCORE</span></div></div>
-    <div class="geo">📍 ${d.lat.toFixed(2)}, ${d.lng.toFixed(2)} · ${d.sector}</div>
-    <div class="sec-t">Сигналы</div>
-    ${SIG.map(([k,l,w])=>`<div class="sig"><span class="k">${l} <span style="opacity:.5">${w}</span></span><span class="v" style="color:${d[k]>=70?'var(--bull)':d[k]<50?'var(--bear)':'var(--text)'}">${d[k]??'—'}</span></div>`).join('')}
-    <div class="sec-t">Цепочки поставок / лиды</div><div class="chain">${chains}</div>
-    <div class="seed-note"><b>ФАЗА 0 · посевные данные.</b> Score статичен. Фаза 1: GDELT + Tavily → Claude-классификатор → STARK Score → Supabase realtime.</div>`;
-  document.getElementById('panel').classList.add('open');
+/* ════════ LIVE: тянем сигналы из Supabase ════════ */
+async function pollSignals(){
+  try{
+    const r = await fetch(`${SUPA_URL}/rest/v1/signals?select=*&order=created_at.desc&limit=80`,{
+      headers:{ apikey:SUPA_KEY, Authorization:'Bearer '+SUPA_KEY }
+    });
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const rows = await r.json();
+    liveSignals = Array.isArray(rows)?rows:[];
+    renderSignals();
+  }catch(e){
+    document.getElementById('feedList').innerHTML = `<div class="feed-empty">Поток недоступен.<br><span style="font-size:10px">${e.message}</span></div>`;
+  }
 }
-function closePanel(){document.getElementById('panel').classList.remove('open');if(world)world.controls().autoRotate=true;}
 
-(function(){const tape=CRYPTO.map(c=>`<span class="chip"><span class="t">${c.t}</span><span class="px">${c.px}</span><span class="trg">${c.trg}</span></span>`).join('');document.getElementById('tapeTrack').innerHTML=tape+tape;})();
+function renderSignals(){
+  // пульсы на шаре
+  const rings = liveSignals.filter(s=>s.lat!=null&&s.lng!=null).map(s=>({
+    lat:+s.lat, lng:+s.lng, col:COL[s.direction]||COL.neutral,
+    speed: 1.2 + (s.impact||0)/60, max: 2.5 + (s.impact||0)/30
+  }));
+  world.ringsData(rings)
+    .ringColor(d=>t=>`rgba(${hexRgb(d.col)},${1-t})`)
+    .ringMaxRadius(d=>d.max).ringPropagationSpeed(d=>d.speed).ringRepeatPeriod(1500);
+
+  // точки-события
+  const ev = liveSignals.filter(s=>s.lat!=null&&s.lng!=null).map(s=>({
+    lat:+s.lat,lng:+s.lng,direction:s.direction,ticker:s.ticker,headline:s.headline,impact:s.impact
+  }));
+  world.customLayerData(ev); // лёгкий слой не используем, пульсов достаточно
+
+  // счётчики
+  document.getElementById('sigCount').textContent = liveSignals.length;
+  const now = new Date();
+  const t = now.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('updTime').textContent = t;
+  document.getElementById('feedUpd').textContent = t;
+
+  // лента
+  const list = document.getElementById('feedList');
+  if(!liveSignals.length){ list.innerHTML='<div class="feed-empty">Пока нет сигналов.<br>n8n дольёт при следующем прогоне.</div>'; return; }
+  list.innerHTML = liveSignals.slice(0,40).map(s=>{
+    const c = COL[s.direction]||COL.neutral;
+    const dirTxt = {bull:'BULL',bear:'BEAR',neutral:'НЕЙТР'}[s.direction]||'—';
+    const when = s.created_at ? new Date(s.created_at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}) : '';
+    return `<div class="sigcard" onclick="flyTo(${+s.lat},${+s.lng})">
+      <div class="top"><span class="tk">${s.ticker||'—'}</span>
+        <span class="dir" style="background:${c}22;color:${c}">${dirTxt}</span>
+        <span class="imp">${s.impact??''}</span></div>
+      <div class="hl">${escapeHtml(s.headline||s.company||'')}</div>
+      <div class="meta">${escapeHtml(s.sector||'')}${when?' · '+when:''}</div>
+    </div>`;
+  }).join('');
+}
+function flyTo(lat,lng){ if(world){ world.controls().autoRotate=false; world.pointOfView({lat,lng,altitude:1.6},1000); } }
+function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
 init();
 </script>
 </body>
