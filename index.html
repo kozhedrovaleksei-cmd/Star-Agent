@@ -484,6 +484,66 @@ table.dt .nm { color: var(--dim); font-size: 12px; }
 .mc-outlook-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
 @media (max-width: 640px) { .mc-outlook-grid { grid-template-columns: 1fr; } }
 .mc-week-card.month { background: linear-gradient(135deg, #faf6ff 0%, #fbfbfd 100%); border-color: #e2d2f7; }
+
+/* ── синхронизация ── */
+.sync-badge { display:flex; align-items:center; gap:6px; border-radius:980px; padding:5px 12px; cursor:pointer; border:1px solid var(--border); font-size:12px; font-weight:600; transition:all 0.15s; }
+.sync-dot { width:8px; height:8px; border-radius:50%; background:var(--dim); }
+.sync-ok { background:#e9f9ef; border-color:#b8ebcb; color:#1d8f4e; } .sync-ok .sync-dot { background:#1d8f4e; }
+.sync-saving { background:#eaf2fd; border-color:#bcd6f7; color:#0071e3; } .sync-saving .sync-dot { background:#0071e3; animation:mcBlink 1s infinite; }
+.sync-local { background:var(--bg4); color:var(--dim); } .sync-local .sync-dot { background:var(--dim); }
+.sync-err { background:#fff0f0; border-color:#f5c2c2; color:#d70015; } .sync-err .sync-dot { background:#d70015; }
+
+/* ── сегментированный переключатель ── */
+.seg { display:inline-flex; background:var(--bg3); border:1px solid var(--border2); border-radius:10px; padding:3px; gap:3px; }
+.seg-btn { border:none; background:transparent; color:var(--text2); font-family:var(--font); font-size:13px; font-weight:600; padding:7px 14px; border-radius:8px; cursor:pointer; transition:all 0.12s; }
+.seg-btn.active { background:var(--accent); color:#fff; }
+
+/* ── сайзинг ── */
+.sz-ccy-row { display:flex; gap:14px; flex-wrap:wrap; }
+
+/* ── журнал ── */
+.jr-form { display:flex; flex-wrap:wrap; gap:12px; }
+.jr-f { display:flex; flex-direction:column; gap:5px; flex:1 1 140px; }
+.jr-f label { font-size:11px; color:var(--dim); font-weight:600; }
+.jr-f input, .jr-f select { font-family:var(--font); font-size:15px; padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:var(--bg); color:var(--text); }
+.jr-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:14px; }
+.jr-stat { background:var(--bg2); border:1px solid var(--border2); border-radius:14px; padding:14px 16px; box-shadow:var(--shadow); }
+.jr-stat-lbl { font-size:11px; color:var(--dim); font-weight:600; text-transform:uppercase; letter-spacing:0.03em; }
+.jr-stat-val { font-family:var(--font); font-size:24px; font-weight:700; letter-spacing:-0.02em; margin-top:4px; }
+.jr-card { background:var(--bg2); border:1px solid var(--border2); border-radius:14px; padding:14px 16px; margin-bottom:10px; box-shadow:var(--shadow); border-left:4px solid var(--border); transition:transform 0.12s; }
+.jr-card.long { border-left-color:var(--green); } .jr-card.short { border-left-color:var(--red); }
+.jr-card:hover { transform:translateY(-2px); }
+.jr-card-top { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+.jr-card-tk { font-family:var(--font); font-size:18px; font-weight:800; cursor:pointer; }
+.jr-card-tk:hover { color:var(--accent); }
+.jr-side-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:980px; }
+.jr-side-badge.long { background:#e9f9ef; color:#1d8f4e; } .jr-side-badge.short { background:#fff0f0; color:#d70015; }
+.jr-card-dt { font-size:12px; color:var(--dim); font-variant-numeric:tabular-nums; }
+.jr-card-row { display:flex; gap:16px; flex-wrap:wrap; font-size:13px; color:var(--text2); margin-top:8px; }
+.jr-card-row b { color:var(--text); font-weight:600; }
+.jr-card-cmt { font-size:12px; color:var(--dim); margin-top:8px; line-height:1.5; }
+.jr-card-acts { display:flex; gap:8px; margin-top:8px; }
+.jr-r-pos { color:var(--green); font-weight:700; } .jr-r-neg { color:var(--red); font-weight:700; }
+.jr-status-chip { font-size:10px; font-weight:700; padding:2px 8px; border-radius:980px; background:var(--bg4); color:var(--dim); }
+.jr-status-chip.open { background:#eaf2fd; color:#0071e3; }
+
+/* ── привычки/протокол ── */
+.hb-head { display:flex; justify-content:space-between; align-items:center; background:var(--bg2); border:1px solid var(--border2); border-radius:18px; padding:18px 22px; margin-bottom:16px; box-shadow:var(--shadow); }
+.hb-title { font-size:18px; font-weight:700; letter-spacing:-0.01em; }
+.hb-date { font-size:13px; color:var(--dim); margin-top:3px; }
+.hb-ring-wrap { position:relative; width:64px; height:64px; }
+.hb-ring-pct { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; }
+.hb-group { margin-bottom:16px; }
+.hb-group-title { font-size:12px; font-weight:700; color:var(--dim); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:8px; }
+.hb-item { display:flex; align-items:center; gap:12px; background:var(--bg2); border:1px solid var(--border2); border-radius:12px; padding:12px 14px; margin-bottom:7px; box-shadow:var(--shadow); cursor:pointer; transition:all 0.12s; }
+.hb-item:hover { border-color:var(--accent); }
+.hb-item.done { background:#f3fbf6; border-color:#b8ebcb; }
+.hb-check { width:22px; height:22px; border-radius:7px; border:2px solid var(--border); display:flex; align-items:center; justify-content:center; flex:0 0 auto; font-size:14px; color:#fff; transition:all 0.12s; }
+.hb-item.done .hb-check { background:var(--green); border-color:var(--green); }
+.hb-item-name { flex:1; font-size:14px; color:var(--text); }
+.hb-item.done .hb-item-name { color:var(--dim); text-decoration:line-through; }
+.hb-del { font-size:12px; color:var(--dim); cursor:pointer; padding:4px 8px; border-radius:8px; }
+.hb-del:hover { background:#fff0f0; color:var(--red); }
 </style>
 </head>
 <body>
@@ -496,7 +556,7 @@ table.dt .nm { color: var(--dim); font-size: 12px; }
       <div class="hdr-sub">8-УРОВНЕВЫЙ АЛГОРИТМ · ВЕБ-ПОИСК · МЕТОД АЛЕКСЕЯ · ПРЕДВОСХИЩЕНИЕ</div>
     </div>
   </div>
-  <div class="status-badge"><span class="status-dot"></span><span class="status-text">AGENT ONLINE</span></div>
+  <div style="display:flex;align-items:center;gap:8px"><div id="syncBadge" class="sync-badge sync-local" onclick="syncSettings()" title="Синхронизация — нажми для настроек"><span class="sync-dot"></span><span id="syncText">Локально</span></div><div class="status-badge"><span class="status-dot"></span><span class="status-text">AGENT ONLINE</span></div></div>
 </div>
 
 <div class="keys-section">
@@ -525,6 +585,9 @@ table.dt .nm { color: var(--dim); font-size: 12px; }
     <button id="tabbtn-levels" class="tab-btn" onclick="switchTab('levels')">🎯 Уровни</button>
     <button id="tabbtn-leading" class="tab-btn" onclick="switchTab('leading')">🧭 Связи</button>
     <button id="tabbtn-macro" class="tab-btn" onclick="switchTab('macro')">🌍 Рынок</button>
+    <button id="tabbtn-journal" class="tab-btn" onclick="switchTab('journal')">📓 Журнал</button>
+    <button id="tabbtn-habits" class="tab-btn" onclick="switchTab('habits')">✅ Привычки</button>
+    <button id="tabbtn-protocol" class="tab-btn" onclick="switchTab('protocol')">📋 Протокол</button>
   </nav>
 
   <div id="tab-analyze" class="tab-panel active">
@@ -637,10 +700,31 @@ table.dt .nm { color: var(--dim); font-size: 12px; }
 
   <div id="tab-sizing" class="tab-panel">
     <div class="sz-card">
-      <div class="sz-field"><label>Размер счёта</label><input type="number" id="szCapital" placeholder="1000000"></div>
+      <div class="sz-ccy-row">
+        <div class="sz-field" style="flex:1"><label>Валюта счёта</label>
+          <div class="seg" id="szAcctCcy">
+            <button class="seg-btn active" data-v="RUB" onclick="szSetCcy('acct','RUB')">₽ Рубли</button>
+            <button class="seg-btn" data-v="USD" onclick="szSetCcy('acct','USD')">$ Доллары</button>
+          </div>
+        </div>
+        <div class="sz-field" style="flex:1"><label>Валюта инструмента (цены входа/стопа)</label>
+          <div class="seg" id="szInstrCcy">
+            <button class="seg-btn active" data-v="RUB" onclick="szSetCcy('instr','RUB')">₽ Рубли</button>
+            <button class="seg-btn" data-v="USD" onclick="szSetCcy('instr','USD')">$ Доллары</button>
+          </div>
+        </div>
+      </div>
+      <div class="sz-field" id="szRateWrap"><label>Курс USD/RUB <span style="color:var(--dim);font-weight:400">(для пересчёта риска)</span></label>
+        <div style="display:flex;gap:8px">
+          <input type="number" id="szRate" placeholder="90.00" step="any" style="flex:1">
+          <button class="mini-btn" style="flex:0 0 110px" onclick="szFetchRate()">↻ Курс</button>
+        </div>
+      </div>
+      <div class="sz-field"><label>Размер счёта</label><input type="number" id="szCapital" placeholder="450000"></div>
       <div class="sz-field"><label>Риск на сделку, % от счёта</label><input type="number" id="szRisk" value="1" step="0.1"></div>
       <div class="sz-field"><label>Цена входа</label><input type="number" id="szEntry" placeholder="40.50" step="any"></div>
       <div class="sz-field"><label>Стоп-лосс</label><input type="number" id="szStop" placeholder="37.00" step="any"></div>
+      <div class="sz-field"><label>Цель (необязательно — для R:R)</label><input type="number" id="szTarget" placeholder="50.00" step="any"></div>
       <div class="sz-field"><label>STARK Score (0–10) — сила тезиса</label><input type="number" id="szScore" value="5" min="0" max="10" step="0.1"></div>
       <div class="sz-field"><label>Корзина портфеля</label>
         <select id="szBucket">
@@ -654,7 +738,70 @@ table.dt .nm { color: var(--dim); font-size: 12px; }
     <div id="szResult"></div>
   </div>
 
-  <div id="tab-levels" class="tab-panel">
+  <div id="tab-journal" class="tab-panel">
+    <div class="input-card">
+      <div class="jr-form">
+        <div class="jr-f"><label>Дата и время сделки</label><input type="datetime-local" id="jrDt"></div>
+        <div class="jr-f"><label>Тикер</label><input type="text" id="jrTicker" class="ticker-input" style="font-size:16px" placeholder="NVDA"></div>
+        <div class="jr-f"><label>Сторона</label>
+          <div class="seg" id="jrSide">
+            <button class="seg-btn active" data-v="long" onclick="jrSetSide('long')">LONG</button>
+            <button class="seg-btn" data-v="short" onclick="jrSetSide('short')">SHORT</button>
+          </div>
+        </div>
+        <div class="jr-f"><label>Валюта</label>
+          <div class="seg" id="jrCcy">
+            <button class="seg-btn active" data-v="RUB" onclick="jrSetCcy('RUB')">₽</button>
+            <button class="seg-btn" data-v="USD" onclick="jrSetCcy('USD')">$</button>
+          </div>
+        </div>
+        <div class="jr-f"><label>Вход</label><input type="number" id="jrEntry" step="any" placeholder="40.50"></div>
+        <div class="jr-f"><label>Стоп</label><input type="number" id="jrStop" step="any" placeholder="37.00"></div>
+        <div class="jr-f"><label>Цель</label><input type="number" id="jrTarget" step="any" placeholder="50.00"></div>
+        <div class="jr-f"><label>Кол-во</label><input type="number" id="jrShares" step="any" placeholder="100"></div>
+        <div class="jr-f"><label>Статус</label>
+          <div class="seg" id="jrStatus">
+            <button class="seg-btn active" data-v="open" onclick="jrSetStatus('open')">Открыта</button>
+            <button class="seg-btn" data-v="closed" onclick="jrSetStatus('closed')">Закрыта</button>
+          </div>
+        </div>
+        <div class="jr-f" id="jrExitWrap" style="display:none"><label>Цена выхода</label><input type="number" id="jrExit" step="any" placeholder="48.20"></div>
+        <div class="jr-f" style="flex:1 1 100%"><label>Комментарий</label><input type="text" id="jrComment" placeholder="Уровень, эмоции, причина входа/выхода"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+        <button class="analyze-btn" style="flex:0 0 200px" onclick="jrAdd()">＋ В ЖУРНАЛ</button>
+        <button class="mini-btn" id="jrEditCancel" style="display:none" onclick="jrResetForm()">Отмена</button>
+        <span style="font-size:12px;color:var(--dim);align-self:center">Время по умолчанию — сейчас, можно изменить для бэкдейта.</span>
+      </div>
+    </div>
+    <div id="jrStats"></div>
+    <div id="jrError" class="error-box"></div>
+    <div id="jrContent"></div>
+  </div>
+
+  <div id="tab-habits" class="tab-panel">
+    <div class="hb-head">
+      <div><div class="hb-title">Трекер привычек</div><div class="hb-date" id="hbDate"></div></div>
+      <div class="hb-ring-wrap"><svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="none" stroke="var(--bg3)" stroke-width="7"/><circle id="hbRing" cx="32" cy="32" r="27" fill="none" stroke="var(--green)" stroke-width="7" stroke-linecap="round" stroke-dasharray="170" stroke-dashoffset="170" transform="rotate(-90 32 32)"/></svg><div class="hb-ring-pct" id="hbPct">0%</div></div>
+    </div>
+    <div id="hbContent"></div>
+    <div class="input-card" style="margin-top:14px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+        <div class="scr-f" style="flex:2"><label>Новая привычка</label><input type="text" id="hbNewItem" placeholder="Например: Чтение 20 мин"></div>
+        <div class="scr-f" style="flex:1"><label>Группа</label><select id="hbNewGroup"></select></div>
+        <button class="mini-btn" style="flex:0 0 130px" onclick="hbAddItem()">＋ Добавить</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-protocol" class="tab-panel">
+    <div class="hb-head">
+      <div><div class="hb-title">Дневной протокол</div><div class="hb-date" id="prDate"></div></div>
+    </div>
+    <div id="prContent"></div>
+  </div>
+
+  <div id="tab-levels" class="tab-panel">  <div id="tab-levels" class="tab-panel">
     <div class="input-card">
       <div class="scr-filters">
         <div class="scr-f" style="flex:3">
@@ -1668,43 +1815,7 @@ function renderCompare(a, b) {
 }
 
 // ═══════════════ САЙЗИНГ ПО СИЛЕ ТЕЗИСА ═══════════════
-function runSizing() {
-  const cap = parseFloat(document.getElementById('szCapital').value) || 0;
-  const riskPct = parseFloat(document.getElementById('szRisk').value) || 0;
-  const entry = parseFloat(document.getElementById('szEntry').value) || 0;
-  const stop = parseFloat(document.getElementById('szStop').value) || 0;
-  const score = Math.max(0, Math.min(10, parseFloat(document.getElementById('szScore').value) || 0));
-  const bucket = parseFloat(document.getElementById('szBucket').value) || 1;
-  const out = document.getElementById('szResult');
-  if (cap <= 0 || riskPct <= 0 || entry <= 0 || stop <= 0) {
-    out.innerHTML = '<div class="error-box show">Заполни счёт, риск, вход и стоп положительными числами.</div>'; return;
-  }
-  const riskPerShare = Math.abs(entry - stop);
-  if (riskPerShare <= 0) { out.innerHTML = '<div class="error-box show">Вход и стоп не должны совпадать.</div>'; return; }
-  const conviction = 0.3 + 0.7 * (score / 10);          // 0.3..1.0 — масштаб по силе тезиса
-  const baseRisk = cap * riskPct / 100;
-  const adjRisk = baseRisk * conviction;
-  const shares = Math.floor(adjRisk / riskPerShare);
-  const posValue = shares * entry;
-  const bucketCap = cap * bucket;
-  const posPctOfAcct = cap > 0 ? posValue / cap * 100 : 0;
-  const posPctOfBucket = bucketCap > 0 ? posValue / bucketCap * 100 : 0;
-  const over = posValue > bucketCap;
-  const fmt = v => Math.round(v).toLocaleString('ru-RU');
-  out.innerHTML = `<div class="sz-card"><div class="sz-out">
-    <div style="font-size:12px;color:var(--dim);font-weight:600;margin-bottom:4px">РАЗМЕР ПОЗИЦИИ</div>
-    <div class="sz-out-big">${shares.toLocaleString('ru-RU')} акц.</div>
-    <div class="sz-out-row"><span>Стоимость позиции</span><b>${fmt(posValue)}</b></div>
-    <div class="sz-out-row"><span>Базовый риск (${riskPct}% счёта)</span><b>${fmt(baseRisk)}</b></div>
-    <div class="sz-out-row"><span>Множитель по тезису (Score ${score.toFixed(1)})</span><b>×${conviction.toFixed(2)}</b></div>
-    <div class="sz-out-row"><span>Фактический риск сделки</span><b>${fmt(adjRisk)}</b></div>
-    <div class="sz-out-row"><span>Риск на акцию</span><b>${riskPerShare.toFixed(2)}</b></div>
-    <div class="sz-out-row"><span>Доля от счёта</span><b>${posPctOfAcct.toFixed(1)}%</b></div>
-    <div class="sz-out-row"><span>Доля от корзины</span><b style="color:${over ? 'var(--red)' : 'inherit'}">${posPctOfBucket.toFixed(0)}%${over ? ' ⚠ превышает корзину' : ''}</b></div>
-  </div>
-  <div class="sz-note">Размер считается от фиксированного риска на сделку, уменьшенного по силе тезиса (STARK Score): балл 10 → полный риск, балл 0 → 30% от него. Это калькулятор, не рекомендация — вход и стоп бери из своего плана.</div>
-  </div>`;
-}
+// runSizing — определена ниже, в блоке STARK Дисциплины
 
 // ═══════════════ СКРИНЕР (FMP) ═══════════════
 function scrShowError(m){ const el=document.getElementById('scrError'); el.textContent=m; el.classList.add('show'); }
@@ -1749,8 +1860,8 @@ function scrAnalyze(tk){ switchTab('analyze'); document.getElementById('tickerIn
 
 // ═══════════════ ПОРТФЕЛЬ + P&L ═══════════════
 const PF_KEY='stark_portfolio';
-function pfLoad(){ try{ return JSON.parse(localStorage.getItem(PF_KEY)||'[]'); }catch(e){ return []; } }
-function pfSave(list){ localStorage.setItem(PF_KEY, JSON.stringify(list)); }
+function pfLoad(){ const st=starkState(); if(!Array.isArray(st.portfolio)) st.portfolio=[]; return st.portfolio; }
+function pfSave(list){ const st=starkState(); st.portfolio=list; starkSave(); }
 function pfShowError(m){ const el=document.getElementById('pfError'); el.textContent=m; el.classList.add('show'); }
 function pfHideError(){ document.getElementById('pfError').classList.remove('show'); }
 function pfAdd(){
@@ -1967,6 +2078,425 @@ function renderLeading(d){
     '<div class="anticipation-section"><div class="anticipation-title">📡 ОПЕРЕЖАЮЩИЕ ИНДИКАТОРЫ — ЗА ЧЕМ СЛЕДИТЬ</div>'+(leadCards?'<div class="indicator-list">'+leadCards+'</div>':'<div class="anticipation-text">Нет данных</div>')+'</div>'+
     '<div class="sz-note" style="margin-top:10px">Цены индикаторов — последний дневной клоуз с Yahoo (могут отставать). Прокси-тикер в скобках, «↗» открывает котировку. Карта связей, не рекомендация.</div>';
 }
+
+
+
+/* ═══════════════════════════════════════════════════════════
+   STARK ДИСЦИПЛИНА — перенесено в агент: журнал, сайзинг,
+   привычки, протокол. Синхрон через /api/state (Upstash),
+   с локальным фоллбэком если хранилище не подключено.
+   ═══════════════════════════════════════════════════════════ */
+
+const STARK_LS = 'stark_state_v1';
+let __stark = null, __starkSaveTimer = null, __starkRemote = false;
+
+function syncPinGet(){ try{ return localStorage.getItem('stark_pin')||''; }catch(e){ return ''; } }
+
+function starkDefaults(){
+  return {
+    journal: [],
+    portfolio: [],
+    sizing: { acctCcy:'RUB', instrCcy:'RUB', rate:90, capital:450000, riskPct:1, score:5, bucket:0.3 },
+    habits: {
+      groups: [
+        { g:'Утро',          items:['Подъём 7:30','Бег / лес','Вим Хоф 3 раунда','Медитация Диспенза','Чтение 20+ мин','Белковый завтрак','Аффирмация у зеркала'] },
+        { g:'Трейдинг',      items:['Анализ рынка + уровни','Чеклист 6 вопросов','Регламент Герчика','Сделка в журнал'] },
+        { g:'Развитие',      items:['Английский 60 мин','1 компания глубоко'] },
+        { g:'Тело + добавки',items:["Lion's Mane",'Омега-3 + D3K2 + цинк','Силовая','Без алкоголя'] },
+        { g:'Вечер',         items:['Экраны до 23:30','Дневник — 3 победы','Магний глицинат','Отбой 00:30'] },
+        { g:'Финансы',       items:['10% отложено','Дзен-мани обновлён'] },
+      ],
+      checks: {}
+    },
+    protocol: {
+      groups: [
+        { g:'🌅 Утро', items:['07:30 — Подъём, 5-4-3-2-1','Вода + дыхание Вим Хоф','Медитация / визуализация (Диспенза)','Движение / бег','Белковый завтрак','Английский','Чтение'] },
+        { g:'📈 Трейдинг — US-сессия (МСК)', items:['16:00 Премаркет — план, уровни, вотчлист','16:30 Открытие — без импульсивных входов','Чеклист 6 вопросов перед сделкой','Герчик: стоп за структурой, R:R ≥ 3:1, риск 1%','Каждую сделку — в журнал','23:00 Закрытие — фиксация, разбор'] },
+        { g:'🌙 Вечер', items:['Разбор сделок дня','Дневник — 3 победы','Экраны до 23:30','Магний глицинат','00:30 — Отбой'] },
+      ],
+      checks: {}
+    }
+  };
+}
+
+// доступ к состоянию (ленивая инициализация)
+function starkState(){
+  if(!__stark){ __stark = starkLoadLocal() || starkDefaults(); starkMerge(__stark, starkDefaults()); }
+  return __stark;
+}
+// дополняем недостающие ветки дефолтами, не затирая существующее
+function starkMerge(s, def){
+  for(const k in def){
+    if(s[k]==null) s[k]=def[k];
+    else if(typeof def[k]==='object' && !Array.isArray(def[k]) && typeof s[k]==='object'){
+      for(const kk in def[k]){ if(s[k][kk]==null) s[k][kk]=def[k][kk]; }
+    }
+  }
+}
+function starkLoadLocal(){ try{ const r=localStorage.getItem(STARK_LS); return r?JSON.parse(r):null; }catch(e){ return null; } }
+function starkSaveLocal(){ try{ localStorage.setItem(STARK_LS, JSON.stringify(__stark)); }catch(e){} }
+
+// бейдж синхронизации
+function setSyncBadge(state){
+  const b=document.getElementById('syncBadge'), t=document.getElementById('syncText');
+  if(!b||!t) return;
+  b.className='sync-badge '+( state==='ok'?'sync-ok':state==='saving'?'sync-saving':state==='err'?'sync-err':'sync-local');
+  t.textContent = state==='ok'?'Синхр. ✓':state==='saving'?'Сохраняю…':state==='err'?'Ошибка синхр.':'Локально';
+}
+
+// загрузка состояния с сервера (с фоллбэком на локальное)
+async function starkLoad(){
+  let remote=null;
+  try{
+    const r=await fetch('/api/state',{ headers:{ 'x-stark-pin': syncPinGet() } });
+    if(r.status===401){ __starkRemote=false; setSyncBadge('err'); __stark=starkLoadLocal()||starkDefaults(); starkMerge(__stark,starkDefaults()); return; }
+    if(r.ok){ remote=await r.json(); __starkRemote=true; }
+  }catch(e){ __starkRemote=false; }
+
+  if(remote && typeof remote==='object' && Object.keys(remote).length){
+    __stark = remote;                 // сервер — источник истины (продолжаем общий журнал)
+    starkMerge(__stark, starkDefaults());
+    starkSaveLocal();
+    setSyncBadge('ok');
+  } else {
+    __stark = starkLoadLocal() || starkDefaults();
+    starkMerge(__stark, starkDefaults());
+    setSyncBadge(__starkRemote ? 'ok' : 'local');
+  }
+
+  // миграция старого портфеля из отдельного ключа (одноразово)
+  try{
+    const oldPf=localStorage.getItem('stark_portfolio');
+    if(oldPf && (!__stark.portfolio || !__stark.portfolio.length)){
+      const arr=JSON.parse(oldPf); if(Array.isArray(arr)&&arr.length){ __stark.portfolio=arr; starkSave(); }
+    }
+  }catch(e){}
+}
+
+// сохранение: локально сразу + на сервер с дебаунсом
+function starkSave(){
+  starkSaveLocal();
+  if(!__starkRemote){ setSyncBadge('local'); return; }
+  setSyncBadge('saving');
+  clearTimeout(__starkSaveTimer);
+  __starkSaveTimer=setTimeout(async ()=>{
+    try{
+      const r=await fetch('/api/state',{ method:'POST', headers:{ 'Content-Type':'application/json','x-stark-pin':syncPinGet() }, body:JSON.stringify(__stark) });
+      setSyncBadge(r.ok?'ok':'err');
+    }catch(e){ setSyncBadge('err'); }
+  }, 700);
+}
+
+function syncSettings(){
+  const cur=syncPinGet();
+  const p=prompt('PIN для синхронизации (если на Vercel задан STARK_PIN). Пусто — без PIN:', cur);
+  if(p===null) return;
+  try{ localStorage.setItem('stark_pin', p.trim()); }catch(e){}
+  starkLoad().then(()=>{ jrRender(); hbRender(); prRender(); renderPortfolio&&renderPortfolio(); });
+}
+
+/* ── общие хелперы ── */
+function todayKey(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function nowLocalDt(){ const d=new Date(); const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); }
+function ccySym(c){ return c==='RUB'?'₽':'$'; }
+function fmtMoney(v,c){ if(v==null||isNaN(v)) return '—'; const n=Number(v).toLocaleString('ru-RU',{maximumFractionDigits:2}); return c==='RUB'?n+' ₽':'$'+n; }
+function convert(amount, from, to, rate){ if(from===to) return amount; if(!rate||rate<=0) return amount; if(from==='RUB'&&to==='USD') return amount/rate; if(from==='USD'&&to==='RUB') return amount*rate; return amount; }
+function segSet(id,val){ const wrap=document.getElementById(id); if(!wrap) return; wrap.querySelectorAll('.seg-btn').forEach(b=>b.classList.toggle('active', b.getAttribute('data-v')===val)); }
+
+/* ═══════════ ЖУРНАЛ ═══════════ */
+let __jrSide='long', __jrCcy='RUB', __jrStatus='open', __jrEditId=null;
+function jrSetSide(v){ __jrSide=v; segSet('jrSide',v); }
+function jrSetCcy(v){ __jrCcy=v; segSet('jrCcy',v); }
+function jrSetStatus(v){ __jrStatus=v; segSet('jrStatus',v); document.getElementById('jrExitWrap').style.display = v==='closed'?'flex':'none'; }
+function jrShowError(m){ const el=document.getElementById('jrError'); el.textContent='⚠ '+m; el.classList.add('show'); }
+function jrHideError(){ document.getElementById('jrError').classList.remove('show'); }
+
+function jrComputeR(t){
+  const risk=Math.abs(t.entry-t.stop);
+  const rr = (t.target!=null && risk>0)? Math.abs(t.target-t.entry)/risk : null;
+  let realR=null, pnl=null;
+  if(t.status==='closed' && t.exit!=null && risk>0){
+    const sign = t.side==='long'?1:-1;
+    realR = ((t.exit - t.entry)/risk)*sign;
+    if(t.shares) pnl = (t.exit - t.entry)*t.shares*sign;
+  }
+  return { risk, rr, realR, pnl };
+}
+
+function jrAdd(){
+  jrHideError();
+  const tk=(document.getElementById('jrTicker').value||'').trim().toUpperCase();
+  const dt=document.getElementById('jrDt').value || nowLocalDt();
+  const entry=parseFloat(document.getElementById('jrEntry').value);
+  const stop=parseFloat(document.getElementById('jrStop').value);
+  const targetRaw=document.getElementById('jrTarget').value; const target=targetRaw===''?null:parseFloat(targetRaw);
+  const shares=parseFloat(document.getElementById('jrShares').value)||null;
+  const exitRaw=document.getElementById('jrExit').value; const exit=(__jrStatus==='closed'&&exitRaw!=='')?parseFloat(exitRaw):null;
+  const comment=(document.getElementById('jrComment').value||'').trim();
+  if(!tk){ jrShowError('Введи тикер'); return; }
+  if(!(entry>0)||!(stop>0)){ jrShowError('Вход и стоп — положительные числа'); return; }
+  const st=starkState();
+  const entryObj={ id:__jrEditId||('t'+Date.now()), dt, ticker:tk, side:__jrSide, ccy:__jrCcy, entry, stop, target, shares, status:__jrStatus, exit, comment };
+  if(__jrEditId){ const i=st.journal.findIndex(x=>x.id===__jrEditId); if(i>=0) st.journal[i]=entryObj; }
+  else { st.journal.push(entryObj); }
+  starkSave();
+  jrResetForm();
+  jrRender();
+}
+function jrEdit(id){
+  const t=starkState().journal.find(x=>x.id===id); if(!t) return;
+  __jrEditId=id;
+  document.getElementById('jrDt').value=t.dt||nowLocalDt();
+  document.getElementById('jrTicker').value=t.ticker||'';
+  document.getElementById('jrEntry').value=t.entry??'';
+  document.getElementById('jrStop').value=t.stop??'';
+  document.getElementById('jrTarget').value=t.target??'';
+  document.getElementById('jrShares').value=t.shares??'';
+  document.getElementById('jrExit').value=t.exit??'';
+  document.getElementById('jrComment').value=t.comment||'';
+  jrSetSide(t.side||'long'); jrSetCcy(t.ccy||'RUB'); jrSetStatus(t.status||'open');
+  document.getElementById('jrEditCancel').style.display='inline-block';
+  document.querySelector('#tab-journal .input-card').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function jrDelete(id){ if(!confirm('Удалить запись?')) return; const st=starkState(); st.journal=st.journal.filter(x=>x.id!==id); starkSave(); jrRender(); }
+function jrResetForm(){
+  __jrEditId=null; __jrSide='long'; __jrCcy=(starkState().sizing.instrCcy)||'RUB'; __jrStatus='open';
+  ['jrTicker','jrEntry','jrStop','jrTarget','jrShares','jrExit','jrComment'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
+  document.getElementById('jrDt').value=nowLocalDt();
+  segSet('jrSide','long'); segSet('jrCcy',__jrCcy); segSet('jrStatus','open');
+  document.getElementById('jrExitWrap').style.display='none';
+  document.getElementById('jrEditCancel').style.display='none';
+}
+
+function jrRender(){
+  const st=starkState();
+  const list=[...(st.journal||[])].sort((a,b)=>(b.dt||'').localeCompare(a.dt||''));
+  // статистика по закрытым
+  const closed=list.filter(t=>t.status==='closed' && t.exit!=null);
+  let wins=0, sumR=0, grossW=0, grossL=0;
+  closed.forEach(t=>{ const {realR}=jrComputeR(t); if(realR!=null){ sumR+=realR; if(realR>0){wins++; grossW+=realR;} else grossL+=Math.abs(realR);} });
+  const wr=closed.length?Math.round(wins/closed.length*100):null;
+  const pf=grossL>0?(grossW/grossL):(grossW>0?Infinity:null);
+  const statsEl=document.getElementById('jrStats');
+  statsEl.innerHTML='<div class="jr-stats">'+
+    '<div class="jr-stat"><div class="jr-stat-lbl">Всего сделок</div><div class="jr-stat-val">'+list.length+'</div></div>'+
+    '<div class="jr-stat"><div class="jr-stat-lbl">Закрытых</div><div class="jr-stat-val">'+closed.length+'</div></div>'+
+    '<div class="jr-stat"><div class="jr-stat-lbl">Винрейт</div><div class="jr-stat-val">'+(wr!=null?wr+'%':'—')+'</div></div>'+
+    '<div class="jr-stat"><div class="jr-stat-lbl">Сумма R</div><div class="jr-stat-val" style="color:'+(sumR>0?'var(--green)':sumR<0?'var(--red)':'inherit')+'">'+(closed.length?(sumR>0?'+':'')+sumR.toFixed(1)+'R':'—')+'</div></div>'+
+    '<div class="jr-stat"><div class="jr-stat-lbl">Профит-фактор</div><div class="jr-stat-val">'+(pf==null?'—':pf===Infinity?'∞':pf.toFixed(2))+'</div></div>'+
+  '</div>';
+
+  const el=document.getElementById('jrContent');
+  if(!list.length){ el.innerHTML='<div class="wl-empty">Журнал пуст. Добавь первую сделку — или отправь из сайзинга кнопкой «В журнал».</div>'; return; }
+  el.innerHTML=list.map(t=>{
+    const {risk,rr,realR,pnl}=jrComputeR(t);
+    const dtTxt=t.dt?t.dt.slice(8,10)+'.'+t.dt.slice(5,7)+' '+t.dt.slice(11,16):'';
+    const sideTxt=t.side==='short'?'SHORT':'LONG';
+    const rTxt = realR!=null?'<span class="'+(realR>0?'jr-r-pos':'jr-r-neg')+'">'+(realR>0?'+':'')+realR.toFixed(2)+'R</span>':'';
+    const pnlTxt = pnl!=null?'<span class="'+(pnl>0?'jr-r-pos':'jr-r-neg')+'">'+(pnl>0?'+':'')+fmtMoney(pnl,t.ccy)+'</span>':'';
+    return '<div class="jr-card '+(t.side==='short'?'short':'long')+'">'+
+      '<div class="jr-card-top">'+
+        '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
+          '<span class="jr-card-tk" onclick="mcOpen(\''+t.ticker+'\')">'+t.ticker+'</span>'+
+          '<span class="jr-side-badge '+(t.side==='short'?'short':'long')+'">'+sideTxt+'</span>'+
+          '<span class="jr-status-chip '+(t.status==='open'?'open':'')+'">'+(t.status==='open'?'открыта':'закрыта')+'</span>'+
+        '</div>'+
+        '<span class="jr-card-dt">'+dtTxt+'</span>'+
+      '</div>'+
+      '<div class="jr-card-row">'+
+        '<span>Вход <b>'+fmtMoney(t.entry,t.ccy)+'</b></span>'+
+        '<span>Стоп <b>'+fmtMoney(t.stop,t.ccy)+'</b></span>'+
+        (t.target!=null?'<span>Цель <b>'+fmtMoney(t.target,t.ccy)+'</b></span>':'')+
+        (t.shares?'<span>Кол-во <b>'+t.shares+'</b></span>':'')+
+        (rr!=null?'<span>R:R <b>'+rr.toFixed(1)+':1</b></span>':'')+
+        (rTxt?'<span>Итог '+rTxt+'</span>':'')+
+        (pnlTxt?'<span>P&L '+pnlTxt+'</span>':'')+
+      '</div>'+
+      (t.comment?'<div class="jr-card-cmt">'+t.comment+'</div>':'')+
+      '<div class="jr-card-acts"><button class="mini-btn" onclick="jrEdit(\''+t.id+'\')">✎ Изменить</button><button class="mini-btn" onclick="jrDelete(\''+t.id+'\')">🗑 Удалить</button></div>'+
+    '</div>';
+  }).join('');
+}
+
+/* ═══════════ ПРИВЫЧКИ ═══════════ */
+function hbRender(){
+  const st=starkState(); const day=todayKey();
+  st.habits.checks[day]=st.habits.checks[day]||{};
+  const checks=st.habits.checks[day];
+  document.getElementById('hbDate').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
+  // селект групп
+  const sel=document.getElementById('hbNewGroup');
+  if(sel) sel.innerHTML=st.habits.groups.map(g=>'<option value="'+g.g+'">'+g.g+'</option>').join('');
+  let total=0, done=0;
+  const el=document.getElementById('hbContent');
+  el.innerHTML=st.habits.groups.map(grp=>{
+    const items=grp.items.map(it=>{
+      const key=grp.g+'|'+it; const isDone=!!checks[key]; total++; if(isDone) done++;
+      return '<div class="hb-item '+(isDone?'done':'')+'" onclick="hbToggle(\''+encodeURIComponent(grp.g)+'\',\''+encodeURIComponent(it)+'\')">'+
+        '<div class="hb-check">'+(isDone?'✓':'')+'</div>'+
+        '<div class="hb-item-name">'+it+'</div>'+
+        '<span class="hb-del" onclick="event.stopPropagation();hbDelItem(\''+encodeURIComponent(grp.g)+'\',\''+encodeURIComponent(it)+'\')">✕</span>'+
+      '</div>';
+    }).join('');
+    return '<div class="hb-group"><div class="hb-group-title">'+grp.g+'</div>'+items+'</div>';
+  }).join('');
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById('hbPct').textContent=pct+'%';
+  const ring=document.getElementById('hbRing'); if(ring){ const c=2*Math.PI*27; ring.setAttribute('stroke-dasharray',c); ring.setAttribute('stroke-dashoffset', c*(1-pct/100)); }
+}
+function hbToggle(gEnc,itEnc){
+  const g=decodeURIComponent(gEnc), it=decodeURIComponent(itEnc);
+  const st=starkState(); const day=todayKey(); st.habits.checks[day]=st.habits.checks[day]||{};
+  const key=g+'|'+it; st.habits.checks[day][key]=!st.habits.checks[day][key];
+  starkSave(); hbRender();
+}
+function hbAddItem(){
+  const name=(document.getElementById('hbNewItem').value||'').trim();
+  const g=document.getElementById('hbNewGroup').value;
+  if(!name) return;
+  const st=starkState(); const grp=st.habits.groups.find(x=>x.g===g); if(grp){ grp.items.push(name); starkSave(); }
+  document.getElementById('hbNewItem').value=''; hbRender();
+}
+function hbDelItem(gEnc,itEnc){
+  const g=decodeURIComponent(gEnc), it=decodeURIComponent(itEnc);
+  if(!confirm('Удалить привычку «'+it+'»?')) return;
+  const st=starkState(); const grp=st.habits.groups.find(x=>x.g===g); if(grp){ grp.items=grp.items.filter(x=>x!==it); starkSave(); } hbRender();
+}
+
+/* ═══════════ ПРОТОКОЛ ═══════════ */
+function prRender(){
+  const st=starkState(); const day=todayKey();
+  st.protocol.checks[day]=st.protocol.checks[day]||{};
+  const checks=st.protocol.checks[day];
+  document.getElementById('prDate').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
+  const el=document.getElementById('prContent');
+  el.innerHTML=st.protocol.groups.map(grp=>{
+    const items=grp.items.map(it=>{
+      const key=grp.g+'|'+it; const isDone=!!checks[key];
+      return '<div class="hb-item '+(isDone?'done':'')+'" onclick="prToggle(\''+encodeURIComponent(grp.g)+'\',\''+encodeURIComponent(it)+'\')">'+
+        '<div class="hb-check">'+(isDone?'✓':'')+'</div><div class="hb-item-name">'+it+'</div></div>';
+    }).join('');
+    return '<div class="hb-group"><div class="hb-group-title">'+grp.g+'</div>'+items+'</div>';
+  }).join('');
+}
+function prToggle(gEnc,itEnc){
+  const g=decodeURIComponent(gEnc), it=decodeURIComponent(itEnc);
+  const st=starkState(); const day=todayKey(); st.protocol.checks[day]=st.protocol.checks[day]||{};
+  const key=g+'|'+it; st.protocol.checks[day][key]=!st.protocol.checks[day][key];
+  starkSave(); prRender();
+}
+
+/* ═══════════ САЙЗИНГ (валюта) ═══════════ */
+function szSyncFromState(){
+  const s=starkState().sizing;
+  segSet('szAcctCcy',s.acctCcy); segSet('szInstrCcy',s.instrCcy);
+  const cap=document.getElementById('szCapital'); if(cap&&!cap.value) cap.value=s.capital||'';
+  const risk=document.getElementById('szRisk'); if(risk) risk.value=s.riskPct||1;
+  const rate=document.getElementById('szRate'); if(rate&&!rate.value) rate.value=s.rate||90;
+  szUpdateRateVis();
+}
+function szSetCcy(which, val){
+  const s=starkState().sizing;
+  if(which==='acct'){ s.acctCcy=val; segSet('szAcctCcy',val); } else { s.instrCcy=val; segSet('szInstrCcy',val); }
+  starkSave(); szUpdateRateVis();
+}
+function szUpdateRateVis(){
+  const s=starkState().sizing;
+  document.getElementById('szRateWrap').style.display = (s.acctCcy!==s.instrCcy)?'flex':'none';
+}
+async function szFetchRate(){
+  const btn=event&&event.target; if(btn){ btn.disabled=true; btn.textContent='…'; }
+  try{
+    const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'fxrate'})});
+    const d=await safeJson(r);
+    if(d&&d.rate){ document.getElementById('szRate').value=d.rate; starkState().sizing.rate=d.rate; starkSave(); }
+  }catch(e){}
+  if(btn){ btn.disabled=false; btn.textContent='↻ Курс'; }
+}
+function runSizing(){
+  const s=starkState().sizing;
+  const acct=s.acctCcy, instr=s.instrCcy;
+  const cap=parseFloat(document.getElementById('szCapital').value)||0;
+  const riskPct=parseFloat(document.getElementById('szRisk').value)||0;
+  const entry=parseFloat(document.getElementById('szEntry').value)||0;
+  const stop=parseFloat(document.getElementById('szStop').value)||0;
+  const targetRaw=document.getElementById('szTarget').value; const target=targetRaw===''?null:parseFloat(targetRaw);
+  const score=Math.max(0,Math.min(10,parseFloat(document.getElementById('szScore').value)||0));
+  const bucket=parseFloat(document.getElementById('szBucket').value)||1;
+  const rate=parseFloat(document.getElementById('szRate').value)||0;
+  // сохраняем настройки
+  s.capital=cap; s.riskPct=riskPct; s.score=score; s.bucket=bucket; if(rate>0) s.rate=rate; starkSave();
+  const out=document.getElementById('szResult');
+  if(cap<=0||riskPct<=0||entry<=0||stop<=0){ out.innerHTML='<div class="error-box show">Заполни счёт, риск, вход и стоп положительными числами.</div>'; return; }
+  if(acct!==instr && !(rate>0)){ out.innerHTML='<div class="error-box show">Укажи курс USD/RUB (кнопка «↻ Курс») — счёт и инструмент в разных валютах.</div>'; return; }
+  const riskPerShare=Math.abs(entry-stop);
+  if(riskPerShare<=0){ out.innerHTML='<div class="error-box show">Вход и стоп не должны совпадать.</div>'; return; }
+  const conviction=0.3+0.7*(score/10);
+  const baseRiskAcct=cap*riskPct/100;
+  const adjRiskAcct=baseRiskAcct*conviction;
+  const adjRiskInstr=convert(adjRiskAcct, acct, instr, rate);
+  const shares=Math.floor(adjRiskInstr/riskPerShare);
+  const posValueInstr=shares*entry;
+  const posValueAcct=convert(posValueInstr, instr, acct, rate);
+  const bucketCapAcct=cap*bucket;
+  const posPctOfAcct=cap>0?posValueAcct/cap*100:0;
+  const posPctOfBucket=bucketCapAcct>0?posValueAcct/bucketCapAcct*100:0;
+  const over=posValueAcct>bucketCapAcct;
+  const rr = target!=null? Math.abs(target-entry)/riskPerShare : null;
+  window.__lastSizing={ entry, stop, target, shares, ccy:instr };
+  out.innerHTML='<div class="sz-card"><div class="sz-out">'+
+    '<div style="font-size:12px;color:var(--dim);font-weight:600;margin-bottom:4px">РАЗМЕР ПОЗИЦИИ</div>'+
+    '<div class="sz-out-big">'+shares.toLocaleString('ru-RU')+' акц.</div>'+
+    '<div class="sz-out-row"><span>Стоимость позиции ('+instr+')</span><b>'+fmtMoney(posValueInstr,instr)+'</b></div>'+
+    (acct!==instr?'<div class="sz-out-row"><span>Стоимость в валюте счёта ('+acct+')</span><b>'+fmtMoney(posValueAcct,acct)+'</b></div>':'')+
+    '<div class="sz-out-row"><span>Базовый риск ('+riskPct+'% счёта)</span><b>'+fmtMoney(baseRiskAcct,acct)+'</b></div>'+
+    '<div class="sz-out-row"><span>Множитель по тезису (Score '+score.toFixed(1)+')</span><b>×'+conviction.toFixed(2)+'</b></div>'+
+    '<div class="sz-out-row"><span>Фактический риск ('+acct+')</span><b>'+fmtMoney(adjRiskAcct,acct)+'</b></div>'+
+    '<div class="sz-out-row"><span>Риск на акцию ('+instr+')</span><b>'+fmtMoney(riskPerShare,instr)+'</b></div>'+
+    (rr!=null?'<div class="sz-out-row"><span>R:R до цели</span><b>'+rr.toFixed(1)+':1'+(rr<3?' ⚠ ниже 3:1':'')+'</b></div>':'')+
+    '<div class="sz-out-row"><span>Доля от счёта</span><b>'+posPctOfAcct.toFixed(1)+'%</b></div>'+
+    '<div class="sz-out-row"><span>Доля от корзины</span><b style="color:'+(over?'var(--red)':'inherit')+'">'+posPctOfBucket.toFixed(0)+'%'+(over?' ⚠ превышает корзину':'')+'</b></div>'+
+  '</div>'+
+  '<button class="analyze-btn" style="width:100%;margin-top:12px" onclick="szToJournal()">📓 ОТПРАВИТЬ В ЖУРНАЛ</button>'+
+  '<div class="sz-note">Риск считается в валюте счёта и пересчитывается в валюту инструмента по курсу. Балл 10 → полный риск, балл 0 → 30% от него. Калькулятор, не рекомендация.</div>'+
+  '</div>';
+}
+function szToJournal(){
+  const z=window.__lastSizing; if(!z) return;
+  switchTab('journal');
+  jrResetForm();
+  document.getElementById('jrEntry').value=z.entry;
+  document.getElementById('jrStop').value=z.stop;
+  if(z.target!=null) document.getElementById('jrTarget').value=z.target;
+  document.getElementById('jrShares').value=z.shares;
+  jrSetCcy(z.ccy||'USD');
+  const tkv=document.getElementById('szEntryTicker'); // если был тикер — нет поля, оставляем пусто
+  document.getElementById('jrTicker').focus();
+}
+
+/* ═══════════ ИНИЦИАЛИЗАЦИЯ + ХУК ВКЛАДОК ═══════════ */
+(function(){
+  const _origSwitch = switchTab;
+  window.switchTab = function(name){
+    _origSwitch(name);
+    try{
+      if(name==='journal') jrRender();
+      else if(name==='habits') hbRender();
+      else if(name==='protocol') prRender();
+      else if(name==='sizing') szSyncFromState();
+    }catch(e){ console.error('STARK tab render', e); }
+  };
+})();
+
+window.addEventListener('load', async function(){
+  await starkLoad();
+  try{
+    const dt=document.getElementById('jrDt'); if(dt) dt.value=nowLocalDt();
+    __jrCcy=(starkState().sizing.instrCcy)||'RUB'; segSet('jrCcy',__jrCcy);
+    szSyncFromState();
+    jrRender(); hbRender(); prRender();
+  }catch(e){ console.error('STARK init', e); }
+});
 
 </script>
 </body>
