@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>STARK · ВИНО &amp; СПИРТЫ — Атлас</title>
+<meta name="description" content="STARK PROTOCOL — глобус терруаров, сигналы покупки/продажи, карта спроса и библиотека вина и крепкого алкоголя." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070a10;
+    --bg2:#0b1018;
+    --ink:#eef2f8;
+    --muted:#9aa6b8;
+    --faint:#5a6678;
+    --line:rgba(255,255,255,.09);
+    --glass:rgba(20,26,36,.62);
+    --glass-strong:rgba(16,21,30,.86);
+    --blue:#0a84ff;        /* STARK accent */
+    --blue-ink:#5cb0ff;
+    --bordeaux:#7a1f2b;    /* ambient subject accent */
+    --acc:#0a84ff;
+    --buy:#34c759;
+    --hold:#5ac8fa;
+    --watch:#ffb340;
+    --avoid:#ff6b5e;
+    --radius:18px;
+    --radius-sm:12px;
+    --shadow:0 24px 60px rgba(0,0,0,.5);
+    --maxw:1180px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:
+      radial-gradient(1200px 700px at 78% -8%, rgba(122,31,43,.30), transparent 60%),
+      radial-gradient(900px 600px at 8% 110%, rgba(10,132,255,.16), transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  .serif{font-family:"Cormorant Garamond",Georgia,serif;}
+  a{color:var(--blue-ink);text-decoration:none}
+
+  /* Header */
+  header{
+    position:sticky;top:0;z-index:40;
+    backdrop-filter:saturate(160%) blur(18px);
+    -webkit-backdrop-filter:saturate(160%) blur(18px);
+    background:linear-gradient(180deg, rgba(7,10,16,.92), rgba(7,10,16,.55));
+    border-bottom:1px solid var(--line);
+  }
+  .bar{max-width:var(--maxw);margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .brand{display:flex;flex-direction:column;line-height:1}
+  .brand .t{font-weight:700;letter-spacing:.14em;font-size:13px}
+  .brand .t b{color:var(--blue-ink)}
+  .brand .s{font-size:10px;letter-spacing:.34em;color:var(--faint);margin-top:5px}
+  .seg{margin-left:auto;display:flex;gap:4px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:999px;padding:4px}
+  .seg button{
+    appearance:none;border:0;background:transparent;color:var(--muted);
+    font:600 13px Inter;padding:8px 16px;border-radius:999px;cursor:pointer;transition:.18s;white-space:nowrap
+  }
+  .seg button:hover{color:var(--ink)}
+  .seg button[aria-selected="true"]{background:var(--blue);color:#fff;box-shadow:0 6px 18px rgba(10,132,255,.35)}
+  .seg button:focus-visible{outline:2px solid var(--blue-ink);outline-offset:2px}
+
+  main{max-width:var(--maxw);margin:0 auto;padding:0 20px 80px}
+  .view{display:none}
+  .view.active{display:block;animation:fade .5s ease both}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  /* ---------- GLOBE ---------- */
+  .stage{position:relative;height:min(72vh,720px);margin-top:8px}
+  #globe{position:absolute;inset:0;width:100%;height:100%;cursor:grab;border-radius:24px}
+  #globe.grabbing{cursor:grabbing}
+  .hero-copy{position:absolute;left:6px;top:10px;max-width:360px;pointer-events:none;z-index:3}
+  .hero-copy h1{font-size:clamp(30px,5vw,54px);font-weight:600;margin:0;line-height:1.02;letter-spacing:-.01em}
+  .hero-copy h1 em{font-style:italic;color:var(--blue-ink)}
+  .hero-copy p{color:var(--muted);font-size:14px;margin:12px 0 0;max-width:320px}
+  .legend{position:absolute;left:6px;bottom:10px;display:flex;gap:14px;flex-wrap:wrap;z-index:3;font-size:12px;color:var(--muted)}
+  .legend .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle;box-shadow:0 0 10px currentColor}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 4px}
+  .chip{
+    appearance:none;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--muted);
+    border-radius:999px;padding:9px 15px;font:600 13px Inter;cursor:pointer;transition:.16s
+  }
+  .chip:hover{color:var(--ink);border-color:rgba(255,255,255,.22)}
+  .chip[aria-pressed="true"]{background:var(--ink);color:#0a0e14;border-color:var(--ink)}
+  .chip:focus-visible{outline:2px solid var(--blue-ink);outline-offset:2px}
+  .tip{
+    position:absolute;z-index:5;pointer-events:none;transform:translate(-50%,-140%);
+    background:var(--glass-strong);border:1px solid var(--line);border-radius:10px;
+    padding:7px 11px;font-size:12px;font-weight:600;white-space:nowrap;opacity:0;transition:opacity .12s;
+    box-shadow:0 8px 24px rgba(0,0,0,.5)
+  }
+  .tip small{display:block;font-weight:500;color:var(--muted);letter-spacing:.02em;margin-top:1px}
+
+  /* Detail panel */
+  .scrim{position:fixed;inset:0;background:rgba(2,4,8,.5);backdrop-filter:blur(2px);opacity:0;visibility:hidden;transition:.25s;z-index:50}
+  .scrim.open{opacity:1;visibility:visible}
+  .panel{
+    position:fixed;top:0;right:0;height:100%;width:min(440px,92vw);z-index:60;
+    background:var(--glass-strong);backdrop-filter:saturate(160%) blur(24px);-webkit-backdrop-filter:saturate(160%) blur(24px);
+    border-left:1px solid var(--line);box-shadow:var(--shadow);
+    transform:translateX(102%);transition:transform .32s cubic-bezier(.22,1,.36,1);
+    display:flex;flex-direction:column
+  }
+  .panel.open{transform:none}
+  .panel .ph{padding:22px 24px 16px;border-bottom:1px solid var(--line);position:relative}
+  .panel .pbody{padding:18px 24px 40px;overflow:auto}
+  .x{position:absolute;top:16px;right:16px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);
+    background:rgba(255,255,255,.05);color:var(--ink);font-size:16px;cursor:pointer;display:grid;place-items:center}
+  .x:hover{background:rgba(255,255,255,.12)}
+  .kicker{font-size:11px;letter-spacing:.28em;color:var(--faint);text-transform:uppercase}
+  .pname{font-size:34px;font-weight:600;margin:6px 0 2px;letter-spacing:-.01em;line-height:1.04}
+  .psub{color:var(--muted);font-size:13px}
+  .badge{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:7px 14px;font-weight:700;font-size:13px;margin-top:14px;border:1px solid transparent}
+  .badge .d{width:8px;height:8px;border-radius:50%;box-shadow:0 0 8px currentColor}
+  .b-buy{background:rgba(52,199,89,.14);color:#7ee29a;border-color:rgba(52,199,89,.4)}
+  .b-hold{background:rgba(90,200,250,.14);color:#9ee0ff;border-color:rgba(90,200,250,.4)}
+  .b-watch{background:rgba(255,179,64,.14);color:#ffd08a;border-color:rgba(255,179,64,.4)}
+  .b-avoid{background:rgba(255,107,94,.14);color:#ff9d94;border-color:rgba(255,107,94,.4)}
+  .row{padding:15px 0;border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:0}
+  .row h4{margin:0 0 7px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);font-weight:700}
+  .row p{margin:0;font-size:14.5px;line-height:1.55;color:#d6dde8}
+  .tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:2px}
+  .tag{font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:5px 10px;color:#cdd6e3;background:rgba(255,255,255,.03)}
+  .tag.serif{font-size:15px}
+  .vy{display:flex;flex-wrap:wrap;gap:6px}
+  .vy span{font:600 13px Inter;background:rgba(10,132,255,.12);border:1px solid rgba(10,132,255,.3);color:var(--blue-ink);border-radius:8px;padding:4px 9px}
+  .stark-read{background:rgba(122,31,43,.16);border:1px solid rgba(122,31,43,.45);border-radius:12px;padding:13px 15px;margin-top:4px}
+  .stark-read h4{color:#e9b5bd}
+  .stark-read p{color:#f1d9dd}
+
+  /* ---------- LIBRARY ---------- */
+  .search{position:relative;margin:22px 0 8px}
+  .search input{
+    width:100%;background:var(--glass);border:1px solid var(--line);border-radius:14px;
+    color:var(--ink);font:500 16px Inter;padding:15px 16px 15px 46px
+  }
+  .search input::placeholder{color:var(--faint)}
+  .search input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 4px rgba(10,132,255,.18)}
+  .search svg{position:absolute;left:15px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--faint)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:14px;margin-top:14px}
+  .card{
+    background:var(--glass);border:1px solid var(--line);border-radius:var(--radius);padding:18px;cursor:pointer;
+    transition:.18s;position:relative;overflow:hidden
+  }
+  .card:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.2);box-shadow:0 18px 40px rgba(0,0,0,.4)}
+  .card:focus-visible{outline:2px solid var(--blue-ink);outline-offset:2px}
+  .card .top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .card .flag{font-size:24px}
+  .card .sig{font-size:11px;font-weight:700;letter-spacing:.06em;padding:4px 9px;border-radius:999px}
+  .card h3{font-family:"Cormorant Garamond",serif;font-weight:600;font-size:26px;margin:12px 0 2px;line-height:1.02}
+  .card .meta{color:var(--muted);font-size:12.5px}
+  .card .soil{margin-top:11px;font-size:13px;color:#cbd4e0;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .card .strip{position:absolute;left:0;top:0;bottom:0;width:4px}
+
+  .section-h{display:flex;align-items:baseline;gap:12px;margin:38px 0 4px}
+  .section-h h2{font-family:"Cormorant Garamond",serif;font-weight:600;font-size:30px;margin:0}
+  .section-h span{font-size:12px;color:var(--faint);letter-spacing:.04em}
+  .gloss{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:14px}
+  .gl{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px 16px}
+  .gl dt{font-weight:700;font-size:14px;color:var(--ink)}
+  .gl dd{margin:5px 0 0;font-size:13px;color:var(--muted);line-height:1.5}
+
+  /* ---------- SIGNALS ---------- */
+  .lede{color:var(--muted);font-size:15px;max-width:660px;margin:22px 0 4px;line-height:1.6}
+  .asof{font-size:12px;color:var(--faint);margin-top:6px}
+  .sigwrap{margin-top:26px}
+  .siggroup{margin-top:22px}
+  .siggroup > .gh{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .gh .dot{width:11px;height:11px;border-radius:50%;box-shadow:0 0 10px currentColor}
+  .gh h3{margin:0;font-size:15px;font-weight:700;letter-spacing:.02em}
+  .gh em{font-style:normal;color:var(--faint);font-size:12.5px;margin-left:auto}
+  .sigcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+  .sc{background:var(--glass);border:1px solid var(--line);border-radius:var(--radius-sm);padding:15px 17px;cursor:pointer;transition:.16s}
+  .sc:hover{border-color:rgba(255,255,255,.2);transform:translateY(-2px)}
+  .sc .scn{display:flex;align-items:center;gap:9px}
+  .sc .scn b{font-family:"Cormorant Garamond",serif;font-size:21px;font-weight:600}
+  .sc .scn small{color:var(--faint);font-size:12px;margin-left:auto}
+  .sc p{margin:9px 0 0;font-size:13.5px;color:#cdd6e3;line-height:1.5}
+
+  .demand{margin-top:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+  .dm{background:linear-gradient(180deg,rgba(10,132,255,.07),rgba(255,255,255,.02));border:1px solid var(--line);border-radius:var(--radius-sm);padding:16px 18px}
+  .dm .h{display:flex;align-items:center;gap:10px}
+  .dm .h b{font-size:15px}
+  .dm .h .arr{margin-left:auto;font-weight:700;font-size:13px}
+  .up{color:var(--buy)} .down{color:var(--avoid)} .flat{color:var(--watch)}
+  .dm p{margin:9px 0 0;font-size:13.5px;color:#cbd4e0;line-height:1.55}
+
+  footer{max-width:var(--maxw);margin:40px auto 0;padding:24px 20px;border-top:1px solid var(--line);color:var(--faint);font-size:12.5px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  footer b{color:var(--muted)}
+  .anchor{letter-spacing:.22em;color:var(--bordeaux);font-weight:700}
+
+  @media (max-width:620px){
+    .hero-copy h1{font-size:34px}
+    .stage{height:64vh}
+    .seg{width:100%;justify-content:center;margin-left:0}
+    .bar{gap:12px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">
+      <div class="t">STARK · <b>ВИНО &amp; СПИРТЫ</b></div>
+      <div class="s">I AM IRON MAN</div>
+    </div>
+    <div class="seg" role="tablist" aria-label="Разделы">
+      <button role="tab" aria-selected="true"  data-view="globe">🌍 Глобус</button>
+      <button role="tab" aria-selected="false" data-view="library">📚 Библиотека</button>
+      <button role="tab" aria-selected="false" data-view="signals">📈 Сигналы</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- GLOBE -->
+  <section id="globe-view" class="view active" role="tabpanel">
+    <div class="stage">
+      <canvas id="globe" aria-label="Интерактивный глобус регионов вина и спиртов"></canvas>
+      <div class="hero-copy">
+        <h1 class="serif">Атлас <em>терруара</em></h1>
+        <p>Где какие почвы, что покупать и продавать, где спрос. Вращай глобус, тапни регион.</p>
+      </div>
+      <div class="legend">
+        <span><i class="dot" style="color:var(--buy)"></i>Накопление</span>
+        <span><i class="dot" style="color:var(--hold)"></i>Держать</span>
+        <span><i class="dot" style="color:var(--watch)"></i>Наблюдать</span>
+        <span><i class="dot" style="color:var(--avoid)"></i>Избегать</span>
+      </div>
+      <div class="tip" id="tip"></div>
+    </div>
+    <div class="filters" id="filters" role="group" aria-label="Фильтр по категории"></div>
+  </section>
+
+  <!-- LIBRARY -->
+  <section id="library-view" class="view" role="tabpanel">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="q" type="search" placeholder="Поиск: регион, хозяйство, сорт, почва…" autocomplete="off" />
+    </div>
+    <div class="grid" id="cards"></div>
+    <div class="section-h"><h2>Глоссарий</h2><span>язык рынка</span></div>
+    <dl class="gloss" id="gloss"></dl>
+  </section>
+
+  <!-- SIGNALS -->
+  <section id="signals-view" class="view" role="tabpanel">
+    <p class="lede"><b>Скальпель.</b> После трёхлетней коррекции (пик окт.&nbsp;2022) рынок коллекционного алкоголя — на дне и в ранней стадии восстановления. Smart&nbsp;money набирает <b>качество</b>, пока розница ещё боится. Корреляция вина с&nbsp;S&amp;P&nbsp;500&nbsp;≈&nbsp;0.11 — это твой некоррелированный актив-убежище.</p>
+    <div class="asof">Рыночное состояние · по данным на июнь 2026 · живой Tavily/Claude-анализ = v2</div>
+    <div class="sigwrap" id="sigboard"></div>
+    <div class="section-h"><h2>Где спрос</h2><span>геопоток капитала</span></div>
+    <div class="demand" id="demand"></div>
+  </section>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="panel" id="panel" aria-hidden="true" aria-label="Карточка региона"></aside>
+
+<footer>
+  <span>STARK PROTOCOL · Атлас вина и крепкого алкоголя · <b>не инвестиционная рекомендация</b></span>
+  <span class="anchor">ВОТ ТАК ЗАКАЛЯЕТСЯ ХАРАКТЕР</span>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ============================== DATA ============================== */
+const SIG = {
+  buy:   {label:"Накопление", cls:"b-buy",   color:"var(--buy)",   hex:0x34c759},
+  hold:  {label:"Держать",    cls:"b-hold",  color:"var(--hold)",  hex:0x5ac8fa},
+  watch: {label:"Наблюдать",  cls:"b-watch", color:"var(--watch)", hex:0xffb340},
+  avoid: {label:"Избегать",   cls:"b-avoid", color:"var(--avoid)", hex:0xff6b5e}
+};
+
+const DATA = [
+  // ---------- WINE ----------
+  {id:"bordeaux",cat:"wine",flag:"🇫🇷",name:"Bordeaux",ru:"Бордо",country:"Франция",lat:44.84,lng:-0.58,
+   type:"Красное · купаж",grape:"Cabernet Sauvignon · Merlot · Cabernet Franc",
+   soil:"Левый берег (Médoc) — гравий на глине: дренаж и тепло для Каберне. Правый берег (Pomerol, St-Émilion) — глина и известняк: округлый Мерло.",
+   producers:["Lafite Rothschild","Latour","Margaux","Mouton","Haut-Brion","Pétrus","Le Pin"],
+   vintages:["1982","2000","2005","2009","2010","2016","2018"],
+   sig:"buy",
+   read:"First Growths на многолетних минимумах, EP-кампания 2025 провалилась (продажи топ-мерчантов −60%) — баланс силы сместился к покупателю. Зона накопления качества. Триггер входа — рост bid:offer на Liv-ex.",
+   demand:"США придушены тарифами 15%, но Европа подхватила и компенсирует уход американцев."},
+
+  {id:"burgundy",cat:"wine",flag:"🇫🇷",name:"Bourgogne",ru:"Бургундия",country:"Франция",lat:47.02,lng:4.84,
+   type:"Красное / белое · моносорт",grape:"Pinot Noir · Chardonnay",
+   soil:"Côte d'Or — известняк и мергель тонкими слоями. Каждый climat = микро-почва; цена решается метрами склона.",
+   producers:["Domaine de la Romanée-Conti","Leroy","Armand Rousseau","Roumier"],
+   vintages:["2005","2010","2015","2016","2019","2020"],
+   sig:"hold",
+   read:"Лидер восстановления: топ-Бургундия в Гонконге торгуется всё ровнее, январь — пик доли в торгах. Но цены ещё высокие — точечно, не вширь.",
+   demand:"Азия (Гонконг) — главный драйвер премиальной Бургундии."},
+
+  {id:"champagne",cat:"wine",flag:"🇫🇷",name:"Champagne",ru:"Шампань",country:"Франция",lat:49.26,lng:4.03,
+   type:"Игристое · престиж-кюве",grape:"Chardonnay · Pinot Noir · Meunier",
+   soil:"Чистый мел (belemnite) — отражает свет, держит влагу, даёт минеральность и долгую выдержку.",
+   producers:["Krug","Salon","Dom Pérignon","Cristal","Bollinger"],
+   vintages:["2002","2008","2012"],
+   sig:"watch",
+   read:"Сильно зависела от спроса США — под ударом тарифов. Но престиж-кюве структурно дефицитны (мороз 2021 срезал урожай на ~25%). Жду стабилизации спроса.",
+   demand:"Восстановление завязано на возврат американского покупателя."},
+
+  {id:"montalcino",cat:"wine",flag:"🇮🇹",name:"Montalcino",ru:"Монтальчино",country:"Италия",lat:43.06,lng:11.49,
+   type:"Красное · Brunello",grape:"Sangiovese (Brunello)",
+   soil:"Galestro (рассыпчатый сланец) на высоте и alberese (плотный известняк) ниже — структура и долголетие Брунелло.",
+   producers:["Biondi-Santi","Soldera / Case Basse","Poggio di Sotto","Valdicava","Cerbaiona"],
+   vintages:["2010","2015","2016","2019"],
+   sig:"buy",
+   read:"Твоя зона. 43% итальянского вина шло в США — уход американцев дал дисконт, а Европа подхватывает спрос на Тоскану. Soldera — «Romanée-Conti Тосканы», ультра-тонкий float. Накопление на слабости.",
+   demand:"Европейские покупатели замещают выпавший спрос США по Италии."},
+
+  {id:"bolgheri",cat:"wine",flag:"🇮🇹",name:"Bolgheri",ru:"Болгери",country:"Италия",lat:43.23,lng:10.61,
+   type:"Красное · Super Tuscan",grape:"Cabernet · Merlot · Cabernet Franc",
+   soil:"Прибрежные песчано-глинистые аллювии у моря — мягкий бриз и дренаж; стиль ближе к Бордо, чем к остальной Тоскане.",
+   producers:["Sassicaia (Tenuta San Guido)","Masseto","Ornellaia"],
+   vintages:["2015","2016"],
+   sig:"hold",
+   read:"Sassicaia 2016 получил 100 баллов RP — классика «балл-катализатора», двигающего цену. Super Tuscans — якорь итальянского блю-чипа. Держать.",
+   demand:"Глобальный спрос; чувствительность к тарифам США."},
+
+  {id:"barolo",cat:"wine",flag:"🇮🇹",name:"Barolo",ru:"Бароло",country:"Италия",lat:44.61,lng:7.94,
+   type:"Красное · моносорт",grape:"Nebbiolo",
+   soil:"Известковый мергель: тортонский (ароматный, элегантный — La Morra) и серравальский (мощный, структурный — Serralunga).",
+   producers:["Giacomo Conterno (Monfortino)","Bartolo Mascarello","Giuseppe Rinaldi"],
+   vintages:["2010","2013","2016"],
+   sig:"buy",
+   read:"Пьемонт показывает устойчивую силу. Conterno Monfortino — топ-пик коллекционеров. Накопление качества на восстановлении.",
+   demand:"Растущий интерес у молодых коллекционеров по всему миру."},
+
+  {id:"n-rhone",cat:"wine",flag:"🇫🇷",name:"Northern Rhône",ru:"Северная Рона",country:"Франция",lat:45.07,lng:4.85,
+   type:"Красное · моносорт",grape:"Syrah",
+   soil:"Гранит и сланец на крутых террасах (Hermitage, Côte-Rôtie) — тепло отражённое от камня, концентрация.",
+   producers:["Guigal (La Mouline/Landonne/Turque)","Jean-Louis Chave","Chapoutier"],
+   vintages:["2009","2010","2015","2016"],
+   sig:"hold",
+   read:"Rhône 100 — единственный субиндекс Liv-ex в плюсе за весь 2025. Тихая относительная сила. Держать ядро.",
+   demand:"Стабильный международный спрос, низкая волатильность."},
+
+  {id:"cdp",cat:"wine",flag:"🇫🇷",name:"Châteauneuf-du-Pape",ru:"Шатонёф-дю-Пап",country:"Франция",lat:44.06,lng:4.83,
+   type:"Красное · купаж",grape:"Grenache · Syrah · Mourvèdre",
+   soil:"Galets roulés — крупная окатанная галька: днём копит жар, ночью отдаёт лозе. Спелость и мощь.",
+   producers:["Château Rayas","Beaucastel","Domaine du Pégau"],
+   vintages:["2010","2016","2019"],
+   sig:"watch",
+   read:"Rayas — культовый узкий рынок. Категория шире — наблюдать за разворотом Южной Роны вслед за Северной.",
+   demand:"Нишевый коллекционный спрос вокруг отдельных доменов."},
+
+  {id:"napa",cat:"wine",flag:"🇺🇸",name:"Napa Valley",ru:"Напа-Вэлли",country:"США",lat:38.5,lng:-122.27,
+   type:"Красное · культовый Каб",grape:"Cabernet Sauvignon",
+   soil:"Вулканический пепел на холмах + аллювий долины («Rutherford dust»); десятки типов почв на узкой долине.",
+   producers:["Screaming Eagle","Harlan Estate","Scarecrow","Opus One"],
+   vintages:["2013","2016","2018","2019"],
+   sig:"watch",
+   read:"California 50 движется в своём ритме, вне Европы. Драйвер — внутренний рынок США и молодые коллекционеры. Наблюдать на фоне возврата покупателя.",
+   demand:"Внутренний рынок США; растущий интерес поколения 25–40."},
+
+  {id:"mosel",cat:"wine",flag:"🇩🇪",name:"Mosel",ru:"Мозель",country:"Германия",lat:49.92,lng:7.07,
+   type:"Белое · сладкое/сухое",grape:"Riesling",
+   soil:"Синий девонский сланец на отвесных склонах — аккумулирует тепло, даёт «дымную» минеральность и кислотность.",
+   producers:["Egon Müller (Scharzhofberger)","J.J. Prüm"],
+   vintages:["2015","2018","2019"],
+   sig:"hold",
+   read:"Узкий, но ультра-редкий верх: Egon Müller TBA — один из самых дорогих белых в мире. Низкая ликвидность, держать как раритет.",
+   demand:"Нишевые коллекционеры белого; тонкий рынок."},
+
+  {id:"ribera",cat:"wine",flag:"🇪🇸",name:"Ribera del Duero",ru:"Рибера-дель-Дуэро",country:"Испания",lat:41.63,lng:-3.69,
+   type:"Красное · моносорт",grape:"Tempranillo (Tinto Fino)",
+   soil:"Известняк и глина на высоте ~800 м, большая суточная амплитуда — свежесть при мощи.",
+   producers:["Vega Sicilia (Único)","Dominio de Pingus"],
+   vintages:["2004","2010","2015","2019"],
+   sig:"buy",
+   read:"Испанский блю-чип набирает у молодых коллекционеров (New World tilt). Vega Sicilia Único — недооценён относительно Бордо. Ранняя зона накопления.",
+   demand:"Растущая доля Испании в портфелях нового поколения."},
+
+  {id:"douro",cat:"wine",flag:"🇵🇹",name:"Douro",ru:"Дору",country:"Португалия",lat:41.16,lng:-7.79,
+   type:"Креплёное · Port",grape:"Touriga Nacional и др.",
+   soil:"Сланец (schist) и гранит на ступенчатых террасах — корни уходят глубоко за водой; концентрация сахара.",
+   producers:["Taylor's","Graham's","Fonseca","Quinta do Noval Nacional"],
+   vintages:["1994","2000","2011","2016"],
+   sig:"hold",
+   read:"Port 50 — медленный контрцикл к столовым винам, хорош для диверсификации риска. Vintage Port почти не портится — длинный холд.",
+   demand:"Стабильный, медленно оборачивающийся коллекционный сегмент."},
+
+  {id:"barossa",cat:"wine",flag:"🇦🇺",name:"Barossa Valley",ru:"Долина Баросса",country:"Австралия",lat:-34.53,lng:138.95,
+   type:"Красное · моносорт",grape:"Shiraz",
+   soil:"Древние песчаные суглинки и железистый камень (ironstone) — старейшие лозы Шираза на планете.",
+   producers:["Penfolds Grange","Henschke Hill of Grace"],
+   vintages:["2010","2012","2016","2018"],
+   sig:"watch",
+   read:"Penfolds Grange — флагман Нового Света, набирает у молодых. Наблюдать на восстановлении широкого рынка.",
+   demand:"Растущий азиатский и внутренний спрос на премиальный Шираз."},
+
+  {id:"mendoza",cat:"wine",flag:"🇦🇷",name:"Mendoza",ru:"Мендоса",country:"Аргентина",lat:-32.89,lng:-68.84,
+   type:"Красное · моносорт",grape:"Malbec",
+   soil:"Аллювий у подножья Анд, высота 900–1500 м (Uco Valley) — солнце + холодные ночи = цвет и структура.",
+   producers:["Catena Zapata","Cheval des Andes"],
+   vintages:["2013","2016","2019"],
+   sig:"watch",
+   read:"Value/emerging. Топ-Мальбек пока не блю-чип, но кривая качества растёт. Спекулятивный конец — наблюдать.",
+   demand:"Рынок ещё формируется; вход для раннего профиля."},
+
+  // ---------- SPIRITS ----------
+  {id:"speyside",cat:"whisky",flag:"🏴",name:"Speyside",ru:"Спейсайд",country:"Шотландия",lat:57.46,lng:-3.22,
+   type:"Виски · single malt",grape:"Ячмень · бочка (sherry/bourbon)",
+   soil:"Терруар = вода реки Спей + бочка. Шерри-бочки (Macallan) дают сухофрукты и плотность.",
+   producers:["The Macallan","Glenfarclas","GlenDronach"],
+   vintages:["18yo Sherry Oak","Fine & Rare","Single cask"],
+   sig:"hold",
+   read:"Flight to quality. Macallan — «Rolex of Scotch» (1926 Adami ушёл за ~$2.7M). Держать топ-квартиль; рекорд устойчив, середину не трогать.",
+   demand:"Азия (гифтинг), Европа; премиум держится при общей коррекции."},
+
+  {id:"islay",cat:"whisky",flag:"🏴",name:"Islay",ru:"Айла",country:"Шотландия",lat:55.75,lng:-6.2,
+   type:"Виски · торфяной malt",grape:"Ячмень · торф",
+   soil:"Терруар буквальный: торфяники острова дают дым и йод. Port Ellen — закрытая (ghost) винокурня.",
+   producers:["Port Ellen (ghost)","Ardbeg","Lagavulin","Bowmore"],
+   vintages:["Port Ellen Annual","Old & rare 70s–80s"],
+   sig:"buy",
+   read:"Ghost distillery Port Ellen — float заморожен навсегда, переоткрытие не создаёт старый сток. Holy Grail категории. Накопление редких релизов.",
+   demand:"Глобальный коллекционный спрос на закрытые винокурни."},
+
+  {id:"highlands",cat:"whisky",flag:"🏴",name:"Highlands",ru:"Хайленд",country:"Шотландия",lat:58.01,lng:-3.85,
+   type:"Виски · single malt",grape:"Ячмень · бочка",
+   soil:"Широкий регион: прибрежная соль (Clynelish) до закрытой Brora — старый сток (70-80-е) — отдельная высоко-ценная категория.",
+   producers:["Brora (ghost)","Clynelish","The Dalmore"],
+   vintages:["Brora 1972/1977","Dalmore Constellation"],
+   sig:"buy",
+   read:"Brora — ещё одна ghost distillery. «Старая эра» дистилляции = ограниченный, тающий supply. Накопление качества.",
+   demand:"Аукционы Лондона/Эдинбурга; устойчивый спрос на раритет."},
+
+  {id:"japan",cat:"whisky",flag:"🇯🇵",name:"Japan",ru:"Япония",country:"Япония",lat:34.89,lng:135.67,
+   type:"Виски · single malt / blend",grape:"Ячмень · мизунара-дуб",
+   soil:"Мизунара (японский дуб) — редкая, дорогая бочка с сандалом/ладаном. Karuizawa и Hanyu закрыты в 2000.",
+   producers:["Yamazaki","Hibiki","Karuizawa (ghost)","Hanyu (ghost)","Chichibu"],
+   vintages:["Yamazaki 18/25/55","Hibiki 21/35","Karuizawa 1960-70s"],
+   sig:"buy",
+   read:"Бифуркация рынка. Топ (Karuizawa, Hanyu, ультра-возраст) дорожает; доступные бутылки −30% от пика 2022. Накопление ТОЛЬКО верха; середину — избегать.",
+   demand:"Тайвань, Китай, Сингапур; >90% клиренс редких лотов на аукционе."},
+
+  {id:"kentucky",cat:"whisky",flag:"🇺🇸",name:"Kentucky",ru:"Кентукки",country:"США",lat:38.2,lng:-84.87,
+   type:"Виски · bourbon",grape:"Кукуруза ≥51% · известняковая вода",
+   soil:"Терруар бурбона = известняком отфильтрованная вода (без железа) + жаркий климат → 'angel's share' до 10%/год.",
+   producers:["Pappy Van Winkle","Buffalo Trace Antique Collection","George T. Stagg"],
+   vintages:["Pappy 23","BTAC ежегодный"],
+   sig:"hold",
+   read:"Pappy ставит рекорды ($162.5k в янв. 2026). Сокращения производства у Beam/Brown-Forman = будущий дефицит сегодняшнего залива. Держать аллокации.",
+   demand:"Бурбон доминирует в США; вторичка моложе и волатильнее Scotch."},
+
+  {id:"cognac",cat:"cognac",flag:"🇫🇷",name:"Cognac",ru:"Коньяк",country:"Франция",lat:45.69,lng:-0.33,
+   type:"Бренди · крю-система",grape:"Ugni Blanc",
+   soil:"Grande Champagne — самый меловой крю, даёт longevity; Borderies — цветочный. Крю = иерархия терруара.",
+   producers:["Hennessy","Rémy Martin Louis XIII","Frapin","Hine"],
+   vintages:["Louis XIII декантеры","Vintage/early-landed"],
+   sig:"watch",
+   read:"Сильная завязка на Китай/Азию — там зелёные ростки спроса. Louis XIII — статусный актив. Наблюдать за разворотом азиатского спроса.",
+   demand:"Китай — ключевой рынок; восстановление импорта впервые за годы."},
+
+  {id:"jalisco",cat:"agave",flag:"🇲🇽",name:"Jalisco",ru:"Халиско",country:"Мексика",lat:20.88,lng:-103.84,
+   type:"Текила · agave spirit",grape:"Blue Weber agave",
+   soil:"Лос-Альтос — красная железистая глина (высота, сладость); Лос-Вальес — вулканическая (землистость). Агава зреет 6–8 лет.",
+   producers:["Fortaleza","Don Julio","Patrón","Clase Azul","G4"],
+   vintages:["Extra Añejo (длинная выдержка)"],
+   sig:"watch",
+   read:"ВАЖНО: это сырьевой цикл, а не коллекционный рынок. Агава −94% ($1.60→$0.10/кг), «Текиловое озеро» 500М литров, дно ~2026 (классический cobweb). Играть цикл и маржу брендов, не бутылки. + риск брендов (иски о подлинности).",
+   demand:"США (~80% экспорта) остыли; премиум-усталость, объём плато."},
+
+  {id:"oaxaca",cat:"agave",flag:"🇲🇽",name:"Oaxaca",ru:"Оахака",country:"Мексика",lat:17.07,lng:-96.72,
+   type:"Мескаль · agave spirit",grape:"Espadín и дикие агавы",
+   soil:"Вулканические почвы, десятки видов агав; дымность от земляной печи (palenque). Single-village = микро-терруар.",
+   producers:["Del Maguey (single-village)","редкие tobalá/tepeztate"],
+   vintages:["Single-maguey редкие розливы"],
+   sig:"watch",
+   read:"Нишевый рост на премиализации. Редкие дикие агавы — тонкий коллекционный конец. Наблюдать как растущую, но узкую категорию.",
+   demand:"Растущий спрос на ремесленный мескаль в США/Европе."},
+
+  {id:"caribbean",cat:"rum",flag:"🇧🇧",name:"Caribbean",ru:"Карибы",country:"Барбадос · Ямайка · Гайана",lat:13.19,lng:-59.54,
+   type:"Ром · agricole/molasses",grape:"Сахарный тростник",
+   soil:"Коралловый известняк (Барбадос) фильтрует воду; тропический климат = быстрая выдержка, высокий angel's share.",
+   producers:["Foursquare","Hampden Estate","демерара (Guyana)"],
+   vintages:["Foursquare Exceptional Cask","старая демерара"],
+   sig:"watch",
+   read:"Появляющийся коллекционный класс: Foursquare — культ. Раньше других — наблюдать за входом ранней зоны накопления нишевого рома.",
+   demand:"Растущий энтузиастский спрос; рынок ещё незрелый."}
+];
+
+const GLOSSARY = [
+  ["Терруар","Сумма почвы, климата, рельефа и воды конкретного места — то, что нельзя скопировать. Аналог фундаментала компании."],
+  ["Винтаж","Год урожая. Погода сезона = «отчётность» вина; великий винтаж двигает цену на десятилетия."],
+  ["En Primeur","Покупка вина фьючерсом, пока оно ещё в бочке (до розлива). Аналог IPO/предзаказа — риск и потенциальный дисконт."],
+  ["Liv-ex","Лондонская биржа коллекционного вина. Индексы FW50 (Бордо First Growths, дневной), FW100 (бенчмарк), FW1000 (широкий, 7 субиндексов)."],
+  ["Bid:offer ratio","Отношение объёма заявок на покупку к продаже на Liv-ex. Барометр настроения и опережающий индикатор цены — твой sentiment-сигнал."],
+  ["RP100 / 100 баллов","Оценка критика (Robert Parker / Wine Advocate и др.). 100 баллов = «upgrade аналитика», мгновенно поднимающий спрос и цену."],
+  ["Négociant","Торговый дом, скупающий и перепродающий вино (особенно в Бордо). Аналог маркет-мейкера/дилера."],
+  ["First Growth","Пять топ-шато Бордо по классификации 1855 (Lafite, Latour, Margaux, Mouton, Haut-Brion). Блю-чип рынка."],
+  ["Super Tuscan","Тосканские вина вне традиционной аппелласьон-системы (Sassicaia, Masseto). Премиальный итальянский блю-чип."],
+  ["Ghost distillery","Закрытая винокурня (Port Ellen, Brora, Karuizawa, Hanyu). Supply заморожен навсегда → структурный дефицит и рост цены."],
+  ["Angel's share","Доля спирта, испаряющаяся при выдержке: ~2%/год Scotch, до ~10%/год бурбон Кентукки. Уменьшает финальный объём — фактор расчёта доходности."],
+  ["Mizunara","Редкий японский дуб для бочек — сандал, кокос, ладан. Дорогой и протекающий; драйвер премиума японского виски."],
+  ["Single cask","Розлив из одной бочки — уникальный, невоспроизводимый. Премия к стандартным сериям."],
+  ["NAS","No Age Statement — без указания возраста. Часто признак управления дефицитом стока."],
+  ["Cobweb cycle","Паутинообразный цикл сырья (агава): высокая цена → пересадка → лаг созревания → разом избыток → обвал. Текила-2025 — учебник."]
+];
+
+const DEMAND = [
+  {flag:"🇪🇺",name:"Европа",dir:"up",arr:"+48% г/г",txt:"Главный покупатель 2026. Подхватил выпавший спрос США; евро-покупатели не страдают от тарифов внутри ЕС. Драйвер по Тоскане и Бордо."},
+  {flag:"🇺🇸",name:"США",dir:"down",arr:"−44% (восст.)",txt:"Тарифы 15% на алкоголь ЕС + слабый доллар придушили закупки (−43.6% за 2025). Но возвращаются — уже ~80% к уровню Q1 2024. Лобби за вывод вина из-под тарифов."},
+  {flag:"🇭🇰",name:"Азия / Гонконг",dir:"up",arr:"зелёные ростки",txt:"Китай импортирует вино впервые почти за 10 лет (с низкой базы). Гонконг ровно наращивает топ-Бургундию. Сигнал разворота."},
+  {flag:"🇮🇳",name:"Индия",dir:"up",arr:"тариф 150→75%",txt:"Сделка UK–Индия вдвое срезает тариф на Scotch. Один из крупнейших рынков виски открывается — долгосрочный драйвер спроса на бленды и далее."},
+  {flag:"🇯🇵",name:"Япония",dir:"flat",arr:"объём ↑, цена ↓",txt:"Импорт Scotch +22.9% по объёму, но цена за бутылку падает — highball-культура тянет бленды и грейн, не премиум-молт."}
+];
+
+/* ============================== GLOBE ============================== */
+let scene, camera, renderer, raycaster, globeGroup, pinGroup, pins=[];
+let dragging=false, moved=0, lastX=0, lastY=0, autoRot=true, hovered=null;
+const canvas = document.getElementById('globe');
+const tip = document.getElementById('tip');
+const stage = document.querySelector('.stage');
+let activeFilter = 'all';
+
+function latLngToVec3(lat,lng,r){
+  const phi=(90-lat)*Math.PI/180, theta=(lng+180)*Math.PI/180;
+  return new THREE.Vector3(
+    -r*Math.sin(phi)*Math.cos(theta),
+     r*Math.cos(phi),
+     r*Math.sin(phi)*Math.sin(theta)
+  );
+}
+
+function initGlobe(){
+  if(typeof THREE==='undefined'){ canvas.style.display='none'; return; }
+  scene=new THREE.Scene();
+  const w=stage.clientWidth, h=stage.clientHeight;
+  camera=new THREE.PerspectiveCamera(42,w/h,0.1,100);
+  camera.position.z=3.05;
+  renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  renderer.setSize(w,h); renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+
+  globeGroup=new THREE.Group(); scene.add(globeGroup);
+
+  // sphere
+  const geo=new THREE.SphereGeometry(1,64,64);
+  const mat=new THREE.MeshPhongMaterial({color:0x10202f,emissive:0x05111c,specular:0x113355,shininess:12});
+  const sphere=new THREE.Mesh(geo,mat); globeGroup.add(sphere);
+
+  // try texture, keep fallback on error
+  new THREE.TextureLoader().load(
+    'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/planets/earth_atmos_2048.jpg',
+    (tex)=>{ mat.map=tex; mat.color.set(0xffffff); mat.emissive.set(0x0a1622); mat.needsUpdate=true; },
+    undefined, ()=>{}
+  );
+
+  // atmosphere
+  const atm=new THREE.Mesh(
+    new THREE.SphereGeometry(1.16,64,64),
+    new THREE.ShaderMaterial({
+      transparent:true, side:THREE.BackSide, blending:THREE.AdditiveBlending,
+      vertexShader:'varying vec3 n; void main(){ n=normalize(normalMatrix*normal); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+      fragmentShader:'varying vec3 n; void main(){ float i=pow(.62-dot(n,vec3(0,0,1.0)),3.0); gl_FragColor=vec4(.10,.45,1.0,1.0)*i; }'
+    })
+  );
+  scene.add(atm);
+
+  // wireframe overlay for terminal feel
+  const wire=new THREE.Mesh(new THREE.SphereGeometry(1.003,36,24),
+    new THREE.MeshBasicMaterial({color:0x2a4866,wireframe:true,transparent:true,opacity:.16}));
+  globeGroup.add(wire);
+
+  // lights
+  scene.add(new THREE.AmbientLight(0x88aacc,.65));
+  const key=new THREE.DirectionalLight(0xffffff,1.1); key.position.set(3,2,4); scene.add(key);
+  const rim=new THREE.DirectionalLight(0x7a1f2b,.5); rim.position.set(-4,-1,-3); scene.add(rim);
+
+  // stars
+  const sg=new THREE.BufferGeometry(); const N=900, arr=new Float32Array(N*3);
+  for(let i=0;i<N;i++){ const r=18+Math.random()*22, t=Math.random()*Math.PI*2, p=Math.acos(2*Math.random()-1);
+    arr[i*3]=r*Math.sin(p)*Math.cos(t); arr[i*3+1]=r*Math.sin(p)*Math.sin(t); arr[i*3+2]=r*Math.cos(p); }
+  sg.setAttribute('position',new THREE.BufferAttribute(arr,3));
+  scene.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0x9fb6d6,size:.06,transparent:true,opacity:.55})));
+
+  // pins
+  pinGroup=new THREE.Group(); globeGroup.add(pinGroup);
+  buildPins();
+
+  raycaster=new THREE.Raycaster();
+  bindControls();
+  animate();
+  window.addEventListener('resize',onResize);
+}
+
+function buildPins(){
+  while(pinGroup.children.length) pinGroup.remove(pinGroup.children[0]);
+  pins=[];
+  DATA.forEach(d=>{
+    if(activeFilter!=='all' && d.cat!==activeFilter) return;
+    const pos=latLngToVec3(d.lat,d.lng,1.02);
+    const hex=SIG[d.sig].hex;
+    const m=new THREE.Mesh(new THREE.SphereGeometry(0.018,16,16),
+      new THREE.MeshBasicMaterial({color:hex}));
+    m.position.copy(pos); m.userData=d;
+    const halo=new THREE.Sprite(new THREE.SpriteMaterial({
+      map:haloTex(hex), color:0xffffff, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false
+    }));
+    halo.scale.set(.12,.12,.12); halo.position.copy(pos);
+    pinGroup.add(halo); pinGroup.add(m);
+    pins.push(m);
+  });
+}
+const haloCache={};
+function haloTex(hex){
+  if(haloCache[hex]) return haloCache[hex];
+  const c=document.createElement('canvas'); c.width=c.height=64; const g=c.getContext('2d');
+  const col='#'+hex.toString(16).padStart(6,'0');
+  const grd=g.createRadialGradient(32,32,0,32,32,32);
+  grd.addColorStop(0,col); grd.addColorStop(.35,col+'aa'); grd.addColorStop(1,col+'00');
+  g.fillStyle=grd; g.fillRect(0,0,64,64);
+  const t=new THREE.CanvasTexture(c); haloCache[hex]=t; return t;
+}
+
+function bindControls(){
+  const down=e=>{dragging=true;moved=0;autoRot=false;canvas.classList.add('grabbing');
+    const p=pt(e); lastX=p.x; lastY=p.y;};
+  const move=e=>{
+    const p=pt(e);
+    if(dragging){
+      const dx=p.x-lastX, dy=p.y-lastY; moved+=Math.abs(dx)+Math.abs(dy);
+      globeGroup.rotation.y+=dx*0.005;
+      globeGroup.rotation.x=Math.max(-1.2,Math.min(1.2,globeGroup.rotation.x+dy*0.005));
+      lastX=p.x; lastY=p.y;
+    } else { hover(p); }
+  };
+  const up=e=>{
+    canvas.classList.remove('grabbing');
+    if(dragging && moved<6){ const p=pt(e); pick(p); }
+    dragging=false; setTimeout(()=>autoRot=true,2500);
+  };
+  canvas.addEventListener('pointerdown',down);
+  window.addEventListener('pointermove',move);
+  window.addEventListener('pointerup',up);
+  canvas.addEventListener('wheel',e=>{e.preventDefault();
+    camera.position.z=Math.max(1.9,Math.min(5,camera.position.z+e.deltaY*0.0016));},{passive:false});
+}
+function pt(e){const r=canvas.getBoundingClientRect();
+  return {x:e.clientX-r.left,y:e.clientY-r.top, nx:((e.clientX-r.left)/r.width)*2-1, ny:-((e.clientY-r.top)/r.height)*2+1};}
+
+function castHit(p){
+  raycaster.setFromCamera({x:p.nx,y:p.ny},camera);
+  return raycaster.intersectObjects(pins,false)[0];
+}
+function hover(p){
+  const hit=castHit(p);
+  if(hit){
+    canvas.style.cursor='pointer';
+    const d=hit.object.userData;
+    tip.innerHTML=d.ru+' <small>'+SIG[d.sig].label+' · '+d.country+'</small>';
+    tip.style.left=p.x+'px'; tip.style.top=p.y+'px'; tip.style.opacity='1';
+    hovered=d;
+  } else {
+    canvas.style.cursor='grab'; tip.style.opacity='0'; hovered=null;
+  }
+}
+function pick(p){ const hit=castHit(p); if(hit) openPanel(hit.object.userData); }
+
+function onResize(){
+  const w=stage.clientWidth,h=stage.clientHeight;
+  camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h);
+}
+function animate(){
+  requestAnimationFrame(animate);
+  if(autoRot && !dragging) globeGroup.rotation.y+=0.0011;
+  renderer.render(scene,camera);
+}
+
+/* ============================== PANEL ============================== */
+const panel=document.getElementById('panel'), scrim=document.getElementById('scrim');
+function openPanel(d){
+  const s=SIG[d.sig];
+  panel.innerHTML=`
+    <div class="ph">
+      <button class="x" aria-label="Закрыть" onclick="closePanel()">✕</button>
+      <div class="kicker">${d.flag} ${d.country} · ${d.type}</div>
+      <div class="pname serif">${d.name}</div>
+      <div class="psub">${d.ru}</div>
+      <span class="badge ${s.cls}"><span class="d" style="color:${s.color};background:currentColor"></span>${s.label}</span>
+    </div>
+    <div class="pbody">
+      <div class="row stark-read">
+        <h4>Сигнал STARK</h4><p>${d.read}</p>
+      </div>
+      <div class="row"><h4>Почвы · терруар</h4><p>${d.soil}</p></div>
+      <div class="row"><h4>Сорт / основа</h4><div class="tags"><span class="tag">${d.grape}</span></div></div>
+      <div class="row"><h4>Что искать · хозяйства</h4>
+        <div class="tags">${d.producers.map(p=>`<span class="tag serif">${p}</span>`).join('')}</div></div>
+      <div class="row"><h4>Великие винтажи / релизы</h4>
+        <div class="vy">${d.vintages.map(v=>`<span>${v}</span>`).join('')}</div></div>
+      <div class="row"><h4>Где спрос</h4><p>${d.demand}</p></div>
+    </div>`;
+  panel.classList.add('open'); panel.setAttribute('aria-hidden','false');
+  scrim.classList.add('open');
+}
+function closePanel(){ panel.classList.remove('open'); panel.setAttribute('aria-hidden','true'); scrim.classList.remove('open'); }
+scrim.addEventListener('click',closePanel);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closePanel(); });
+
+/* ============================== FILTERS ============================== */
+const CATS=[['all','Всё'],['wine','🍷 Вино'],['whisky','🥃 Виски'],['agave','🌵 Текила·Агава'],['cognac','🍇 Коньяк'],['rum','🥃 Ром']];
+const fEl=document.getElementById('filters');
+CATS.forEach(([k,label])=>{
+  const b=document.createElement('button');
+  b.className='chip'; b.textContent=label; b.setAttribute('aria-pressed', k==='all');
+  b.onclick=()=>{ activeFilter=k;
+    [...fEl.children].forEach(c=>c.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');
+    if(renderer) buildPins(); renderCards(document.getElementById('q').value);
+  };
+  fEl.appendChild(b);
+});
+
+/* ============================== LIBRARY ============================== */
+const cardsEl=document.getElementById('cards');
+function sigPill(sig){const s=SIG[sig];
+  return `<span class="sig" style="background:${s.color}22;color:${s.color}">${s.label}</span>`;}
+function renderCards(query=''){
+  const q=query.trim().toLowerCase();
+  cardsEl.innerHTML='';
+  DATA.filter(d=>{
+    if(activeFilter!=='all' && d.cat!==activeFilter) return false;
+    if(!q) return true;
+    const hay=(d.name+' '+d.ru+' '+d.country+' '+d.grape+' '+d.soil+' '+d.producers.join(' ')+' '+d.type).toLowerCase();
+    return hay.includes(q);
+  }).forEach(d=>{
+    const s=SIG[d.sig];
+    const el=document.createElement('div');
+    el.className='card'; el.tabIndex=0; el.setAttribute('role','button');
+    el.innerHTML=`
+      <span class="strip" style="background:${s.color}"></span>
+      <div class="top"><span class="flag">${d.flag}</span>${sigPill(d.sig)}</div>
+      <h3>${d.name}</h3>
+      <div class="meta">${d.ru} · ${d.country} · ${d.type}</div>
+      <div class="soil">${d.soil}</div>`;
+    el.onclick=()=>openPanel(d);
+    el.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();openPanel(d);} };
+    cardsEl.appendChild(el);
+  });
+  if(!cardsEl.children.length){
+    cardsEl.innerHTML='<p style="color:var(--muted)">Ничего не найдено. Попробуй «сланец», «Brunello», «торф» или сними фильтр.</p>';
+  }
+}
+document.getElementById('q').addEventListener('input',e=>renderCards(e.target.value));
+
+const glEl=document.getElementById('gloss');
+GLOSSARY.forEach(([t,d])=>{ const w=document.createElement('div'); w.className='gl';
+  w.innerHTML=`<dt>${t}</dt><dd>${d}</dd>`; glEl.appendChild(w); });
+
+/* ============================== SIGNALS BOARD ============================== */
+const board=document.getElementById('sigboard');
+['buy','hold','watch','avoid'].forEach(key=>{
+  const items=DATA.filter(d=>d.sig===key);
+  if(!items.length) return;
+  const s=SIG[key];
+  const g=document.createElement('div'); g.className='siggroup';
+  g.innerHTML=`<div class="gh"><span class="dot" style="color:${s.color}"></span>
+    <h3>${s.label}</h3><em>${items.length} регион(ов)</em></div>`;
+  const wrap=document.createElement('div'); wrap.className='sigcards';
+  items.forEach(d=>{
+    const c=document.createElement('div'); c.className='sc';
+    c.innerHTML=`<div class="scn"><span>${d.flag}</span><b>${d.name}</b><small>${d.type.split('·')[0].trim()}</small></div>
+      <p>${d.read}</p>`;
+    c.onclick=()=>openPanel(d);
+    wrap.appendChild(c);
+  });
+  g.appendChild(wrap); board.appendChild(g);
+});
+
+const demEl=document.getElementById('demand');
+DEMAND.forEach(x=>{ const el=document.createElement('div'); el.className='dm';
+  el.innerHTML=`<div class="h"><span>${x.flag}</span><b>${x.name}</b><span class="arr ${x.dir}">${x.arr}</span></div><p>${x.txt}</p>`;
+  demEl.appendChild(el); });
+
+/* ============================== VIEW SWITCH ============================== */
+document.querySelectorAll('.seg button').forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-selected','false'));
+    btn.setAttribute('aria-selected','true');
+    const v=btn.dataset.view;
+    document.querySelectorAll('.view').forEach(s=>s.classList.remove('active'));
+    document.getElementById(v+'-view').classList.add('active');
+    if(v==='globe' && renderer) onResize();
+  };
+});
+
+/* ============================== BOOT ============================== */
+renderCards('');
+initGlobe();
+</script>
+</body>
+</html>
