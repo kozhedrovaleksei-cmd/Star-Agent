@@ -546,6 +546,30 @@ export default async function handler(req, res) {
       return res.json({ price: null });
     }
 
+    if (action === 'fxrate') {
+      // Живой курс USD/RUB с MOEX ISS (бесплатно, без ключа). Фоллбэк — Yahoo RUB=X.
+      let rate = null, src = null;
+      try {
+        const u = 'https://iss.moex.com/iss/engines/currency/markets/selt/securities/USD000UTSTOM.json'
+          + '?iss.meta=off&iss.only=marketdata&marketdata.columns=LAST,MARKETPRICE,LCLOSEPRICE';
+        const r = await fetch(u);
+        const j = await r.json();
+        const md = j?.marketdata?.data?.[0] || [];
+        rate = md[0] ?? md[1] ?? md[2] ?? null;
+        if (rate != null) src = 'MOEX';
+      } catch (e) {}
+      if (rate == null) {
+        try {
+          const r2 = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/RUB=X?interval=1d&range=5d', { headers: { 'User-Agent': 'Mozilla/5.0' } });
+          const j2 = await r2.json();
+          rate = j2?.chart?.result?.[0]?.meta?.regularMarketPrice ?? null;
+          if (rate != null) src = 'Yahoo';
+        } catch (e) {}
+      }
+      if (rate == null) return res.status(502).json({ error: 'Курс недоступен — введи вручную' });
+      return res.json({ pair: 'USD/RUB', rate: +Number(rate).toFixed(4), source: src });
+    }
+
     if (action === 'search') {
       const result = await tavilySearch(query || '');
       return res.json({ result });
