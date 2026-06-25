@@ -288,14 +288,15 @@ function sectorOf(s){
   if(SECTOR_BY_TICKER[s.ticker]) return SECTOR_BY_TICKER[s.ticker];
   if(s.source==='crypto'||s.source==='kucoin') return 'Крипто';
   const txt=((s.sector||'')+' '+(s.company||'')).toLowerCase();
-  if(/semicond|foundry|chip|gpu|\bai\b| artificial/.test(txt)) return 'Полупроводники / AI';
-  if(/defense|aerospace|military|defence/.test(txt)) return 'Оборона / Аэрокосмос';
-  if(/energy|\boil\b|\bgas\b|petro/.test(txt)) return 'Энергетика';
-  if(/financ|bank|payment|insur/.test(txt)) return 'Финансы';
-  if(/health|pharma|biotech|medical/.test(txt)) return 'Здравоохранение';
-  if(/media|communicat|social|stream/.test(txt)) return 'Медиа / Комм';
-  if(/consumer|retail|auto|apparel|electronics|mega/.test(txt)) return 'Потребительский';
-  if(/industrial|manufactur|machin/.test(txt)) return 'Промышленность';
+  if(/semicond|foundry|chip|gpu|\bai\b| artificial|полупровод/.test(txt)) return 'Полупроводники / AI';
+  if(/defense|aerospace|military|defence|оборон|аэрокосм/.test(txt)) return 'Оборона / Аэрокосмос';
+  if(/energy|\boil\b|\bgas\b|petro|энергет/.test(txt)) return 'Энергетика';
+  if(/financ|bank|payment|insur|финанс/.test(txt)) return 'Финансы';
+  if(/health|pharma|biotech|medical|здрав/.test(txt)) return 'Здравоохранение';
+  if(/media|communicat|social|stream|медиа|комм/.test(txt)) return 'Медиа / Комм';
+  if(/consumer|retail|auto|apparel|electronics|mega|потреб|мега/.test(txt)) return 'Потребительский';
+  if(/industrial|manufactur|machin|промышлен/.test(txt)) return 'Промышленность';
+  if(/крипт|crypto|bitcoin/.test(txt)) return 'Крипто';
   return 'Прочее';
 }
 function regionOf(s){
@@ -429,8 +430,12 @@ function renderArcs(){
   if(layerNews){
     const data=active===null?liveSignals:liveSignals.filter(s=>clusterOf(s)===active);
     const news=[];
-    data.forEach(s=>{ const node=byT[s.ticker]; if(!node||s.lat==null) return;
-      news.push({startLat:+s.lat,startLng:+s.lng,endLat:node.lat,endLng:node.lng,dir:s.direction,kind:'news',label:`${s.ticker} ← ${esc(s.headline||'')}`}); });
+    data.forEach(s=>{
+      // конец дуги: известный узел вселенной ИЛИ координаты HQ из самой строки (globe-scan)
+      const node = byT[s.ticker] || (s.hq_lat!=null?{lat:+s.hq_lat,lng:+s.hq_lng}:null);
+      if(!node||s.lat==null) return;
+      news.push({startLat:+s.lat,startLng:+s.lng,endLat:node.lat,endLng:node.lng,dir:s.direction,kind:'news',label:`${s.ticker} ← ${esc(s.headline||'')}`});
+    });
     arr=arr.concat(news.slice(0,28));
   }
   world.arcsData(arr);
@@ -458,12 +463,43 @@ async function pollPlanes(){
   rebuildHtml();
 }
 
+/* ════ АДАПТЕР: контракт globe-scan (событие + targets[]) → плоские сигналы ════ */
+function flattenSignals(rows){
+  const out=[];
+  (rows||[]).forEach(row=>{
+    if(Array.isArray(row.targets) && row.targets.length){
+      row.targets.forEach(tg=>{
+        const imp01=+tg.impact_score||0;                 // -1..1
+        out.push({
+          ticker: tg.ticker,
+          company: tg.name||row.headline,
+          headline: row.headline,
+          url: row.url,
+          created_at: row.created_at,
+          country: row.origin_country,
+          lat: row.origin_lat, lng: row.origin_lng,       // старт дуги = место события
+          hq_lat: tg.hq_lat, hq_lng: tg.hq_lng,            // конец дуги = HQ цели
+          impact: Math.round(Math.abs(imp01)*100),         // 0..100 для колец/иконок
+          direction: imp01>0.05?'bull':imp01<-0.05?'bear':'neutral',
+          sector: row.sector,
+          chain: tg.chain,
+          confidence: tg.confidence,
+          bull_case_counter: row.bull_case_counter,
+          second_order: row.second_order,
+          event_id: row.event_id
+        });
+      });
+    } else { out.push(row); }   // старый плоский формат — как есть
+  });
+  return out;
+}
+
 /* ════════ LIVE СИГНАЛЫ ════════ */
 async function pollSignals(){
   try{
     const r=await fetch(`${SUPA_URL}/rest/v1/signals?select=*&order=created_at.desc&limit=120`,{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
     if(!r.ok) throw new Error('HTTP '+r.status);
-    const rows=await r.json(); liveSignals=Array.isArray(rows)?rows:[];
+    const rows=await r.json(); liveSignals=flattenSignals(Array.isArray(rows)?rows:[]);
     const now=new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
     document.getElementById('updTime').textContent=now; document.getElementById('feedUpd').textContent=now;
     document.getElementById('sigCount').textContent=liveSignals.length;
@@ -586,8 +622,11 @@ function openPanelSignal(payload){
     <div class="geo">📍 ${s.lat!=null?(+s.lat).toFixed(2)+', '+(+s.lng).toFixed(2):'—'} · ${esc(s.country||clusterOf(s))}</div>
     <div class="sec-t">Событие</div><div class="p-hl">${esc(s.headline||'—')}</div>
     ${s.url?`<a href="${esc(s.url)}" target="_blank" style="font-size:11px;color:var(--blue);font-weight:700;text-decoration:none">Источник ↗</a>`:''}
+    ${s.chain?`<div class="sec-t">Цепочка причинности</div><div class="p-hl">${esc(s.chain)}</div>`:''}
+    ${s.bull_case_counter?`<div class="sec-t">Контртезис (bull case)</div><div class="p-hl" style="border-color:rgba(48,209,88,.3)">${esc(s.bull_case_counter)}</div>`:''}
     <div class="sig"><span class="k">Сектор</span><span class="v" style="font-size:11px">${esc(clusterOf(s))}</span></div>
     <div class="sig"><span class="k">Направление</span><span class="v" style="color:${col}">${badge}</span></div>
+    ${s.confidence!=null?`<div class="sig"><span class="k">Уверенность</span><span class="v">${Math.round((+s.confidence)*100)}%</span></div>`:''}
     <div class="sig"><span class="k">Время</span><span class="v" style="font-size:11px">${when||'—'}</span></div>
     <div class="sec-t">STARK · live-анализ</div><div id="liveAnalysis"></div>
     ${chains?`<div class="sec-t">Цепочки поставок / лиды</div><div class="chain">${chains}</div>`:''}`;
