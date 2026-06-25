@@ -19,13 +19,14 @@
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%;background:#03050b;color:var(--text);font-family:'Inter',-apple-system,sans-serif;overflow:hidden}
   #globe{position:fixed;inset:0;z-index:1}#globe canvas{display:block}
-  .vignette{position:fixed;inset:0;z-index:2;pointer-events:none;background:radial-gradient(120% 120% at 50% 45%,transparent 52%,rgba(3,5,11,.55) 82%,rgba(3,5,11,.92) 100%)}
+  .vignette{position:fixed;inset:0;z-index:2;pointer-events:none;background:radial-gradient(120% 120% at 50% 45%,transparent 50%,rgba(3,5,11,.5) 80%,rgba(3,5,11,.92) 100%)}
 
-  .floatlab{transform:translate(-50%,-50%);pointer-events:none;white-space:nowrap;display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;font-weight:800;background:rgba(8,12,20,.72);border:1px solid rgba(10,132,255,.45);border-radius:9px;padding:4px 8px;box-shadow:0 0 16px rgba(10,132,255,.35);backdrop-filter:blur(4px)}
+  .floatlab{transform:translate(-50%,-50%);pointer-events:none;white-space:nowrap;display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;font-weight:800;background:rgba(8,12,20,.72);border:1px solid rgba(10,132,255,.5);border-radius:9px;padding:4px 8px;box-shadow:0 0 18px rgba(10,132,255,.4);backdrop-filter:blur(4px)}
   .floatlab .s{font-size:10px;font-weight:700}
+  .uni-lbl{transform:translate(-50%,-50%);pointer-events:none;font-family:var(--mono);font-size:9px;font-weight:800;color:#8fc4ff;text-shadow:0 0 5px rgba(0,0,0,.95);opacity:.85;white-space:nowrap}
 
   .conflict-mark{transform:translate(-50%,-50%);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-family:var(--mono)}
-  .conflict-mark .pin{width:13px;height:13px;border-radius:50%;background:var(--warn);box-shadow:0 0 12px var(--warn);animation:pulse 2s ease-out infinite}
+  .conflict-mark .pin{width:13px;height:13px;border-radius:50%;background:var(--warn);box-shadow:0 0 14px var(--warn);animation:pulse 2s ease-out infinite}
   .conflict-mark .nm{font-size:9px;font-weight:800;color:#ffd79a;text-shadow:0 0 6px rgba(0,0,0,.9);white-space:nowrap}
   @keyframes pulse{0%{transform:scale(.7);opacity:1}70%{transform:scale(1.7);opacity:.15}100%{transform:scale(.7);opacity:1}}
   .plane-mark{transform:translate(-50%,-50%);pointer-events:none;font-size:11px;color:#7fd0ff;text-shadow:0 0 6px rgba(10,132,255,.8);opacity:.8}
@@ -50,8 +51,7 @@
   .chip{flex:0 0 auto;display:flex;align-items:center;gap:6px;background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:10px;padding:6px 11px;font-size:11px;font-weight:700;color:var(--text);cursor:pointer;white-space:nowrap;transition:.2s}
   .chip:hover{border-color:rgba(10,132,255,.5)}
   .chip.on{background:var(--blue);border-color:var(--blue);color:#fff}
-  .chip .cnt{font-family:var(--mono);font-size:10px;font-weight:800;opacity:.7}
-  .chip.on .cnt{opacity:.9}
+  .chip .cnt{font-family:var(--mono);font-size:10px;font-weight:800;opacity:.7}.chip.on .cnt{opacity:.9}
 
   #layers{position:fixed;left:22px;bottom:158px;z-index:9;display:flex;flex-direction:column;gap:6px}
   .lyr{display:flex;align-items:center;gap:7px;background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:11px;color:var(--dim);font-family:Inter;font-size:11px;font-weight:700;padding:7px 11px;cursor:pointer;transition:.2s;text-align:left}
@@ -81,7 +81,7 @@
   #feedToggle{position:fixed;top:106px;right:14px;z-index:11;background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:11px;font-weight:700;padding:7px 11px;cursor:pointer;display:none}
   @media (max-width:760px){#feed{width:100%}#feedToggle{display:block}.brand small{display:none}}
 
-  #panel{position:fixed;top:0;right:0;bottom:0;width:360px;max-width:88vw;z-index:20;background:var(--glass);backdrop-filter:blur(26px);border-left:1px solid var(--line);transform:translateX(102%);transition:transform .42s cubic-bezier(.22,1,.36,1);padding:78px 24px 24px;overflow-y:auto}
+  #panel{position:fixed;top:0;right:0;bottom:0;width:380px;max-width:90vw;z-index:20;background:var(--glass);backdrop-filter:blur(26px);border-left:1px solid var(--line);transform:translateX(102%);transition:transform .42s cubic-bezier(.22,1,.36,1);padding:78px 24px 24px;overflow-y:auto}
   #panel.open{transform:translateX(0)}
   #panel .close{position:absolute;top:18px;right:18px;width:30px;height:30px;border:none;border-radius:50%;background:rgba(255,255,255,.08);color:var(--text);font-size:16px;cursor:pointer;line-height:1}
   .p-tick{display:flex;align-items:baseline;gap:10px}
@@ -96,13 +96,16 @@
   .sig{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px}
   .sig .k{color:var(--dim);font-weight:500}
   .sig .v{font-weight:700;font-family:var(--mono);font-variant-numeric:tabular-nums}
-  .p-hl{font-size:13px;line-height:1.5;color:var(--text);background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:6px}
+  .p-hl{font-size:13px;line-height:1.55;color:var(--text);background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:6px}
   .chain{display:flex;flex-direction:column;gap:8px}
   .chain .lnk{display:flex;align-items:center;gap:9px;font-size:12px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
   .chain .lnk .arr{color:var(--blue);font-weight:800}.chain .lnk b{font-family:var(--mono)}
   .tk-chip{display:inline-flex;align-items:center;font-family:var(--mono);font-weight:800;font-size:12px;background:var(--blue-soft);border:1px solid rgba(10,132,255,.4);color:#9fd0ff;border-radius:8px;padding:5px 9px;margin:0 6px 6px 0}
-  .seed-note{margin-top:22px;font-size:10.5px;line-height:1.5;color:var(--dim);background:var(--blue-soft);border:1px solid rgba(10,132,255,.3);border-radius:12px;padding:11px 13px}
+  .seed-note{margin-top:18px;font-size:10.5px;line-height:1.5;color:var(--dim);background:var(--blue-soft);border:1px solid rgba(10,132,255,.3);border-radius:12px;padding:11px 13px}
   .warn-note{margin-top:8px;font-size:10.5px;line-height:1.5;color:#ffd79a;background:rgba(255,159,10,.1);border:1px solid rgba(255,159,10,.3);border-radius:12px;padding:11px 13px}
+  .spin{width:22px;height:22px;border:2px solid rgba(255,255,255,.15);border-top-color:var(--blue);border-radius:50%;animation:rot .8s linear infinite;margin:16px auto}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  .loadmsg{text-align:center;font-size:11px;color:var(--dim);font-weight:600}
 
   .tape{position:fixed;left:0;right:0;bottom:0;z-index:9;height:46px;display:flex;align-items:center;overflow:hidden;background:linear-gradient(0deg,rgba(3,5,11,.94),rgba(3,5,11,.4));backdrop-filter:blur(14px);border-top:1px solid var(--line)}
   .tape .lbl{flex:0 0 auto;font-size:10px;letter-spacing:.18em;font-weight:800;color:var(--blue);padding:0 16px;border-right:1px solid var(--line)}
@@ -139,6 +142,7 @@
 <button id="feedToggle" onclick="document.getElementById('feed').classList.toggle('hidden')">☰ Лента</button>
 
 <div id="layers">
+  <button id="tglTk"    class="lyr" onclick="toggleLayer('tickers')">🏷 Тикеры</button>
   <button id="tglConf"  class="lyr on" onclick="toggleLayer('conf')">⚠ Зоны риска</button>
   <button id="tglArc"   class="lyr on" onclick="toggleLayer('arc')">🔗 Связи цепочек</button>
   <button id="tglNews"  class="lyr on" onclick="toggleLayer('news')">📰 Новость → тикер</button>
@@ -148,7 +152,7 @@
 <div class="legend">
   <div class="row"><span class="sw" style="background:var(--bull)"></span>BULL — тезис в силе</div>
   <div class="row"><span class="sw" style="background:var(--bear)"></span>BEAR — давление</div>
-  <div class="row"><span class="sw" style="background:var(--neutral)"></span>НЕЙТРАЛ / вотчлист</div>
+  <div class="row"><span class="sw" style="background:#5aafff"></span>акция вселенной</div>
   <div class="row"><span class="arc-sw"></span>цепочка / новость</div>
 </div>
 
@@ -165,11 +169,11 @@
 /* ════════ КОНФИГ ════════ */
 const SUPA_URL = 'https://wfoyypwscvcxriqbsnew.supabase.co';
 const SUPA_KEY = 'sb_publishable_EwMdgEUXGLLlygEgzfNwYw_XcirqHgg';
-const POLL_MS = 60000;
-const PLANE_MS = 45000;
+const POLL_MS = 60000, PLANE_MS = 45000;
 const PLANE_URL = 'https://api.adsb.lol/v2/mil';
+const ANALYZE_URL = '/api/analyze';   /* тот же домен — без CORS */
 
-/* ════════ ВОТЧЛИСТ + STARK SCORE (посев, полный score) ════════ */
+/* ════════ ВОТЧЛИСТ + STARK SCORE ════════ */
 const NODES = [
   {t:'NVDA',name:'NVIDIA — Santa Clara, CA',       lat:37.37,lng:-121.96,score:84,dir:'bull',    sector:'Semis / AI', scThesis:90,scAntic:82,scInsider:70,scMom:88,scRR:80,scSent:86},
   {t:'TSM', name:'TSMC — Hsinchu, Taiwan',         lat:24.78,lng:121.00, score:79,dir:'bull',    sector:'Foundry',    scThesis:84,scAntic:88,scInsider:60,scMom:75,scRR:78,scSent:80},
@@ -181,9 +185,8 @@ const NODES = [
   {t:'TSLA',name:'Tesla — Austin, TX',             lat:30.27,lng:-97.74, score:44,dir:'bear',    sector:'Auto / EV',  scThesis:42,scAntic:38,scInsider:35,scMom:40,scRR:48,scSent:52},
 ];
 
-/* ════════ ВСЕЛЕННАЯ ~110 крупных US-имён [тикер,название,lat,lng,сектор] ════════ */
+/* ════════ ВСЕЛЕННАЯ ~106 крупных US-имён ════════ */
 const UNIVERSE_RAW = [
-  // Полупроводники / AI
   ['AVGO','Broadcom — Palo Alto, CA',37.44,-122.14,'Полупроводники / AI'],['QCOM','Qualcomm — San Diego, CA',32.90,-117.20,'Полупроводники / AI'],
   ['INTC','Intel — Santa Clara, CA',37.39,-121.96,'Полупроводники / AI'],['MU','Micron — Boise, ID',43.62,-116.20,'Полупроводники / AI'],
   ['TXN','Texas Instruments — Dallas, TX',32.78,-96.80,'Полупроводники / AI'],['ADI','Analog Devices — Wilmington, MA',42.55,-71.17,'Полупроводники / AI'],
@@ -191,19 +194,16 @@ const UNIVERSE_RAW = [
   ['KLAC','KLA — Milpitas, CA',37.43,-121.90,'Полупроводники / AI'],['MRVL','Marvell — Santa Clara, CA',37.39,-121.97,'Полупроводники / AI'],
   ['MCHP','Microchip — Chandler, AZ',33.30,-111.84,'Полупроводники / AI'],['ASML','ASML — Veldhoven, NL',51.42,5.40,'Полупроводники / AI'],
   ['ARM','Arm — Cambridge, UK',52.20,0.13,'Полупроводники / AI'],
-  // Мега-тех
   ['MSFT','Microsoft — Redmond, WA',47.64,-122.13,'Мега-тех'],['GOOGL','Alphabet — Mountain View, CA',37.42,-122.08,'Мега-тех'],
   ['AMZN','Amazon — Seattle, WA',47.62,-122.34,'Мега-тех'],['ORCL','Oracle — Austin, TX',30.27,-97.74,'Мега-тех'],
   ['CRM','Salesforce — San Francisco, CA',37.79,-122.40,'Мега-тех'],['ADBE','Adobe — San Jose, CA',37.33,-121.89,'Мега-тех'],
   ['CSCO','Cisco — San Jose, CA',37.33,-121.83,'Мега-тех'],['IBM','IBM — Armonk, NY',41.11,-73.72,'Мега-тех'],
   ['NOW','ServiceNow — Santa Clara, CA',37.40,-121.97,'Мега-тех'],['INTU','Intuit — Mountain View, CA',37.40,-122.07,'Мега-тех'],
   ['PLTR','Palantir — Denver, CO',39.74,-104.99,'Мега-тех'],
-  // Медиа / Комм
   ['DIS','Disney — Burbank, CA',34.18,-118.32,'Медиа / Комм'],['CMCSA','Comcast — Philadelphia, PA',39.95,-75.17,'Медиа / Комм'],
   ['T','AT&T — Dallas, TX',32.78,-96.80,'Медиа / Комм'],['VZ','Verizon — New York, NY',40.71,-74.01,'Медиа / Комм'],
   ['TMUS','T-Mobile — Bellevue, WA',47.61,-122.20,'Медиа / Комм'],['NFLX','Netflix — Los Gatos, CA',37.23,-121.96,'Медиа / Комм'],
   ['WBD','Warner Bros Discovery — New York, NY',40.75,-73.99,'Медиа / Комм'],
-  // Потребительский
   ['SBUX','Starbucks — Seattle, WA',47.58,-122.34,'Потребительский'],['MCD','McDonald’s — Chicago, IL',41.88,-87.63,'Потребительский'],
   ['KO','Coca-Cola — Atlanta, GA',33.76,-84.39,'Потребительский'],['PEP','PepsiCo — Purchase, NY',41.04,-73.71,'Потребительский'],
   ['PG','Procter & Gamble — Cincinnati, OH',39.10,-84.51,'Потребительский'],['COST','Costco — Issaquah, WA',47.53,-122.03,'Потребительский'],
@@ -212,17 +212,14 @@ const UNIVERSE_RAW = [
   ['LULU','Lululemon — Vancouver, CA',49.28,-123.12,'Потребительский'],['F','Ford — Dearborn, MI',42.32,-83.18,'Потребительский'],
   ['GM','General Motors — Detroit, MI',42.33,-83.05,'Потребительский'],['BKNG','Booking — Norwalk, CT',41.12,-73.42,'Потребительский'],
   ['ABNB','Airbnb — San Francisco, CA',37.77,-122.41,'Потребительский'],['CMG','Chipotle — Newport Beach, CA',33.62,-117.93,'Потребительский'],
-  // Оборона / Аэрокосмос
   ['RTX','RTX — Arlington, VA',38.88,-77.10,'Оборона / Аэрокосмос'],['NOC','Northrop Grumman — Falls Church, VA',38.88,-77.17,'Оборона / Аэрокосмос'],
   ['GD','General Dynamics — Reston, VA',38.96,-77.36,'Оборона / Аэрокосмос'],['BA','Boeing — Arlington, VA',38.88,-77.10,'Оборона / Аэрокосмос'],
   ['LHX','L3Harris — Melbourne, FL',28.08,-80.61,'Оборона / Аэрокосмос'],['HII','Huntington Ingalls — Newport News, VA',36.98,-76.43,'Оборона / Аэрокосмос'],
-  // Энергетика
   ['XOM','ExxonMobil — Irving, TX',32.81,-96.95,'Энергетика'],['CVX','Chevron — San Ramon, CA',37.78,-121.96,'Энергетика'],
   ['COP','ConocoPhillips — Houston, TX',29.76,-95.37,'Энергетика'],['SLB','SLB — Houston, TX',29.74,-95.36,'Энергетика'],
   ['EOG','EOG Resources — Houston, TX',29.75,-95.36,'Энергетика'],['OXY','Occidental — Houston, TX',29.76,-95.38,'Энергетика'],
   ['MPC','Marathon Petroleum — Findlay, OH',41.05,-83.65,'Энергетика'],['PSX','Phillips 66 — Houston, TX',29.77,-95.37,'Энергетика'],
   ['VLO','Valero — San Antonio, TX',29.42,-98.49,'Энергетика'],['WMB','Williams — Tulsa, OK',36.15,-95.99,'Энергетика'],
-  // Финансы
   ['JPM','JPMorgan — New York, NY',40.75,-73.97,'Финансы'],['BAC','Bank of America — Charlotte, NC',35.22,-80.84,'Финансы'],
   ['WFC','Wells Fargo — San Francisco, CA',37.79,-122.40,'Финансы'],['GS','Goldman Sachs — New York, NY',40.71,-74.01,'Финансы'],
   ['MS','Morgan Stanley — New York, NY',40.76,-73.98,'Финансы'],['C','Citigroup — New York, NY',40.72,-74.01,'Финансы'],
@@ -231,7 +228,6 @@ const UNIVERSE_RAW = [
   ['SCHW','Charles Schwab — Westlake, TX',32.99,-97.20,'Финансы'],['SPGI','S&P Global — New York, NY',40.71,-74.01,'Финансы'],
   ['PYPL','PayPal — San Jose, CA',37.33,-121.89,'Финансы'],['COIN','Coinbase — San Francisco, CA',37.77,-122.42,'Финансы'],
   ['BX','Blackstone — New York, NY',40.76,-73.97,'Финансы'],
-  // Здравоохранение
   ['LLY','Eli Lilly — Indianapolis, IN',39.77,-86.16,'Здравоохранение'],['UNH','UnitedHealth — Minnetonka, MN',44.92,-93.50,'Здравоохранение'],
   ['JNJ','Johnson & Johnson — New Brunswick, NJ',40.49,-74.45,'Здравоохранение'],['PFE','Pfizer — New York, NY',40.71,-74.01,'Здравоохранение'],
   ['MRK','Merck — Rahway, NJ',40.62,-74.28,'Здравоохранение'],['ABBV','AbbVie — North Chicago, IL',42.32,-87.84,'Здравоохранение'],
@@ -240,13 +236,11 @@ const UNIVERSE_RAW = [
   ['AMGN','Amgen — Thousand Oaks, CA',34.17,-118.84,'Здравоохранение'],['GILD','Gilead — Foster City, CA',37.55,-122.27,'Здравоохранение'],
   ['CVS','CVS Health — Woonsocket, RI',42.00,-71.51,'Здравоохранение'],['ISRG','Intuitive Surgical — Sunnyvale, CA',37.40,-122.01,'Здравоохранение'],
   ['VRTX','Vertex — Boston, MA',42.35,-71.05,'Здравоохранение'],
-  // Промышленность
   ['CAT','Caterpillar — Irving, TX',32.81,-96.95,'Промышленность'],['GE','GE Aerospace — Cincinnati, OH',39.10,-84.51,'Промышленность'],
   ['HON','Honeywell — Charlotte, NC',35.22,-80.84,'Промышленность'],['UNP','Union Pacific — Omaha, NE',41.26,-95.93,'Промышленность'],
   ['UPS','UPS — Atlanta, GA',33.76,-84.39,'Промышленность'],['DE','Deere — Moline, IL',41.51,-90.52,'Промышленность'],
   ['MMM','3M — St. Paul, MN',44.95,-93.09,'Промышленность'],['EMR','Emerson — St. Louis, MO',38.63,-90.20,'Промышленность'],
   ['ETN','Eaton — Dublin, IE',53.35,-6.26,'Промышленность'],['CSX','CSX — Jacksonville, FL',30.33,-81.66,'Промышленность'],
-  // Крипто-экспозиция
   ['MSTR','MicroStrategy — Tysons, VA',38.92,-77.22,'Крипто'],['MARA','Marathon Digital — Fort Lauderdale, FL',26.12,-80.14,'Крипто'],
   ['RIOT','Riot Platforms — Castle Rock, CO',39.37,-104.86,'Крипто'],
 ];
@@ -275,7 +269,7 @@ const CRYPTO = [
 const CONFLICT_ZONES = [
   {name:'Тайваньский пролив', lat:24.5,lng:119.5, tickers:['NVDA','AMD','TSM','AVGO','ASML'], note:'Эскалация = риск для всей цепочки полупроводников. ~90% передовых чипов производит TSMC.'},
   {name:'Украина',            lat:49.0,lng:32.0,  tickers:['LMT','RTX','NOC','GD'],            note:'Оборонные заказы и поставки вооружений. Косвенно — зерно и энергия ЕС.'},
-  {name:'Израиль / Газа',     lat:31.5,lng:34.8,  tickers:['LMT','RTX','XOM'],                 note:'Оборона + риск-премия на нефть при расширении конфликта на регион.'},
+  {name:'Израиль / Газа',     lat:31.5,lng:34.8,  tickers:['LMT','RTX','XOM'],                 note:'Оборона + риск-премия на нефть при расширении конфликта.'},
   {name:'Красное море',       lat:13.5,lng:43.0,  tickers:['XOM','CVX'],                       note:'Атаки на судоходство → фрахт, страховка, нефть. Обход вокруг Африки = +10–14 дней.'},
   {name:'Ормузский пролив',   lat:26.5,lng:56.5,  tickers:['XOM','CVX','COP'],                 note:'Через пролив идёт ~20% мировой нефти. Угроза блокировки = шок цен на нефть.'},
 ];
@@ -285,9 +279,9 @@ function hexRgb(h){const n=parseInt(h.slice(1),16);return`${(n>>16)&255},${(n>>8
 
 /* ════════ ТАКСОНОМИЯ ════════ */
 const SECTOR_BY_TICKER = {};
-[...NODES.map(n=>[n.t,n.sector==='Foundry'||n.sector==='Semis / AI'?'Полупроводники / AI':n.sector==='Mega-cap'?'Мега-тех':n.sector==='Defense'?'Оборона / Аэрокосмос':n.sector==='Consumer'||n.sector==='Auto / EV'?'Потребительский':'Прочее']),
+[...NODES.map(n=>[n.t, n.sector==='Foundry'||n.sector==='Semis / AI'?'Полупроводники / AI':n.sector==='Mega-cap'?'Мега-тех':n.sector==='Defense'?'Оборона / Аэрокосмос':(n.sector==='Consumer'||n.sector==='Auto / EV')?'Потребительский':'Прочее']),
  ...UNIVERSE.map(n=>[n.t,n.sector])].forEach(([t,s])=>{SECTOR_BY_TICKER[t]=s;});
-SECTOR_BY_TICKER['TAO']='Крипто';SECTOR_BY_TICKER['RNDR']='Крипто';SECTOR_BY_TICKER['FET']='Крипто';SECTOR_BY_TICKER['SUI']='Крипто';SECTOR_BY_TICKER['LINK']='Крипто';SECTOR_BY_TICKER['BTC']='Крипто';SECTOR_BY_TICKER['ETH']='Крипто';
+['TAO','RNDR','FET','SUI','LINK','BTC','ETH'].forEach(t=>SECTOR_BY_TICKER[t]='Крипто');
 SECTOR_BY_TICKER['SMCI']='Полупроводники / AI';
 
 function sectorOf(s){
@@ -320,39 +314,39 @@ function geoName(c){ if(!c) return null; return COUNTRY_ALIAS[c]||c; }
 /* ════════ СОСТОЯНИЕ ════════ */
 let world, liveSignals=[], mode='sector', active=null;
 let countryLabels=[], labelsShown=false, countryFeats=[], countryAgg={}, labelK=1.0;
-let planes=[], layerConflicts=true, layerPlanes=true, layerArcs=true, layerNews=true;
+let planes=[], layerConflicts=true, layerPlanes=true, layerArcs=true, layerNews=true, layerTickers=false;
 
 function init(){
   if(typeof Globe==='undefined'){fail('Не загрузился globe.gl. На Vercel загрузится.');return;}
   world=Globe()(document.getElementById('globe'))
     .backgroundColor('#03050b')
     .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
-    .showAtmosphere(true).atmosphereColor('#0a84ff').atmosphereAltitude(0.18)
+    .showAtmosphere(true).atmosphereColor('#1f8fff').atmosphereAltitude(0.25)
     .pointsData(allPoints()).pointLat('lat').pointLng('lng')
-    .pointColor(d=>d.uni?'rgba(120,150,190,.55)':(COL[d.dir]||COL.neutral))
-    .pointAltitude(d=>d.dir==='chain'?0.01:(d.uni?0.02:0.04+(d.score||0)/260))
-    .pointRadius(d=>d.dir==='chain'?0.18:(d.uni?0.18:0.32)).pointResolution(12)
-    .pointLabel(d=>`<div style="font-family:Inter;font-size:12px;color:#fff;background:rgba(8,12,20,.92);border:1px solid rgba(10,132,255,.4);border-radius:10px;padding:8px 11px"><b style="font-size:14px">${d.t}</b>${!d.uni&&d.dir!=='chain'?' · STARK '+d.score:''}<br><span style="color:#9aa3af">${d.sector||''}</span></div>`)
+    .pointColor(d=>d.uni?'rgba(90,175,255,.92)':(COL[d.dir]||COL.neutral))
+    .pointAltitude(d=>d.dir==='chain'?0.01:(d.uni?0.025:0.04+(d.score||0)/260))
+    .pointRadius(d=>d.dir==='chain'?0.18:(d.uni?0.24:0.36)).pointResolution(14)
+    .pointLabel(d=>`<div style="font-family:Inter;font-size:12px;color:#fff;background:rgba(8,12,20,.92);border:1px solid rgba(10,132,255,.4);border-radius:10px;padding:8px 11px"><b style="font-size:14px">${d.t}</b>${!d.uni&&d.dir!=='chain'?' · STARK '+d.score:''}<br><span style="color:#9aa3af">${d.sector||''}</span><br><span style="color:#5aafff;font-size:10px">клик → сводка</span></div>`)
     .onPointClick(d=>{ if(d.dir!=='chain'){ openPanelNode(d); world.controls().autoRotate=false; } })
-    .arcStroke(d=>d.kind==='news'?0.35:0.5).arcDashGap(0.22).arcLabel('label')
-    .arcDashLength(d=>d.kind==='news'?0.4:0.5).arcDashAnimateTime(d=>d.kind==='news'?1700:2600)
-    .arcAltitude(d=>d.kind==='news'?0.16:0.26)
-    .arcColor(d=> d.kind==='news' ? [`rgba(${hexRgb(COL[d.dir]||COL.neutral)},.04)`, COL[d.dir]||COL.neutral] : ['rgba(10,132,255,.04)','rgba(10,132,255,.9)'])
+    .arcStroke(d=>d.kind==='news'?0.45:0.55).arcDashGap(0.2).arcLabel('label')
+    .arcDashLength(d=>d.kind==='news'?0.45:0.5).arcDashAnimateTime(d=>d.kind==='news'?1600:2600)
+    .arcAltitude(d=>d.kind==='news'?0.18:0.28)
+    .arcColor(d=> d.kind==='news' ? [`rgba(${hexRgb(COL[d.dir]||COL.neutral)},.05)`, COL[d.dir]||COL.neutral] : ['rgba(10,132,255,.05)','rgba(10,132,255,1)'])
     .htmlLat('lat').htmlLng('lng')
-    .htmlAltitude(d=>d.kind==='label'?0.05+d.score/240:(d.kind==='plane'?0.05:0.02))
+    .htmlAltitude(d=>d.kind==='label'?0.05+d.score/240:(d.kind==='plane'?0.05:0.025))
     .htmlElement(htmlEl)
     .labelsData([]).labelLat('lat').labelLng('lng').labelText('name')
-    .labelSize(()=>labelK).labelDotRadius(0).labelColor(()=>'rgba(225,236,255,.8)').labelResolution(1).labelAltitude(0.008);
+    .labelSize(()=>labelK).labelDotRadius(0).labelColor(()=>'rgba(225,236,255,.82)').labelResolution(1).labelAltitude(0.008);
 
   fetch('https://unpkg.com/world-atlas@2/countries-110m.json').then(r=>r.json()).then(topo=>{
     countryFeats=topojson.feature(topo,topo.objects.countries).features;
-    world.hexPolygonsData(countryFeats).hexPolygonResolution(3).hexPolygonMargin(0.42).hexPolygonUseDots(true)
-      .hexPolygonColor(()=>'rgba(10,132,255,.13)').hexPolygonAltitude(0.003);
+    world.hexPolygonsData(countryFeats).hexPolygonResolution(3).hexPolygonMargin(0.4).hexPolygonUseDots(true)
+      .hexPolygonColor(()=>'rgba(10,132,255,.16)').hexPolygonAltitude(0.003);
     world.polygonsData(countryFeats)
       .polygonCapColor(capColor)
-      .polygonSideColor(()=>'rgba(10,132,255,.03)')
-      .polygonStrokeColor(()=>'rgba(120,170,255,.35)')
-      .polygonAltitude(f=>countryAgg[f.properties.name]?0.02:0.006);
+      .polygonSideColor(()=>'rgba(10,132,255,.05)')
+      .polygonStrokeColor(()=>'rgba(135,185,255,.45)')
+      .polygonAltitude(f=>countryAgg[f.properties.name]?0.022:0.006);
     countryLabels=countryFeats.filter(f=>f.properties&&f.properties.name).map(f=>{const c=centroid(f.geometry);return {name:f.properties.name,lat:c[1],lng:c[0]};});
   }).catch(()=>world.globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg'));
 
@@ -364,7 +358,6 @@ function init(){
     const show = pov.altitude < 1.7;
     if(show!==labelsShown){ labelsShown=show; world.labelsData(show?countryLabels:[]); }
     if(show) world.controls().autoRotate=false;
-    /* названия СТАНОВЯТСЯ МЕНЬШЕ при приближении */
     const k=Math.max(0.4, Math.min(1.0, pov.altitude*0.55));
     if(Math.abs(k-labelK)>0.03){ labelK=k; if(labelsShown) world.labelSize(()=>labelK); }
   });
@@ -384,7 +377,7 @@ function centroid(geom){let x=0,y=0,n=0;const walk=c=>{if(typeof c[0]==='number'
 function capColor(f){
   const a=countryAgg[f.properties.name];
   if(!a) return 'rgba(0,0,0,0)';
-  const intensity=Math.min(1, a.total/150)*0.45+0.1;
+  const intensity=Math.min(1, a.total/130)*0.5+0.14;
   if(a.net>2)  return `rgba(48,209,88,${intensity})`;
   if(a.net<-2) return `rgba(255,69,58,${intensity})`;
   return `rgba(138,144,153,${intensity*0.8})`;
@@ -412,6 +405,9 @@ function htmlEl(d){
     el.style.transform=`translate(-50%,-50%) rotate(${d.track||0}deg)`;
     el.title=`${d.callsign} ${d.type||''}`.trim(); el.textContent='✈'; return el;
   }
+  if(d.kind==='uniLabel'){
+    const el=document.createElement('div'); el.className='uni-lbl'; el.textContent=d.t; return el;
+  }
   const el=document.createElement('div'); el.className='floatlab';
   el.innerHTML=`<span style="color:${COL[d.dir]}">${d.t}</span><span class="s" style="color:#9aa3af">${d.score}</span>`;
   return el;
@@ -421,10 +417,11 @@ function rebuildHtml(){
   const labels=NODES.filter(n=>n.score>=72).map(n=>({...n,kind:'label'}));
   const confs=layerConflicts?CONFLICT_ZONES.map((z,i)=>({...z,idx:i,kind:'conflict'})):[];
   const pl=layerPlanes?planes:[];
-  world.htmlElementsData([...labels,...confs,...pl]);
+  const uni=layerTickers?UNIVERSE.map(n=>({...n,kind:'uniLabel'})):[];
+  world.htmlElementsData([...labels,...confs,...pl,...uni]);
 }
 
-/* ════════ ДУГИ: цепочки поставок + новость→тикер ════════ */
+/* ════════ ДУГИ ════════ */
 function renderArcs(){
   if(!world) return;
   let arr=[];
@@ -432,10 +429,8 @@ function renderArcs(){
   if(layerNews){
     const data=active===null?liveSignals:liveSignals.filter(s=>clusterOf(s)===active);
     const news=[];
-    data.forEach(s=>{
-      const node=byT[s.ticker]; if(!node||s.lat==null) return;
-      news.push({startLat:+s.lat,startLng:+s.lng,endLat:node.lat,endLng:node.lng,dir:s.direction,kind:'news',label:`${s.ticker} ← ${esc(s.headline||'')}`});
-    });
+    data.forEach(s=>{ const node=byT[s.ticker]; if(!node||s.lat==null) return;
+      news.push({startLat:+s.lat,startLng:+s.lng,endLat:node.lat,endLng:node.lng,dir:s.direction,kind:'news',label:`${s.ticker} ← ${esc(s.headline||'')}`}); });
     arr=arr.concat(news.slice(0,28));
   }
   world.arcsData(arr);
@@ -445,9 +440,10 @@ function toggleLayer(which){
   if(which==='plane'){ layerPlanes=!layerPlanes; document.getElementById('tglPlane').classList.toggle('on',layerPlanes); if(layerPlanes) pollPlanes(); rebuildHtml(); }
   if(which==='arc'){ layerArcs=!layerArcs; document.getElementById('tglArc').classList.toggle('on',layerArcs); renderArcs(); }
   if(which==='news'){ layerNews=!layerNews; document.getElementById('tglNews').classList.toggle('on',layerNews); renderArcs(); }
+  if(which==='tickers'){ layerTickers=!layerTickers; document.getElementById('tglTk').classList.toggle('on',layerTickers); rebuildHtml(); }
 }
 
-/* ════════ ВОЕННЫЕ БОРТЫ (best-effort) ════════ */
+/* ════════ ВОЕННЫЕ БОРТЫ ════════ */
 async function pollPlanes(){
   if(!layerPlanes) return;
   try{
@@ -456,8 +452,7 @@ async function pollPlanes(){
     const j=await r.json(); const ac=j.ac||j.aircraft||[];
     planes=ac.filter(a=>a.lat!=null&&(a.lon!=null||a.lng!=null)).slice(0,120).map(a=>({
       kind:'plane', lat:+a.lat, lng:+(a.lon!=null?a.lon:a.lng),
-      callsign:String(a.flight||a.r||'MIL').trim(), type:a.t||'', track:+a.track||0
-    }));
+      callsign:String(a.flight||a.r||'MIL').trim(), type:a.t||'', track:+a.track||0 }));
     document.getElementById('planeCount').textContent=planes.length;
   }catch(e){ planes=[]; document.getElementById('planeCount').textContent='—'; }
   rebuildHtml();
@@ -473,11 +468,9 @@ async function pollSignals(){
     document.getElementById('updTime').textContent=now; document.getElementById('feedUpd').textContent=now;
     document.getElementById('sigCount').textContent=liveSignals.length;
     recomputeAgg(); renderChoropleth(); renderChips(); render(); renderArcs();
-  }catch(e){
-    if(!liveSignals.length) document.getElementById('feedList').innerHTML=`<div class="feed-empty">Поток недоступен.<br><span style="font-size:10px">${e.message}</span></div>`;
-  }
+  }catch(e){ if(!liveSignals.length) document.getElementById('feedList').innerHTML=`<div class="feed-empty">Поток недоступен.<br><span style="font-size:10px">${e.message}</span></div>`; }
 }
-function renderChoropleth(){ if(!world||!countryFeats.length) return; world.polygonCapColor(capColor).polygonAltitude(f=>countryAgg[f.properties.name]?0.02:0.006); }
+function renderChoropleth(){ if(!world||!countryFeats.length) return; world.polygonCapColor(capColor).polygonAltitude(f=>countryAgg[f.properties.name]?0.022:0.006); }
 
 function clusterOf(s){ return mode==='sector'?sectorOf(s):regionOf(s); }
 function renderChips(){
@@ -509,7 +502,7 @@ function render(){
   const data = active===null?liveSignals:liveSignals.filter(s=>clusterOf(s)===active);
   const rings=data.filter(s=>s.lat!=null&&s.lng!=null).map(s=>{
     const imp=+s.impact||0, hot=imp>=70;
-    return {lat:+s.lat,lng:+s.lng,col:COL[s.direction]||COL.neutral,speed:hot?2.0:1.0+imp/70,max:hot?4.0:2.0+imp/35,period:hot?1100:1700};
+    return {lat:+s.lat,lng:+s.lng,col:COL[s.direction]||COL.neutral,speed:hot?2.2:1.0+imp/70,max:hot?4.2:2.0+imp/35,period:hot?1100:1700};
   });
   world.ringsData(rings).ringColor(d=>t=>`rgba(${hexRgb(d.col)},${1-t})`).ringMaxRadius(d=>d.max).ringPropagationSpeed(d=>d.speed).ringRepeatPeriod(d=>d.period);
   document.getElementById('feedTitle').textContent = active===null?'ВЕСЬ РЫНОК':active.toUpperCase();
@@ -523,37 +516,62 @@ function render(){
   }).join('');
 }
 
+/* ════════ LIVE STARK-АНАЛИЗ (твой /api/analyze) ════════ */
+async function loadAnalysis(ticker){
+  const box=document.getElementById('liveAnalysis'); if(!box) return;
+  box.innerHTML=`<div class="spin"></div><div class="loadmsg">STARK анализирует ${esc(ticker)}…<br>Tavily + Claude, ~10–30 сек</div>`;
+  try{
+    const r=await fetch(ANALYZE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticker, action:'analyze'})});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const data=await r.json();
+    box.innerHTML=renderAnalysis(data);
+  }catch(e){
+    box.innerHTML=`<div class="warn-note"><b>Live-анализ не загрузился</b> (${esc(e.message)}). Если хочешь сводку по клику — кинь мне <b>api/analyze.js</b>, подгоню запрос под твой бэкенд за минуту.</div>`;
+  }
+}
+function renderAnalysis(d){
+  if(!d) return '<div class="warn-note">Пустой ответ.</div>';
+  const txt = d.analysis||d.text||d.result||d.summary||(d.content&&(Array.isArray(d.content)?d.content.map(c=>c.text||'').join(''):d.content));
+  if(typeof txt==='string'&&txt.trim()) return `<div class="p-hl" style="white-space:pre-wrap">${esc(txt).slice(0,2000)}</div>`;
+  const parts=[];
+  if(d.score!=null) parts.push(`<div class="sig"><span class="k">STARK Score</span><span class="v">${esc(String(d.score))}</span></div>`);
+  if(d.thesis) parts.push(`<div class="sec-t">Тезис</div><div class="p-hl">${esc(d.thesis)}</div>`);
+  if(d.bull)   parts.push(`<div class="sec-t">Бык</div><div class="p-hl">${esc(d.bull)}</div>`);
+  if(d.bear)   parts.push(`<div class="sec-t">Медведь</div><div class="p-hl">${esc(d.bear)}</div>`);
+  if(parts.length) return parts.join('');
+  return `<div class="p-hl" style="white-space:pre-wrap;font-size:11px">${esc(JSON.stringify(d,null,2)).slice(0,1500)}</div>`;
+}
+
 /* ════════ ПАНЕЛИ ════════ */
 function ring(score,col){const c=2*Math.PI*42,off=c*(1-score/100);return`<svg width="92" height="92" viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="8"/><circle cx="50" cy="50" r="42" fill="none" stroke="${col}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 50 50)"/></svg>`;}
 const SIG=[['scThesis','Тезис','25%'],['scAntic','Предвосхищение','25%'],['scInsider','Инсайдеры','15%'],['scMom','Моментум','15%'],['scRR','R:R','10%'],['scSent','Сентимент','10%']];
 function chainsFor(t){return ARCS.filter(a=>a.from===t||a.to===t).map(a=>`<div class="lnk"><b>${a.from}</b><span class="arr">→</span><b>${a.to}</b></div><div style="font-size:11px;color:var(--dim);margin:-2px 0 4px 2px">${a.label}</div>`).join('');}
 function openPanelNode(d){
-  if(d.scThesis==null && d.uni){ openPanelUniverse(d); return; }
+  if(d.uni){ openPanelUniverse(d); return; }
   const col=COL[d.dir],badge={bull:'BULL',bear:'BEAR',neutral:'НЕЙТРАЛ'}[d.dir];
   const chains=chainsFor(d.t)||'<div style="font-size:12px;color:var(--dim)">прямых лид-зависимостей нет</div>';
   document.getElementById('panelBody').innerHTML=`
     <div class="p-tick"><h2>${d.t}</h2><span class="p-badge" style="background:${col}22;color:${col}">${badge}</span></div>
     <div class="p-name">${d.name}</div>
     <div class="ring-wrap"><div style="position:relative">${ring(d.score,col)}<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:900;font-size:22px">${d.score}</div></div>
-    <div class="val"><span class="big" style="color:${col}">${d.score}</span><span class="lab">STARK SCORE</span></div></div>
+    <div class="val"><span class="big" style="color:${col}">${d.score}</span><span class="lab">STARK SCORE · посев</span></div></div>
     <div class="geo">📍 ${d.lat.toFixed(2)}, ${d.lng.toFixed(2)} · ${d.sector}</div>
-    <div class="sec-t">Сигналы</div>
+    <div class="sec-t">Сигналы (посев)</div>
     ${SIG.map(([k,l,w])=>`<div class="sig"><span class="k">${l} <span style="opacity:.5">${w}</span></span><span class="v" style="color:${d[k]>=70?'var(--bull)':d[k]<50?'var(--bear)':'var(--text)'}">${d[k]??'—'}</span></div>`).join('')}
-    <div class="sec-t">Цепочки поставок / лиды</div><div class="chain">${chains}</div>
-    <div class="seed-note"><b>ВОТЧЛИСТ · посев.</b> Полный STARK Score. Live-сигналы из потока показывают факты по событию.</div>`;
-  document.getElementById('panel').classList.add('open'); flyTo(d.lat,d.lng);
+    <div class="sec-t">STARK · live-анализ</div><div id="liveAnalysis"></div>
+    <div class="sec-t">Цепочки поставок / лиды</div><div class="chain">${chains}</div>`;
+  document.getElementById('panel').classList.add('open'); flyTo(d.lat,d.lng); loadAnalysis(d.t);
 }
 function openPanelUniverse(d){
-  const news=liveSignals.filter(s=>s.ticker===d.t);
-  const chains=chainsFor(d.t);
+  const news=liveSignals.filter(s=>s.ticker===d.t), chains=chainsFor(d.t);
   document.getElementById('panelBody').innerHTML=`
-    <div class="p-tick"><h2>${d.t}</h2><span class="p-badge" style="background:rgba(120,150,190,.18);color:#9fb6d6">ВСЕЛЕННАЯ</span></div>
+    <div class="p-tick"><h2>${d.t}</h2><span class="p-badge" style="background:rgba(90,175,255,.18);color:#8fc4ff">ВСЕЛЕННАЯ</span></div>
     <div class="p-name">${d.name}</div>
     <div class="geo">📍 ${d.lat.toFixed(2)}, ${d.lng.toFixed(2)} · ${d.sector}</div>
+    <div class="sec-t">STARK · live-анализ</div><div id="liveAnalysis"></div>
     ${news.length?`<div class="sec-t">Свежие сигналы (${news.length})</div>`+news.slice(0,4).map(s=>`<div class="p-hl">${esc(s.headline||'')}</div>`).join(''):''}
-    ${chains?`<div class="sec-t">Цепочки поставок / лиды</div><div class="chain">${chains}</div>`:''}
-    <div class="seed-note"><b>УЗЕЛ ВСЕЛЕННОЙ.</b> STARK Score не рассчитан — это часть базы ~110 имён. Загорается, когда по тикеру приходит live-сигнал. Полный score появится в Фазе 2.</div>`;
-  document.getElementById('panel').classList.add('open'); flyTo(d.lat,d.lng);
+    ${chains?`<div class="sec-t">Цепочки поставок / лиды</div><div class="chain">${chains}</div>`:''}`;
+  document.getElementById('panel').classList.add('open'); flyTo(d.lat,d.lng); loadAnalysis(d.t);
 }
 function openPanelSignal(payload){
   let s; try{ s=JSON.parse(decodeURIComponent(payload)); }catch(e){ return; }
@@ -566,15 +584,15 @@ function openPanelSignal(payload){
     <div class="ring-wrap"><div style="position:relative">${ring(imp,col)}<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:900;font-size:22px">${imp}</div></div>
     <div class="val"><span class="big" style="color:${col}">${imp}</span><span class="lab">IMPACT</span></div></div>
     <div class="geo">📍 ${s.lat!=null?(+s.lat).toFixed(2)+', '+(+s.lng).toFixed(2):'—'} · ${esc(s.country||clusterOf(s))}</div>
-    <div class="sec-t">Событие</div>
-    <div class="p-hl">${esc(s.headline||'—')}</div>
+    <div class="sec-t">Событие</div><div class="p-hl">${esc(s.headline||'—')}</div>
     ${s.url?`<a href="${esc(s.url)}" target="_blank" style="font-size:11px;color:var(--blue);font-weight:700;text-decoration:none">Источник ↗</a>`:''}
     <div class="sig"><span class="k">Сектор</span><span class="v" style="font-size:11px">${esc(clusterOf(s))}</span></div>
     <div class="sig"><span class="k">Направление</span><span class="v" style="color:${col}">${badge}</span></div>
     <div class="sig"><span class="k">Время</span><span class="v" style="font-size:11px">${when||'—'}</span></div>
-    ${chains?`<div class="sec-t">Цепочки поставок / лиды</div><div class="chain">${chains}</div>`:''}
-    <div class="seed-note"><b>LIVE-СИГНАЛ.</b> Полный STARK Score появится, когда классификатор начнёт его считать. Сейчас — факты по событию из источника.</div>`;
+    <div class="sec-t">STARK · live-анализ</div><div id="liveAnalysis"></div>
+    ${chains?`<div class="sec-t">Цепочки поставок / лиды</div><div class="chain">${chains}</div>`:''}`;
   document.getElementById('panel').classList.add('open'); if(s.lat!=null) flyTo(+s.lat,+s.lng);
+  if(s.ticker) loadAnalysis(s.ticker);
 }
 function openPanelConflict(idx){
   const z=CONFLICT_ZONES[idx]; if(!z) return;
