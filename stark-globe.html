@@ -11,7 +11,7 @@
 <style>
   :root{
     --bg:#03050b; --glass:rgba(14,18,28,.66); --line:rgba(255,255,255,.08);
-    --blue:#0a84ff; --blue-soft:rgba(10,132,255,.16);
+    --blue:#0a84ff; --blue-deep:#0071e3; --blue-soft:rgba(10,132,255,.16);
     --bull:#30d158; --bear:#ff453a; --neutral:#8a9099;
     --text:#f5f7fa; --dim:#9aa3af; --r:18px;
     --mono:'Inter',ui-monospace,'SF Mono',Menlo,monospace;
@@ -49,11 +49,13 @@
   .chip .cnt{font-family:var(--mono);font-size:10px;font-weight:800;opacity:.7}
   .chip.on .cnt{opacity:.9}
 
-  .legend{position:fixed;left:22px;bottom:24px;z-index:9;display:flex;flex-direction:column;gap:7px;background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+  .legend{position:fixed;left:22px;bottom:62px;z-index:9;display:flex;flex-direction:column;gap:7px;background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
   .legend .row{display:flex;align-items:center;gap:9px;font-size:11px;font-weight:600;color:var(--dim)}
   .legend .sw{width:9px;height:9px;border-radius:50%}
+  .legend .arc-sw{width:18px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--blue),transparent)}
 
-  #feed{position:fixed;top:106px;right:0;bottom:0;width:340px;max-width:86vw;z-index:8;background:linear-gradient(270deg,rgba(3,5,11,.78),transparent);padding:14px 16px 24px;overflow-y:auto;transition:transform .4s cubic-bezier(.22,1,.36,1)}
+  /* ЛЕНТА СИГНАЛОВ (правый дровер) */
+  #feed{position:fixed;top:106px;right:0;bottom:46px;width:340px;max-width:86vw;z-index:8;background:linear-gradient(270deg,rgba(3,5,11,.78),transparent);padding:14px 16px 24px;overflow-y:auto;transition:transform .4s cubic-bezier(.22,1,.36,1)}
   #feed.hidden{transform:translateX(102%)}
   #feed .ft{display:flex;align-items:center;justify-content:space-between;font-size:10px;letter-spacing:.18em;font-weight:800;color:var(--blue);margin-bottom:12px}
   #feed .ft .upd{color:var(--dim);letter-spacing:.04em;font-weight:600}
@@ -71,6 +73,41 @@
   #feedToggle{position:fixed;top:106px;right:14px;z-index:11;background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:11px;font-weight:700;padding:7px 11px;cursor:pointer;display:none}
   @media (max-width:760px){#feed{width:100%}#feedToggle{display:block}.brand small{display:none}}
 
+  /* ПАНЕЛЬ STARK SCORE (клик по компании) */
+  #panel{position:fixed;top:0;right:0;bottom:0;width:360px;max-width:88vw;z-index:20;
+    background:var(--glass);backdrop-filter:blur(26px);border-left:1px solid var(--line);
+    transform:translateX(102%);transition:transform .42s cubic-bezier(.22,1,.36,1);padding:78px 24px 24px;overflow-y:auto}
+  #panel.open{transform:translateX(0)}
+  #panel .close{position:absolute;top:18px;right:18px;width:30px;height:30px;border:none;border-radius:50%;
+    background:rgba(255,255,255,.08);color:var(--text);font-size:16px;cursor:pointer;line-height:1}
+  .p-tick{display:flex;align-items:baseline;gap:10px}
+  .p-tick h2{font-size:30px;font-weight:900;font-family:var(--mono)}
+  .p-badge{font-size:10px;font-weight:800;letter-spacing:.12em;padding:4px 9px;border-radius:8px;text-transform:uppercase}
+  .p-name{font-size:12.5px;color:var(--dim);margin:3px 0 18px;font-weight:500}
+  .ring-wrap{display:flex;align-items:center;gap:18px;margin-bottom:20px}
+  .ring-wrap .val .big{font-size:34px;font-weight:900;font-family:var(--mono);line-height:1}
+  .ring-wrap .val .lab{font-size:10px;letter-spacing:.22em;color:var(--dim);font-weight:700;margin-top:4px}
+  .geo{font-size:11px;color:var(--dim);margin-bottom:18px;font-weight:600}
+  .sec-t{font-size:10px;letter-spacing:.2em;color:var(--dim);font-weight:700;text-transform:uppercase;margin:18px 0 9px}
+  .sig{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+  .sig .k{color:var(--dim);font-weight:500}
+  .sig .v{font-weight:700;font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .p-hl{font-size:13px;line-height:1.5;color:var(--text);background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:6px}
+  .chain{display:flex;flex-direction:column;gap:8px}
+  .chain .lnk{display:flex;align-items:center;gap:9px;font-size:12px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+  .chain .lnk .arr{color:var(--blue);font-weight:800}.chain .lnk b{font-family:var(--mono)}
+  .seed-note{margin-top:22px;font-size:10.5px;line-height:1.5;color:var(--dim);background:var(--blue-soft);border:1px solid rgba(10,132,255,.3);border-radius:12px;padding:11px 13px}
+
+  /* КРИПТО-ЛЕНТА снизу */
+  .tape{position:fixed;left:0;right:0;bottom:0;z-index:9;height:46px;display:flex;align-items:center;overflow:hidden;
+    background:linear-gradient(0deg,rgba(3,5,11,.94),rgba(3,5,11,.4));backdrop-filter:blur(14px);border-top:1px solid var(--line)}
+  .tape .lbl{flex:0 0 auto;font-size:10px;letter-spacing:.18em;font-weight:800;color:var(--blue);padding:0 16px;border-right:1px solid var(--line)}
+  .tape .track{display:flex;gap:30px;white-space:nowrap;animation:slide 36s linear infinite;padding-left:30px}
+  .tape:hover .track{animation-play-state:paused}
+  @keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  .tchip{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600}
+  .tchip .t{font-family:var(--mono);font-weight:800}.tchip .px{font-variant-numeric:tabular-nums;color:var(--dim)}.tchip .trg{font-size:10px;color:var(--blue);font-weight:700}
+
   .booting{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:#03050b;font-size:12px;letter-spacing:.3em;color:var(--blue);font-weight:800;transition:opacity .6s}
   .booting.gone{opacity:0;pointer-events:none}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -84,7 +121,7 @@
 
 <header>
   <div class="brand"><div class="dot"></div><div><h1><span>STARK</span> · ГЛОБУС</h1><small>I AM IRON MAN · GLOBAL SIGNAL TERMINAL</small></div></div>
-  <div class="status"><span class="grp"><span class="live"></span>LIVE</span><span class="grp"><b id="sigCount">0</b> сигналов</span><span class="grp">обновлено <b id="updTime">—</b></span></div>
+  <div class="status"><span class="grp"><span class="live"></span>LIVE</span><span class="grp"><b id="sigCount">0</b> сигналов</span><span class="grp"><b id="chainCount">0</b> цепочек</span><span class="grp">обновлено <b id="updTime">—</b></span></div>
 </header>
 
 <div id="clusterbar">
@@ -98,9 +135,10 @@
 <button id="feedToggle" onclick="document.getElementById('feed').classList.toggle('hidden')">☰ Лента</button>
 
 <div class="legend">
-  <div class="row"><span class="sw" style="background:var(--bull)"></span>BULL</div>
-  <div class="row"><span class="sw" style="background:var(--bear)"></span>BEAR</div>
-  <div class="row"><span class="sw" style="background:var(--neutral)"></span>НЕЙТРАЛ</div>
+  <div class="row"><span class="sw" style="background:var(--bull)"></span>BULL — тезис в силе</div>
+  <div class="row"><span class="sw" style="background:var(--bear)"></span>BEAR — давление</div>
+  <div class="row"><span class="sw" style="background:var(--neutral)"></span>НЕЙТРАЛ — ждём триггер</div>
+  <div class="row"><span class="arc-sw"></span>цепочка / лид-индикатор</div>
 </div>
 
 <div id="feed">
@@ -108,30 +146,64 @@
   <div id="feedList"><div class="feed-empty">Подключаюсь к потоку…</div></div>
 </div>
 
+<div id="panel"><button class="close" onclick="closePanel()">✕</button><div id="panelBody"></div></div>
+
+<div class="tape"><div class="lbl">КРИПТО · WATCH</div><div class="track" id="tapeTrack"></div></div>
+
 <script>
 /* ════════ КОНФИГ ════════ */
 const SUPA_URL = 'https://wfoyypwscvcxriqbsnew.supabase.co';
 const SUPA_KEY = 'sb_publishable_EwMdgEUXGLLlygEgzfNwYw_XcirqHgg';
 const POLL_MS = 60000;
 
-/* ════════ БАЗОВЫЙ ВОТЧЛИСТ (скелет) ════════ */
+/* ════════ БАЗОВЫЙ ВОТЧЛИСТ + STARK SCORE (посев) ════════
+   У этих узлов есть полный 6-сигнальный score — панель покажет кольцо.
+   Live-сигналы из Supabase score не имеют — для них панель покажет факты (impact/dir/headline). */
 const NODES = [
-  {t:'NVDA',name:'NVIDIA',lat:37.37,lng:-121.96,score:84,dir:'bull'},
-  {t:'TSM',name:'TSMC',lat:24.78,lng:121.00,score:79,dir:'bull'},
-  {t:'AMD',name:'AMD',lat:37.36,lng:-121.97,score:72,dir:'bull'},
-  {t:'META',name:'Meta',lat:37.48,lng:-122.15,score:68,dir:'bull'},
-  {t:'AAPL',name:'Apple',lat:37.33,lng:-122.03,score:61,dir:'neutral'},
-  {t:'NKE',name:'Nike',lat:45.51,lng:-122.78,score:58,dir:'neutral'},
-  {t:'LMT',name:'Lockheed',lat:39.00,lng:-77.10,score:55,dir:'neutral'},
-  {t:'TSLA',name:'Tesla',lat:30.27,lng:-97.74,score:44,dir:'bear'},
+  {t:'NVDA',name:'NVIDIA — Santa Clara, CA',       lat:37.37,lng:-121.96,score:84,dir:'bull',    sector:'Semis / AI', scThesis:90,scAntic:82,scInsider:70,scMom:88,scRR:80,scSent:86},
+  {t:'TSM', name:'TSMC — Hsinchu, Taiwan',         lat:24.78,lng:121.00, score:79,dir:'bull',    sector:'Foundry',    scThesis:84,scAntic:88,scInsider:60,scMom:75,scRR:78,scSent:80},
+  {t:'AMD', name:'AMD — Santa Clara, CA',          lat:37.36,lng:-121.97,score:72,dir:'bull',    sector:'Semis / AI', scThesis:76,scAntic:70,scInsider:55,scMom:80,scRR:72,scSent:74},
+  {t:'META',name:'Meta — Menlo Park, CA',          lat:37.48,lng:-122.15,score:68,dir:'bull',    sector:'Mega-cap',   scThesis:72,scAntic:60,scInsider:50,scMom:78,scRR:66,scSent:72},
+  {t:'AAPL',name:'Apple — Cupertino, CA',          lat:37.33,lng:-122.03,score:61,dir:'neutral', sector:'Mega-cap',   scThesis:64,scAntic:55,scInsider:45,scMom:62,scRR:60,scSent:68},
+  {t:'NKE', name:'Nike — Beaverton, OR',           lat:45.51,lng:-122.78,score:58,dir:'neutral', sector:'Consumer',   scThesis:60,scAntic:72,scInsider:40,scMom:48,scRR:58,scSent:54},
+  {t:'LMT', name:'Lockheed Martin — Bethesda, MD', lat:39.00,lng:-77.10, score:55,dir:'neutral', sector:'Defense',    scThesis:58,scAntic:65,scInsider:50,scMom:46,scRR:56,scSent:50},
+  {t:'TSLA',name:'Tesla — Austin, TX',             lat:30.27,lng:-97.74, score:44,dir:'bear',    sector:'Auto / EV',  scThesis:42,scAntic:38,scInsider:35,scMom:40,scRR:48,scSent:52},
 ];
-const COL={bull:'#30d158',bear:'#ff453a',neutral:'#8a9099'};
+const byT = Object.fromEntries(NODES.map(n=>[n.t,n]));
+
+/* Узлы цепочек поставок (OEM/сборка) */
+const CHAIN_NODES = [
+  {t:'OEM·TW',name:'Pou Chen / Feng Tay — Taichung (OEM Nike)',lat:24.15,lng:120.67},
+  {t:'FOX·CN',name:'Foxconn — Zhengzhou (сборка Apple)',       lat:34.75,lng:113.62},
+];
+const chainByT = Object.fromEntries(CHAIN_NODES.map(n=>[n.t,n]));
+
+/* Цепочки: from(вотчлист) → to(вотчлист или chain-узел) */
+const ARCS = [
+  {from:'NKE', to:'OEM·TW', label:'Nike ← заказы тайваньскому OEM (лид ~1 кв.)'},
+  {from:'NVDA',to:'TSM',    label:'NVDA ← мощности TSMC'},
+  {from:'AMD', to:'TSM',    label:'AMD ← мощности TSMC'},
+  {from:'AAPL',to:'FOX·CN', label:'Apple ← сборка Foxconn'},
+];
+function coordOf(t){ return byT[t] || chainByT[t] || null; }
+const arcData = ARCS.map(a=>{
+  const f=coordOf(a.from), tt=coordOf(a.to);
+  if(!f||!tt) return null;
+  return {startLat:f.lat,startLng:f.lng,endLat:tt.lat,endLng:tt.lng,label:a.label,from:a.from,to:a.to};
+}).filter(Boolean);
+
+const CRYPTO = [
+  {t:'TAO',px:'$259',trg:'AI compute'},{t:'RNDR',px:'$1.90',trg:'вход на пробой $1.95'},
+  {t:'FET',px:'$0.17',trg:'вход на пробой $0.27'},{t:'SUI',px:'—',trg:'next Solana'},{t:'LINK',px:'—',trg:'DeFi infra'},
+];
+
+const COL={bull:'#30d158',bear:'#ff453a',neutral:'#8a9099',chain:'#0a84ff'};
 const HOT=['United States of America','Taiwan','China'];
 function hexRgb(h){const n=parseInt(h.slice(1),16);return`${(n>>16)&255},${(n>>8)&255},${n&255}`;}
 
 /* ════════ ТАКСОНОМИЯ КЛАСТЕРОВ ════════ */
 const SECTOR_BY_TICKER = {
-  NVDA:'Полупроводники / AI',TSM:'Полупроводники / AI',AMD:'Полупроводники / AI',AVGO:'Полупроводники / AI',MU:'Полупроводники / AI',ASML:'Полупроводники / AI',INTC:'Полупроводники / AI',ARM:'Полупроводники / AI',MRVL:'Полупроводники / AI',SMCI:'Полупроводники / AI',QCOM:'Полупроводники / AI',
+  NVDA:'Полупроводники / AI',TSM:'Полупроводники / AI',AMD:'Полупроводники / AI',AVGO:'Полупроводники / AI',MU:'Полупроводники / AI',ASML:'Полупроводники / AI',INTC:'Полупроводники / AI',ARM:'Полупроводники / AI',MRVL:'Полупроводники / AI',SMCI:'Полупроводники / AI',QCOM:'Полупроводники / AI',KLAC:'Полупроводники / AI',
   AAPL:'Мега-тех',MSFT:'Мега-тех',GOOGL:'Мега-тех',GOOG:'Мега-тех',AMZN:'Мега-тех',ORCL:'Мега-тех',
   META:'Медиа / Комм',NFLX:'Медиа / Комм',DIS:'Медиа / Комм',
   NKE:'Потребительский',TSLA:'Потребительский',MCD:'Потребительский',SBUX:'Потребительский',LULU:'Потребительский',
@@ -175,20 +247,30 @@ function init(){
     .backgroundColor('#03050b')
     .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
     .showAtmosphere(true).atmosphereColor('#0a84ff').atmosphereAltitude(0.22)
-    .pointsData(NODES).pointLat('lat').pointLng('lng')
-    .pointColor(d=>COL[d.dir]).pointAltitude(d=>0.04+d.score/260).pointRadius(0.32).pointResolution(18)
-    .pointLabel(d=>`<div style="font-family:Inter;font-size:12px;color:#fff;background:rgba(8,12,20,.92);border:1px solid rgba(10,132,255,.4);border-radius:10px;padding:8px 11px"><b style="font-size:14px">${d.t}</b></div>`)
+    /* ТОЧКИ — базовый вотчлист + chain-узлы */
+    .pointsData(allPoints()).pointLat('lat').pointLng('lng')
+    .pointColor(d=>COL[d.dir]||COL.neutral)
+    .pointAltitude(d=>d.dir==='chain'?0.01:0.04+(d.score||0)/260)
+    .pointRadius(d=>d.dir==='chain'?0.2:0.32).pointResolution(18)
+    .pointLabel(d=>`<div style="font-family:Inter;font-size:12px;color:#fff;background:rgba(8,12,20,.92);border:1px solid rgba(10,132,255,.4);border-radius:10px;padding:8px 11px"><b style="font-size:14px">${d.t}</b>${d.dir!=='chain'?' · STARK '+d.score:''}<br><span style="color:#9aa3af">${d.sector||''}</span></div>`)
+    .onPointClick(d=>{ if(d.dir!=='chain'){ openPanelNode(d); world.controls().autoRotate=false; } })
+    /* ДУГИ — анимированные цепочки поставок */
+    .arcsData(arcData)
+    .arcColor(()=>['rgba(10,132,255,.05)','rgba(10,132,255,1)'])
+    .arcDashLength(0.5).arcDashGap(0.22).arcDashAnimateTime(2400).arcStroke(0.55).arcAltitude(0.28).arcLabel('label')
+    /* ПАРЯЩИЕ ЛЕЙБЛЫ */
     .htmlElementsData(NODES.filter(n=>n.score>=72)).htmlLat('lat').htmlLng('lng').htmlAltitude(d=>0.05+d.score/240)
     .htmlElement(d=>{const el=document.createElement('div');el.className='floatlab';el.innerHTML=`<span style="color:${COL[d.dir]}">${d.t}</span><span class="s" style="color:#9aa3af">${d.score}</span>`;return el;})
+    /* ПОДПИСИ СТРАН (при зуме) */
     .labelsData([]).labelLat('lat').labelLng('lng').labelText('name')
     .labelSize(1.1).labelDotRadius(0).labelColor(()=>'rgba(230,240,255,.85)').labelResolution(1).labelAltitude(0.008);
 
+  /* голографическая гекс-сетка стран */
   fetch('https://unpkg.com/world-atlas@2/countries-110m.json').then(r=>r.json()).then(topo=>{
     const feats=topojson.feature(topo,topo.objects.countries).features;
     world.hexPolygonsData(feats).hexPolygonResolution(3).hexPolygonMargin(0.32).hexPolygonUseDots(true)
       .hexPolygonColor(f=>HOT.includes(f.properties.name)?'rgba(10,132,255,.95)':'rgba(10,132,255,.32)')
       .hexPolygonAltitude(f=>HOT.includes(f.properties.name)?0.012:0.004);
-    // центроиды для подписей стран
     countryLabels = feats.filter(f=>f.properties&&f.properties.name).map(f=>{
       const c=centroid(f.geometry); return {name:f.properties.name,lat:c[1],lng:c[0]};
     });
@@ -198,17 +280,19 @@ function init(){
   world.pointOfView({lat:34,lng:-110,altitude:2.2},0);
   setTimeout(()=>world.pointOfView({lat:28,lng:-30,altitude:2.5},4500),700);
 
-  // ПОДПИСИ СТРАН ПРИ ПРИБЛИЖЕНИИ
   world.onZoom(pov=>{
     const show = pov.altitude < 1.7;
     if(show!==labelsShown){ labelsShown=show; world.labelsData(show?countryLabels:[]); }
     if(show) world.controls().autoRotate=false;
   });
 
+  document.getElementById('chainCount').textContent=arcData.length;
   window.addEventListener('resize',()=>world.width(innerWidth).height(innerHeight));
   setTimeout(()=>document.getElementById('boot').classList.add('gone'),900);
+  buildTape();
   pollSignals(); setInterval(pollSignals, POLL_MS);
 }
+function allPoints(){ return [...NODES, ...CHAIN_NODES.map(n=>({...n,dir:'chain',score:0,sector:'Supply node'}))]; }
 function fail(msg){const b=document.getElementById('boot');b.textContent=msg;b.style.letterSpacing='normal';b.style.fontWeight='500';b.style.color='#9aa3af';b.style.padding='30px';b.style.textAlign='center';}
 function centroid(geom){let x=0,y=0,n=0;const walk=c=>{if(typeof c[0]==='number'){x+=c[0];y+=c[1];n++;}else c.forEach(walk);};walk(geom.coordinates);return[x/n,y/n];}
 
@@ -255,22 +339,81 @@ function setMode(m){
 
 function render(){
   const data = active===null?liveSignals:liveSignals.filter(s=>clusterOf(s)===active);
-  // пульсы
-  const rings=data.filter(s=>s.lat!=null&&s.lng!=null).map(s=>({lat:+s.lat,lng:+s.lng,col:COL[s.direction]||COL.neutral,speed:1.2+(s.impact||0)/60,max:2.5+(s.impact||0)/30}));
-  world.ringsData(rings).ringColor(d=>t=>`rgba(${hexRgb(d.col)},${1-t})`).ringMaxRadius(d=>d.max).ringPropagationSpeed(d=>d.speed).ringRepeatPeriod(1500);
-  // заголовок ленты
+  /* пульсы: impact>70 — ярче, шире, быстрее */
+  const rings=data.filter(s=>s.lat!=null&&s.lng!=null).map(s=>{
+    const imp=+s.impact||0, hot=imp>=70;
+    return {lat:+s.lat,lng:+s.lng,col:COL[s.direction]||COL.neutral,
+      speed:hot?2.6:1.2+imp/60, max:hot?5.5:2.5+imp/30, period:hot?900:1500};
+  });
+  world.ringsData(rings).ringColor(d=>t=>`rgba(${hexRgb(d.col)},${1-t})`)
+    .ringMaxRadius(d=>d.max).ringPropagationSpeed(d=>d.speed).ringRepeatPeriod(d=>d.period);
   document.getElementById('feedTitle').textContent = active===null?'ВЕСЬ РЫНОК':active.toUpperCase();
-  // лента
   const list=document.getElementById('feedList');
   if(!data.length){ list.innerHTML='<div class="feed-empty">Нет сигналов в этом кластере.</div>'; return; }
   list.innerHTML=data.slice(0,50).map(s=>{
     const c=COL[s.direction]||COL.neutral, dir={bull:'BULL',bear:'BEAR',neutral:'НЕЙТР'}[s.direction]||'—';
     const when=s.created_at?new Date(s.created_at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'';
-    return `<div class="sigcard" onclick="flyTo(${+s.lat},${+s.lng})"><div class="top"><span class="tk">${s.ticker||'—'}</span><span class="dir" style="background:${c}22;color:${c}">${dir}</span><span class="imp">${s.impact??''}</span></div><div class="hl">${esc(s.headline||s.company||'')}</div><div class="meta">${esc(clusterOf(s))}${when?' · '+when:''}</div></div>`;
+    const payload=encodeURIComponent(JSON.stringify(s));
+    return `<div class="sigcard" onclick="openPanelSignal('${payload}')"><div class="top"><span class="tk">${esc(s.ticker||'—')}</span><span class="dir" style="background:${c}22;color:${c}">${dir}</span><span class="imp">${s.impact??''}</span></div><div class="hl">${esc(s.headline||s.company||'')}</div><div class="meta">${esc(clusterOf(s))}${when?' · '+when:''}</div></div>`;
   }).join('');
 }
+
+/* ════════ ПАНЕЛЬ STARK SCORE ════════ */
+function ring(score,col){const c=2*Math.PI*42,off=c*(1-score/100);
+  return`<svg width="92" height="92" viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="8"/><circle cx="50" cy="50" r="42" fill="none" stroke="${col}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 50 50)"/></svg>`;}
+const SIG=[['scThesis','Тезис','25%'],['scAntic','Предвосхищение','25%'],['scInsider','Инсайдеры','15%'],['scMom','Моментум','15%'],['scRR','R:R','10%'],['scSent','Сентимент','10%']];
+function chainsFor(t){
+  return ARCS.filter(a=>a.from===t||a.to===t).map(a=>`<div class="lnk"><b>${a.from}</b><span class="arr">→</span><b>${a.to}</b></div><div style="font-size:11px;color:var(--dim);margin:-2px 0 4px 2px">${a.label}</div>`).join('');
+}
+
+/* клик по точке вотчлиста — полный score с кольцом */
+function openPanelNode(d){
+  const col=COL[d.dir],badge={bull:'BULL',bear:'BEAR',neutral:'НЕЙТРАЛ'}[d.dir];
+  const chains=chainsFor(d.t)||'<div style="font-size:12px;color:var(--dim)">прямых лид-зависимостей нет</div>';
+  document.getElementById('panelBody').innerHTML=`
+    <div class="p-tick"><h2>${d.t}</h2><span class="p-badge" style="background:${col}22;color:${col}">${badge}</span></div>
+    <div class="p-name">${d.name}</div>
+    <div class="ring-wrap"><div style="position:relative">${ring(d.score,col)}<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:900;font-size:22px">${d.score}</div></div>
+    <div class="val"><span class="big" style="color:${col}">${d.score}</span><span class="lab">STARK SCORE</span></div></div>
+    <div class="geo">📍 ${d.lat.toFixed(2)}, ${d.lng.toFixed(2)} · ${d.sector}</div>
+    <div class="sec-t">Сигналы</div>
+    ${SIG.map(([k,l,w])=>`<div class="sig"><span class="k">${l} <span style="opacity:.5">${w}</span></span><span class="v" style="color:${d[k]>=70?'var(--bull)':d[k]<50?'var(--bear)':'var(--text)'}">${d[k]??'—'}</span></div>`).join('')}
+    <div class="sec-t">Цепочки поставок / лиды</div><div class="chain">${chains}</div>
+    <div class="seed-note"><b>ВОТЧЛИСТ · посев.</b> Полный STARK Score. Live-сигналы из потока показывают факты по событию.</div>`;
+  document.getElementById('panel').classList.add('open');
+  flyTo(d.lat,d.lng);
+}
+
+/* клик по live-сигналу — факты по событию (score нет — не выдумываем) */
+function openPanelSignal(payload){
+  let s; try{ s=JSON.parse(decodeURIComponent(payload)); }catch(e){ return; }
+  const col=COL[s.direction]||COL.neutral, badge={bull:'BULL',bear:'BEAR',neutral:'НЕЙТРАЛ'}[s.direction]||'—';
+  const imp=s.impact??0;
+  const chains = byT[s.ticker] ? chainsFor(s.ticker) : '';
+  const when=s.created_at?new Date(s.created_at).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+  document.getElementById('panelBody').innerHTML=`
+    <div class="p-tick"><h2>${esc(s.ticker||'—')}</h2><span class="p-badge" style="background:${col}22;color:${col}">${badge}</span></div>
+    <div class="p-name">${esc(s.company||clusterOf(s))}</div>
+    <div class="ring-wrap"><div style="position:relative">${ring(imp,col)}<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:900;font-size:22px">${imp}</div></div>
+    <div class="val"><span class="big" style="color:${col}">${imp}</span><span class="lab">IMPACT</span></div></div>
+    <div class="geo">📍 ${s.lat!=null?(+s.lat).toFixed(2)+', '+(+s.lng).toFixed(2):'—'} · ${esc(s.country||clusterOf(s))}</div>
+    <div class="sec-t">Событие</div>
+    <div class="p-hl">${esc(s.headline||'—')}</div>
+    ${s.url?`<a href="${esc(s.url)}" target="_blank" style="font-size:11px;color:var(--blue);font-weight:700;text-decoration:none">Источник ↗</a>`:''}
+    <div class="sig"><span class="k">Сектор</span><span class="v" style="font-size:11px">${esc(clusterOf(s))}</span></div>
+    <div class="sig"><span class="k">Направление</span><span class="v" style="color:${col}">${badge}</span></div>
+    <div class="sig"><span class="k">Время</span><span class="v" style="font-size:11px">${when||'—'}</span></div>
+    ${chains?`<div class="sec-t">Цепочки поставок / лиды</div><div class="chain">${chains}</div>`:''}
+    <div class="seed-note"><b>LIVE-СИГНАЛ.</b> Полный STARK Score появится, когда классификатор начнёт его считать (Фаза 2). Сейчас — факты по событию из источника.</div>`;
+  document.getElementById('panel').classList.add('open');
+  if(s.lat!=null) flyTo(+s.lat,+s.lng);
+}
+function closePanel(){document.getElementById('panel').classList.remove('open');if(world)world.controls().autoRotate=true;}
 function flyTo(lat,lng){if(world&&lat!=null){world.controls().autoRotate=false;world.pointOfView({lat,lng,altitude:1.5},1000);}}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+/* ════════ КРИПТО-ЛЕНТА ════════ */
+function buildTape(){const t=CRYPTO.map(c=>`<span class="tchip"><span class="t">${c.t}</span><span class="px">${c.px}</span><span class="trg">${c.trg}</span></span>`).join('');document.getElementById('tapeTrack').innerHTML=t+t;}
 
 init();
 </script>
