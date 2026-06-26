@@ -141,6 +141,17 @@
   .seed-note{margin-top:18px;font-size:10.5px;line-height:1.5;color:var(--dim);background:var(--blue-soft);border:1px solid rgba(10,132,255,.3);border-radius:12px;padding:11px 13px}
   .warn-note{margin-top:8px;font-size:10.5px;line-height:1.5;color:#ffd79a;background:rgba(255,159,10,.1);border:1px solid rgba(255,159,10,.3);border-radius:12px;padding:11px 13px}
   .soon-note{margin-top:8px;font-size:11px;line-height:1.55;color:var(--dim);background:rgba(255,255,255,.04);border:1px dashed var(--line);border-radius:12px;padding:13px}
+  /* ── live-анализ ── */
+  .ana-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;font-family:'Inter';font-size:13px;font-weight:800;letter-spacing:.02em;color:#cfe6ff;background:linear-gradient(180deg,rgba(10,132,255,.22),rgba(10,132,255,.1));border:1px solid rgba(10,132,255,.45);border-radius:12px;padding:13px;cursor:pointer;transition:.18s}
+  .ana-btn:hover{background:rgba(10,132,255,.3);border-color:rgba(10,132,255,.7);color:#fff;box-shadow:0 0 22px rgba(10,132,255,.3)}
+  .ana-btn:active{transform:scale(.985)}
+  .ana-price{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+  .ana-price .px{font-family:var(--mono);font-weight:900;font-size:26px;color:var(--text);font-variant-numeric:tabular-nums}
+  .ana-price .cn{font-size:12px;color:var(--dim);font-weight:500}
+  .rngbar{position:relative;height:8px;border-radius:6px;background:rgba(255,255,255,.07);margin:6px 0 7px;overflow:visible}
+  .rngfill{position:absolute;left:0;top:0;height:100%;border-radius:6px;opacity:.55}
+  .rngdot{position:absolute;top:50%;width:13px;height:13px;border-radius:50%;background:#fff;box-shadow:0 0 10px rgba(255,255,255,.7);transform:translate(-50%,-50%)}
+  .rnglab{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--dim);font-variant-numeric:tabular-nums}
   .spin{width:22px;height:22px;border:2px solid rgba(255,255,255,.15);border-top-color:var(--blue);border-radius:50%;animation:rot .8s linear infinite;margin:16px auto}
   @keyframes rot{to{transform:rotate(360deg)}}
   .loadmsg{text-align:center;font-size:11px;color:var(--dim);font-weight:600}
@@ -890,6 +901,12 @@ function renderCommodity(it){
 }
 
 /* ════════ LIVE STARK-АНАЛИЗ ════════ */
+// Блок с кнопкой-триггером (НЕ автозапуск — /api/analyze дёргается только по клику)
+function analysisBlock(ticker){
+  const t=String(ticker||'').replace(/'/g,'');
+  return `<div class="sec-t">STARK · live-анализ</div>
+    <div id="liveAnalysis"><button class="ana-btn" onclick="loadAnalysis('${esc(t)}')">▶ Запустить анализ ${esc(t)}</button></div>`;
+}
 async function loadAnalysis(ticker){
   const box=document.getElementById('liveAnalysis'); if(!box) return;
   box.innerHTML=`<div class="spin"></div><div class="loadmsg">STARK анализирует ${esc(ticker)}…<br>Tavily + Claude, ~10–30 сек</div>`;
@@ -897,22 +914,91 @@ async function loadAnalysis(ticker){
     const r=await fetch(ANALYZE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticker, action:'analyze'})});
     if(!r.ok) throw new Error('HTTP '+r.status);
     const data=await r.json();
-    box.innerHTML=renderAnalysis(data);
+    box.innerHTML=renderAnalysis(data)+`<button class="ana-btn" style="margin-top:10px;font-size:11px;padding:9px;opacity:.7" onclick="loadAnalysis('${esc(String(ticker).replace(/'/g,''))}')">↻ Обновить</button>`;
   }catch(e){
-    box.innerHTML=`<div class="warn-note"><b>Live-анализ не загрузился</b> (${esc(e.message)}).</div>`;
+    box.innerHTML=`<div class="warn-note"><b>Live-анализ не загрузился</b> (${esc(e.message)}).</div><button class="ana-btn" style="margin-top:10px;font-size:12px;padding:10px" onclick="loadAnalysis('${esc(String(ticker).replace(/'/g,''))}')">↻ Повторить</button>`;
   }
+}
+function renderInsiders(ins){
+  const E=esc;
+  const card=(txt,buy)=>`<div class="p-hl" style="border-color:${buy?'rgba(48,209,88,.45)':'rgba(255,69,58,.45)'};background:${buy?'rgba(48,209,88,.08)':'rgba(255,69,58,.08)'}"><span style="font-weight:800;color:${buy?'var(--bull)':'var(--bear)'}">${buy?'▲ ПОКУПКА':'▼ ПРОДАЖА'}</span> · ${E(txt)}</div>`;
+  const guessBuy=t=>{const s=String(t).toLowerCase();if(/прода|sell|sold|sale|dispos/.test(s))return false;if(/куп|buy|bought|acqui|purchase/.test(s))return true;return null;};
+  if(typeof ins==='string'){const b=guessBuy(ins);return b===null?`<div class="p-hl">${E(ins)}</div>`:card(ins,b);}
+  if(Array.isArray(ins)){
+    if(!ins.length) return `<div class="p-hl" style="color:var(--dim)">Сделок инсайдеров не найдено.</div>`;
+    return ins.slice(0,12).map(it=>{
+      if(typeof it==='string'){const b=guessBuy(it);return b===null?`<div class="p-hl">${E(it)}</div>`:card(it,b);}
+      const who=it.name||it.insider||it.who||'', role=it.role||it.title||'', type=it.type||it.action||it.transaction||'';
+      const sh=it.shares||it.qty||it.amount||'', px=it.price||it.priceRange||'', date=it.date||'';
+      const b=it.buy===true?true:(it.buy===false?false:guessBuy(type||''));
+      const line=[who&&role?`${who} (${role})`:(who||role), type, sh&&`${sh} акц.`, px&&`@ ${px}`, date].filter(Boolean).join(' · ');
+      return b===null?`<div class="p-hl">${E(line)}</div>`:card(line,b);
+    }).join('');
+  }
+  return `<div class="p-hl" style="white-space:pre-wrap;font-size:11px">${E(JSON.stringify(ins,null,2)).slice(0,1200)}</div>`;
 }
 function renderAnalysis(d){
   if(!d) return '<div class="warn-note">Пустой ответ.</div>';
-  const txt = d.analysis||d.text||d.result||d.summary||(d.content&&(Array.isArray(d.content)?d.content.map(c=>c.text||'').join(''):d.content));
-  if(typeof txt==='string'&&txt.trim()) return `<div class="p-hl" style="white-space:pre-wrap">${esc(txt).slice(0,2000)}</div>`;
-  const parts=[];
-  if(d.score!=null) parts.push(`<div class="sig"><span class="k">STARK Score</span><span class="v">${esc(String(d.score))}</span></div>`);
-  if(d.thesis) parts.push(`<div class="sec-t">Тезис</div><div class="p-hl">${esc(d.thesis)}</div>`);
-  if(d.bull)   parts.push(`<div class="sec-t">Бык</div><div class="p-hl">${esc(d.bull)}</div>`);
-  if(d.bear)   parts.push(`<div class="sec-t">Медведь</div><div class="p-hl">${esc(d.bear)}</div>`);
-  if(parts.length) return parts.join('');
-  return `<div class="p-hl" style="white-space:pre-wrap;font-size:11px">${esc(JSON.stringify(d,null,2)).slice(0,1500)}</div>`;
+  if(typeof d==='string') return `<div class="p-hl" style="white-space:pre-wrap">${esc(d).slice(0,3000)}</div>`;
+  const E=esc, P=[], has=v=>v!==undefined&&v!==null&&v!=='';
+  const pick=(...keys)=>{for(const k of keys){if(has(d[k]))return d[k];}return undefined;};
+
+  // ── Цена / шапка ──
+  let priceStr=pick('price'); if(!has(priceStr)&&has(d.priceNum)) priceStr=`${d.priceNum} ${d.currency||''}`.trim();
+  if(has(priceStr)) P.push(`<div class="ana-price"><span class="px">${E(priceStr)}</span>${has(d.companyName)?`<span class="cn">${E(d.companyName)}</span>`:''}</div>`);
+
+  // ── Метрики ──
+  const rows=[]; const cap=pick('marketCap'); if(has(cap))rows.push(['Кап.',cap]);
+  const pe=pick('peRatio','pe'); if(has(pe))rows.push(['P/E',pe]);
+  const dv=pick('dividend'); if(has(dv))rows.push(['Дивиденд',dv]);
+  if(rows.length) P.push(rows.map(([k,v])=>`<div class="sig"><span class="k">${E(k)}</span><span class="v">${E(v)}</span></div>`).join(''));
+
+  // ── 52-нед диапазон ──
+  const hi=pick('week52High'), lo=pick('week52Low');
+  if(has(hi)||has(lo)){
+    let atHigh=null; if(has(d.atHigh)) atHigh=typeof d.atHigh==='number'?d.atHigh:parseFloat(String(d.atHigh).replace('%',''));
+    const hN=d.week52HighNum, lN=d.week52LowNum, pN=d.priceNum; let bar;
+    if([hN,lN,pN].every(x=>typeof x==='number'&&isFinite(x))&&hN>lN){
+      const pos=Math.max(0,Math.min(100,((pN-lN)/(hN-lN))*100));
+      const col=pos>85?'var(--bear)':pos<20?'var(--bull)':'var(--blue)';
+      bar=`<div class="rngbar"><div class="rngfill" style="width:${pos.toFixed(0)}%;background:${col}"></div><div class="rngdot" style="left:${pos.toFixed(0)}%"></div></div><div class="rnglab"><span>${E(lo)}</span><span style="color:${col};font-weight:800">${pos.toFixed(0)}% диапазона</span><span>${E(hi)}</span></div>`;
+    } else bar=`<div class="sig"><span class="k">52-нед</span><span class="v">${E(lo)} — ${E(hi)}</span></div>`;
+    const flag=(atHigh!=null&&isFinite(atHigh)&&atHigh>=90)?' · <span style="color:var(--bear)">у максимума</span>':'';
+    P.push(`<div class="sec-t">52-нед диапазон${flag}</div>${bar}`);
+  }
+
+  // ── Аналитики ──
+  const cons=pick('analystConsensus'), atxt=pick('analystText');
+  if(has(cons)||has(atxt)){
+    P.push(`<div class="sec-t">Консенсус аналитиков</div>`);
+    if(has(cons)) P.push(`<div class="sig"><span class="k">Рейтинг</span><span class="v" style="color:var(--blue)">${E(cons)}</span></div>`);
+    if(has(atxt)) P.push(`<div class="p-hl">${E(atxt)}</div>`);
+  }
+
+  // ── ИНСАЙДЕРЫ (приоритетный сигнал Алексея) ──
+  const ins=pick('insiders','Инсайдеры','insiderActivity','insiderTrades','insider','insiderBuys','insiderSelling');
+  if(has(ins)){ P.push(`<div class="sec-t">⚑ Инсайдеры / мажоритарии</div>`); P.push(renderInsiders(ins)); }
+
+  // ── СОБЫТИЯ ──
+  const ev=pick('События','events','Events','catalysts','calendar');
+  if(Array.isArray(ev)&&ev.length){
+    P.push(`<div class="sec-t">События / катализаторы</div>`);
+    P.push(ev.slice(0,10).map(e=>{
+      if(typeof e==='string') return `<div class="p-hl">${E(e)}</div>`;
+      const urg=e.urgent===true||/срочно|urgent|true/i.test(String(e.urgent||''));
+      const date=has(e.date)?`<b style="font-family:var(--mono);color:${urg?'var(--bear)':'var(--blue)'}">${E(e.date)}</b> · `:'';
+      return `<div class="p-hl" style="${urg?'border-color:rgba(255,69,58,.4);background:rgba(255,69,58,.07)':''}">${date}${E(e.event||e.title||e.text||'')}</div>`;
+    }).join(''));
+  } else if(has(ev)&&typeof ev==='string') P.push(`<div class="sec-t">События</div><div class="p-hl" style="white-space:pre-wrap">${E(ev)}</div>`);
+
+  // ── Тезисы / свободный текст ──
+  const thesis=pick('thesis','тезис'); if(has(thesis)) P.push(`<div class="sec-t">Тезис</div><div class="p-hl">${E(thesis)}</div>`);
+  const bull=pick('bull','bull_case'); if(has(bull)) P.push(`<div class="sec-t">Бык</div><div class="p-hl" style="border-color:rgba(48,209,88,.3)">${E(bull)}</div>`);
+  const bear=pick('bear','bear_case'); if(has(bear)) P.push(`<div class="sec-t">Медведь</div><div class="p-hl" style="border-color:rgba(255,69,58,.3)">${E(bear)}</div>`);
+  const note=pick('analysis','text','summary','result'); if(has(note)) P.push(`<div class="sec-t">Заметка STARK</div><div class="p-hl" style="white-space:pre-wrap">${E(typeof note==='string'?note:JSON.stringify(note)).slice(0,2500)}</div>`);
+
+  if(P.length) return P.join('');
+  return `<div class="p-hl" style="white-space:pre-wrap;font-size:11px">${E(JSON.stringify(d,null,2)).slice(0,1800)}</div>`;
 }
 
 /* ════════ ПАНЕЛИ ════════ */
@@ -931,9 +1017,9 @@ function openPanelNode(d){
     <div class="geo">📍 ${d.lat.toFixed(2)}, ${d.lng.toFixed(2)} · ${d.sector}</div>
     <div class="sec-t">Сигналы (посев)</div>
     ${SIG.map(([k,l,w])=>`<div class="sig"><span class="k">${l} <span style="opacity:.5">${w}</span></span><span class="v" style="color:${d[k]>=70?'var(--bull)':d[k]<50?'var(--bear)':'var(--text)'}">${d[k]??'—'}</span></div>`).join('')}
-    <div class="sec-t">STARK · live-анализ</div><div id="liveAnalysis"></div>
+    ${analysisBlock(d.t)}
     <div class="sec-t">Цепочки поставок / лиды</div><div class="chain">${chains}</div>`;
-  document.getElementById('panel').classList.add('open'); flyTo(d.lat,d.lng); loadAnalysis(d.t);
+  document.getElementById('panel').classList.add('open'); flyTo(d.lat,d.lng);
 }
 function openPanelUniverse(d){
   const news=liveSignals.filter(s=>s.ticker===d.t), chains=chainsFor(d.t);
@@ -941,10 +1027,10 @@ function openPanelUniverse(d){
     <div class="p-tick"><h2>${d.t}</h2><span class="p-badge" style="background:rgba(90,175,255,.18);color:#8fc4ff">ВСЕЛЕННАЯ</span></div>
     <div class="p-name">${d.name}</div>
     <div class="geo">📍 ${d.lat.toFixed(2)}, ${d.lng.toFixed(2)} · ${d.sector}</div>
-    <div class="sec-t">STARK · live-анализ</div><div id="liveAnalysis"></div>
+    ${analysisBlock(d.t)}
     ${news.length?`<div class="sec-t">Свежие сигналы (${news.length})</div>`+news.slice(0,4).map(s=>`<div class="p-hl">${esc(s.headline||'')}</div>`).join(''):''}
     ${chains?`<div class="sec-t">Цепочки поставок / лиды</div><div class="chain">${chains}</div>`:''}`;
-  document.getElementById('panel').classList.add('open'); flyTo(d.lat,d.lng); loadAnalysis(d.t);
+  document.getElementById('panel').classList.add('open'); flyTo(d.lat,d.lng);
 }
 function openPanelSignal(payload){
   let s; try{ s=JSON.parse(decodeURIComponent(payload)); }catch(e){ return; }
@@ -965,10 +1051,9 @@ function openPanelSignal(payload){
     <div class="sig"><span class="k">Направление</span><span class="v" style="color:${col}">${badge}</span></div>
     ${s.confidence!=null?`<div class="sig"><span class="k">Уверенность</span><span class="v">${Math.round((+s.confidence)*100)}%</span></div>`:''}
     <div class="sig"><span class="k">Время</span><span class="v" style="font-size:11px">${when||'—'}</span></div>
-    <div class="sec-t">STARK · live-анализ</div><div id="liveAnalysis"></div>
+    ${s.ticker?analysisBlock(s.ticker):''}
     ${chains?`<div class="sec-t">Цепочки поставок / лиды</div><div class="chain">${chains}</div>`:''}`;
   document.getElementById('panel').classList.add('open'); if(s.lat!=null) flyTo(+s.lat,+s.lng);
-  if(s.ticker) loadAnalysis(s.ticker);
 }
 function openPanelZone(idx){
   const zones=ZONE_SETS[activeItem().data]||[]; const z=zones[idx]; if(!z) return;
