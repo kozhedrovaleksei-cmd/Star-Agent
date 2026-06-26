@@ -229,19 +229,19 @@ const MENU = [
   ]},
   { id:'cat-energy', label:'Энергия', icon:'🛢', open:false, sub:[
     { id:'cmd-oil', label:'Нефть', type:'commodity', data:'oil', dot:'var(--oil)' },
-    { id:'cmd-gas', label:'Природный газ', type:'commodity', data:'gas', dot:'var(--oil)', soon:true },
-    { id:'cmd-uranium', label:'Уран', type:'commodity', data:'uranium', dot:'var(--oil)', soon:true },
+    { id:'cmd-gas', label:'Природный газ', type:'commodity', data:'gas', dot:'var(--oil)' },
+    { id:'cmd-uranium', label:'Уран', type:'commodity', data:'uranium', dot:'var(--oil)' },
   ]},
   { id:'cat-metals', label:'Металлы', icon:'🪙', open:false, sub:[
-    { id:'cmd-gold', label:'Золото', type:'commodity', data:'gold', dot:'var(--metal)', soon:true },
-    { id:'cmd-platinum', label:'Платина', type:'commodity', data:'platinum', dot:'var(--metal)', soon:true },
-    { id:'cmd-palladium', label:'Палладий', type:'commodity', data:'palladium', dot:'var(--metal)', soon:true },
-    { id:'cmd-copper', label:'Медь', type:'commodity', data:'copper', dot:'var(--metal)', soon:true },
+    { id:'cmd-gold', label:'Золото', type:'commodity', data:'gold', dot:'var(--metal)' },
+    { id:'cmd-platinum', label:'Платина', type:'commodity', data:'platinum', dot:'var(--metal)' },
+    { id:'cmd-palladium', label:'Палладий', type:'commodity', data:'palladium', dot:'var(--metal)' },
+    { id:'cmd-copper', label:'Медь', type:'commodity', data:'copper', dot:'var(--metal)' },
   ]},
   { id:'cat-agro', label:'Агро', icon:'🌾', open:false, sub:[
-    { id:'cmd-wheat', label:'Пшеница', type:'commodity', data:'wheat', dot:'var(--agro)', soon:true },
-    { id:'cmd-cocoa', label:'Какао', type:'commodity', data:'cocoa', dot:'var(--agro)', soon:true },
-    { id:'cmd-corn', label:'Кукуруза', type:'commodity', data:'corn', dot:'var(--agro)', soon:true },
+    { id:'cmd-wheat', label:'Пшеница', type:'commodity', data:'wheat', dot:'var(--agro)' },
+    { id:'cmd-cocoa', label:'Какао', type:'commodity', data:'cocoa', dot:'var(--agro)' },
+    { id:'cmd-corn', label:'Кукуруза', type:'commodity', data:'corn', dot:'var(--agro)' },
   ]},
 ];
 
@@ -267,8 +267,126 @@ const COMMODITIES = {
       {country:'Бразилия',      lat:-14.2,lng:-51.9, vol:'≈3.4',  share:'~4%'},
     ]
   },
-  // gas / uranium / gold / platinum / palladium / copper / wheat / cocoa / corn
-  // — добавятся по тому же формату следующими ходами (пункты помечены soon)
+  gas: {
+    unit:'млрд м³/год', color:'#e0903a',
+    note:'Добыча природного газа, топ-производители (порядок величин, 2023–24).',
+    sources:[
+      {country:'США',           lat:39.8, lng:-98.6, vol:'≈1030', share:'~25%'},
+      {country:'Россия',        lat:61.5, lng:105.3, vol:'≈590',  share:'~14%'},
+      {country:'Иран',          lat:32.4, lng:53.7,  vol:'≈260',  share:'~6%'},
+      {country:'Китай',         lat:35.0, lng:103.0, vol:'≈235',  share:'~6%'},
+      {country:'Катар',         lat:25.4, lng:51.2,  vol:'≈180',  share:'~4%'},
+      {country:'Канада',        lat:56.1, lng:-106.3,vol:'≈185',  share:'~4%'},
+      {country:'Австралия',     lat:-25.3,lng:133.8, vol:'≈150',  share:'~4%'},
+      {country:'Норвегия',      lat:60.5, lng:8.5,   vol:'≈115',  share:'~3%'},
+      {country:'Саудовская Аравия',lat:23.9,lng:45.1, vol:'≈115',  share:'~3%'},
+    ]
+  },
+  uranium: {
+    unit:'тыс. т U/год', color:'#8fbf4f',
+    note:'Добыча урана, топ-производители (порядок величин, 2023).',
+    sources:[
+      {country:'Казахстан',     lat:48.0, lng:67.0,  vol:'≈21.2', share:'~43%'},
+      {country:'Канада',        lat:56.1, lng:-106.3,vol:'≈7.4',  share:'~15%'},
+      {country:'Намибия',       lat:-22.6,lng:17.1,  vol:'≈5.6',  share:'~11%'},
+      {country:'Австралия',     lat:-25.3,lng:133.8, vol:'≈4.1',  share:'~8%'},
+      {country:'Узбекистан',    lat:41.4, lng:64.6,  vol:'≈3.3',  share:'~7%'},
+      {country:'Россия',        lat:61.5, lng:105.3, vol:'≈2.5',  share:'~5%'},
+      {country:'Нигер',         lat:17.6, lng:8.1,   vol:'≈2.0',  share:'~4%'},
+      {country:'Китай',         lat:35.0, lng:103.0, vol:'≈1.7',  share:'~3%'},
+    ]
+  },
+  gold: {
+    unit:'т/год', color:'#d8dde3',
+    note:'Добыча золота, топ-производители (порядок величин, 2023).',
+    sources:[
+      {country:'Китай',         lat:35.0, lng:103.0, vol:'≈370', share:'~12%'},
+      {country:'Россия',        lat:61.5, lng:105.3, vol:'≈310', share:'~10%'},
+      {country:'Австралия',     lat:-25.3,lng:133.8, vol:'≈290', share:'~9%'},
+      {country:'Канада',        lat:56.1, lng:-106.3,vol:'≈200', share:'~6%'},
+      {country:'США',           lat:39.8, lng:-98.6, vol:'≈170', share:'~5%'},
+      {country:'Казахстан',     lat:48.0, lng:67.0,  vol:'≈130', share:'~4%'},
+      {country:'Мексика',       lat:23.6, lng:-102.5,vol:'≈120', share:'~4%'},
+      {country:'ЮАР',           lat:-30.6,lng:22.9,  vol:'≈100', share:'~3%'},
+      {country:'Гана',          lat:7.9,  lng:-1.0,  vol:'≈130', share:'~4%'},
+    ]
+  },
+  platinum: {
+    unit:'т/год', color:'#cfd6dd',
+    note:'Добыча платины, топ-производители (порядок величин, 2023). Рынок сверхконцентрирован.',
+    sources:[
+      {country:'ЮАР',           lat:-30.6,lng:22.9,  vol:'≈120', share:'~70%'},
+      {country:'Россия',        lat:61.5, lng:105.3, vol:'≈22',  share:'~12%'},
+      {country:'Зимбабве',      lat:-19.0,lng:29.2,  vol:'≈15',  share:'~8%'},
+      {country:'Канада',        lat:56.1, lng:-106.3,vol:'≈6',   share:'~3%'},
+      {country:'США',           lat:39.8, lng:-98.6, vol:'≈3',   share:'~2%'},
+    ]
+  },
+  palladium: {
+    unit:'т/год', color:'#c2c9d1',
+    note:'Добыча палладия, топ-производители (порядок величин, 2023). Дуополия РФ + ЮАР.',
+    sources:[
+      {country:'Россия',        lat:61.5, lng:105.3, vol:'≈88',  share:'~40%'},
+      {country:'ЮАР',           lat:-30.6,lng:22.9,  vol:'≈75',  share:'~34%'},
+      {country:'Канада',        lat:56.1, lng:-106.3,vol:'≈18',  share:'~8%'},
+      {country:'США',           lat:39.8, lng:-98.6, vol:'≈14',  share:'~6%'},
+      {country:'Зимбабве',      lat:-19.0,lng:29.2,  vol:'≈12',  share:'~5%'},
+    ]
+  },
+  copper: {
+    unit:'млн т/год', color:'#d98a5b',
+    note:'Добыча меди (рудник), топ-производители (порядок величин, 2023).',
+    sources:[
+      {country:'Чили',          lat:-35.7,lng:-71.5, vol:'≈5.3', share:'~24%'},
+      {country:'Перу',          lat:-9.2, lng:-75.0, vol:'≈2.6', share:'~12%'},
+      {country:'Конго (ДРК)',   lat:-4.0, lng:21.8,  vol:'≈2.5', share:'~11%'},
+      {country:'Китай',         lat:35.0, lng:103.0, vol:'≈1.7', share:'~8%'},
+      {country:'США',           lat:39.8, lng:-98.6, vol:'≈1.2', share:'~5%'},
+      {country:'Австралия',     lat:-25.3,lng:133.8, vol:'≈0.8', share:'~4%'},
+      {country:'Россия',        lat:61.5, lng:105.3, vol:'≈0.9', share:'~4%'},
+      {country:'Замбия',        lat:-13.1,lng:27.8,  vol:'≈0.8', share:'~4%'},
+    ]
+  },
+  wheat: {
+    unit:'млн т/год', color:'#e0c060',
+    note:'Производство пшеницы, топ-страны (порядок величин, 2023–24).',
+    sources:[
+      {country:'Китай',         lat:35.0, lng:103.0, vol:'≈137', share:'~17%'},
+      {country:'Индия',         lat:20.6, lng:79.0,  vol:'≈110', share:'~14%'},
+      {country:'Россия',        lat:61.5, lng:105.3, vol:'≈92',  share:'~12%'},
+      {country:'США',           lat:39.8, lng:-98.6, vol:'≈49',  share:'~6%'},
+      {country:'Франция',       lat:46.6, lng:2.2,   vol:'≈35',  share:'~4%'},
+      {country:'Канада',        lat:56.1, lng:-106.3,vol:'≈33',  share:'~4%'},
+      {country:'Австралия',     lat:-25.3,lng:133.8, vol:'≈26',  share:'~3%'},
+      {country:'Украина',       lat:49.0, lng:32.0,  vol:'≈23',  share:'~3%'},
+    ]
+  },
+  cocoa: {
+    unit:'тыс. т/год', color:'#a86b3c',
+    note:'Производство какао-бобов, топ-страны (порядок величин, 2022–23). Рынок концентрирован в Зап. Африке.',
+    sources:[
+      {country:'Кот-д’Ивуар',   lat:7.5,  lng:-5.5,  vol:'≈2200', share:'~38%'},
+      {country:'Гана',          lat:7.9,  lng:-1.0,  vol:'≈680',  share:'~14%'},
+      {country:'Индонезия',     lat:-0.8, lng:113.9, vol:'≈650',  share:'~11%'},
+      {country:'Эквадор',       lat:-1.8, lng:-78.2, vol:'≈430',  share:'~8%'},
+      {country:'Камерун',       lat:5.7,  lng:12.3,  vol:'≈300',  share:'~6%'},
+      {country:'Нигерия',       lat:9.1,  lng:8.7,   vol:'≈280',  share:'~5%'},
+      {country:'Бразилия',      lat:-14.2,lng:-51.9, vol:'≈220',  share:'~4%'},
+    ]
+  },
+  corn: {
+    unit:'млн т/год', color:'#e8c84a',
+    note:'Производство кукурузы, топ-страны (порядок величин, 2023–24).',
+    sources:[
+      {country:'США',           lat:39.8, lng:-98.6, vol:'≈390', share:'~32%'},
+      {country:'Китай',         lat:35.0, lng:103.0, vol:'≈289', share:'~24%'},
+      {country:'Бразилия',      lat:-14.2,lng:-51.9, vol:'≈122', share:'~10%'},
+      {country:'Аргентина',     lat:-38.4,lng:-63.6, vol:'≈55',  share:'~5%'},
+      {country:'Украина',       lat:49.0, lng:32.0,  vol:'≈30',  share:'~3%'},
+      {country:'Индия',         lat:20.6, lng:79.0,  vol:'≈36',  share:'~3%'},
+      {country:'Мексика',       lat:23.6, lng:-102.5,vol:'≈27',  share:'~2%'},
+    ]
+  },
 };
 
 /* ════════════════════════════════════════════════════════════════
