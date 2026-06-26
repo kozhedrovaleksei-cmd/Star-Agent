@@ -989,7 +989,44 @@ function renderInsiders(ins){
   }
   return `<div class="p-hl" style="white-space:pre-wrap;font-size:11px">${E(JSON.stringify(ins,null,2)).slice(0,1200)}</div>`;
 }
+/* analyze.js отдаёт анализ ТЕКСТОМ (часто в ```json …``` ). Вытаскиваем объект. */
+function parseMaybeJson(s){
+  if(typeof s!=='string') return s;
+  let t=s.trim();
+  const m=t.match(/```(?:json)?\s*([\s\S]*?)```/i); if(m) t=m[1].trim();
+  if(t[0]!=='{'&&t[0]!=='['){ const a=t.indexOf('{'), b=t.lastIndexOf('}'); if(a>=0&&b>a) t=t.slice(a,b+1); }
+  try{ return JSON.parse(t); }catch(e){ return s; }
+}
+function coerceAnalysis(d){
+  if(d==null) return null;
+  if(typeof d==='string') return parseMaybeJson(d);
+  if(Array.isArray(d.content)){
+    const t=d.content.map(c=>typeof c==='string'?c:(c&&c.text)||'').join('');
+    const p=parseMaybeJson(t); if(p&&typeof p==='object') return p;
+  }
+  for(const k of ['analysis','result','text','summary','output','raw','json','message','data','body','answer']){
+    if(typeof d[k]==='string'){ const p=parseMaybeJson(d[k]); if(p&&typeof p==='object') return Object.assign({}, d, p); }
+  }
+  return d;
+}
+const ALERT_META={
+  insider_sales:{ic:'▼',col:'var(--bear)'}, insider_selling:{ic:'▼',col:'var(--bear)'},
+  insider_buys:{ic:'▲',col:'var(--bull)'}, insider_buying:{ic:'▲',col:'var(--bull)'},
+  catalyst_ahead:{ic:'📅',col:'var(--warn)'}, earnings:{ic:'📊',col:'var(--warn)'},
+  supply_chain:{ic:'🔗',col:'var(--blue)'}, anticipation:{ic:'🎯',col:'var(--blue)'},
+  risk:{ic:'⚠',col:'var(--bear)'}, opportunity:{ic:'✦',col:'var(--bull)'}
+};
+function renderAlerts(arr){
+  const E=esc;
+  return arr.slice(0,12).map(a=>{
+    if(typeof a==='string') return `<div class="p-hl">${E(a)}</div>`;
+    const meta=ALERT_META[String(a.type||'').toLowerCase()]||{ic:'•',col:'var(--neutral)'};
+    const txt=a.text||a.message||a.detail||'';
+    return `<div class="p-hl" style="border-left:3px solid ${meta.col};padding-left:11px"><span style="color:${meta.col};font-weight:800">${meta.ic}</span> ${E(txt)}</div>`;
+  }).join('');
+}
 function renderAnalysis(d){
+  d=coerceAnalysis(d);
   if(!d) return '<div class="warn-note">Пустой ответ.</div>';
   if(typeof d==='string') return `<div class="p-hl" style="white-space:pre-wrap">${esc(d).slice(0,3000)}</div>`;
   const E=esc, P=[];
@@ -1003,7 +1040,15 @@ function renderAnalysis(d){
   if(priceStr||nm) P.push(`<div class="ana-price">${priceStr?`<span class="px">${E(priceStr)}</span>`:''}${nm?`<span class="cn">${E(nm)}</span>`:''}</div>`);
   if(_na(m.sector)) P.push(`<div class="geo" style="margin:0 0 4px">🏷 ${E(m.sector)}</div>`);
 
-  // ── ⚑ СИГНАЛЬНЫЕ ФЛАГИ (главный блок: инсайдеры/катализаторы/предвосхищение) ──
+  // ── ⚑ ГЛАВНЫЙ АЛЕРТ (плоская форма: верхнеуровневый alert-стринг) ──
+  if(_na(d.alert)){
+    const s=String(d.alert).toLowerCase();
+    const bear=/прода|sell|sold|пада|ниже|риск|внимание|sell-off/.test(s), bull=/покуп|buy|рост|выше|пробо/.test(s);
+    const col=bear?'var(--bear)':bull?'var(--bull)':'var(--warn)';
+    P.push(`<div class="p-hl" style="border:1px solid ${col};background:${col}14;font-weight:600">⚑ ${E(d.alert)}</div>`);
+  }
+
+  // ── ⚑ СИГНАЛЬНЫЕ ФЛАГИ (вложенная форма: metadata/flags) ──
   const fb=[];
   if(_na(f.insiderIntensity)){
     const crit=/критич|critical|высок|аном/i.test(String(f.insiderIntensity));
@@ -1017,7 +1062,10 @@ function renderAnalysis(d){
   if(_na(f.anticipationDetail)) fb.push(`<div class="p-hl" style="border-color:rgba(10,132,255,.3)">${E(f.anticipationDetail)}</div>`);
   if(fb.length) P.push(`<div class="sec-t">⚑ Сигнальные флаги</div>`+fb.join(''));
 
-  // ── ИНСАЙДЕРЫ (приоритет: кто/сколько/когда, покупка/продажа цветом) ──
+  // ── ⚑ АЛЕРТЫ (плоская форма: alerts[] {type,text}) ──
+  if(Array.isArray(d.alerts)&&d.alerts.length) P.push(`<div class="sec-t">⚑ Сигналы</div>`+renderAlerts(d.alerts));
+
+  // ── ИНСАЙДЕРЫ (вложенная форма: insiders[]) ──
   if(ins && (Array.isArray(ins)?ins.length:_na(ins))) P.push(`<div class="sec-t">⚑ Инсайдеры / мажоритарии</div>`+renderInsiders(ins));
 
   // ── Метрики ──
@@ -1036,14 +1084,17 @@ function renderAnalysis(d){
       bar=`<div class="rngbar"><div class="rngfill" style="width:${pos.toFixed(0)}%;background:${col}"></div><div class="rngdot" style="left:${pos.toFixed(0)}%"></div></div><div class="rnglab"><span>${E(m.week52Low)}</span><span style="color:${col};font-weight:800">${pos.toFixed(0)}% диапазона</span><span>${E(m.week52High)}</span></div>`;
     } else bar=`<div class="sig"><span class="k">52-нед</span><span class="v">${E(m.week52Low)} — ${E(m.week52High)}</span></div>`;
     P.push(`<div class="sec-t">52-нед диапазон</div>${bar}`);
-    if(_na(m.atHigh)) P.push(`<div style="font-size:11px;color:var(--dim);margin-top:3px">${E(m.atHigh)}</div>`);
+    if(_na(m.atHigh)) P.push(`<div style="font-size:11px;color:var(--dim);margin-top:3px;line-height:1.5">${E(m.atHigh)}</div>`);
   }
 
   // ── Аналитики ──
   if(_na(m.analystConsensus)) P.push(`<div class="sec-t">Консенсус аналитиков</div><div class="p-hl">${E(m.analystConsensus)}</div>`);
   if(_na(m.analystText)) P.push(`<div class="p-hl">${E(m.analystText)}</div>`);
 
-  // ── События (если бэкенд их вернёт) ──
+  // ── Резюме / details ──
+  if(_na(d.details)) P.push(`<div class="sec-t">Резюме STARK</div><div class="p-hl" style="white-space:pre-wrap;line-height:1.55">${E(d.details)}</div>`);
+
+  // ── События ──
   const ev=d.События||d.events||d.catalysts;
   if(Array.isArray(ev)&&ev.length){
     P.push(`<div class="sec-t">События / катализаторы</div>`);
@@ -1055,8 +1106,8 @@ function renderAnalysis(d){
     }).join(''));
   }
 
-  // ── Свободный текст (если есть) ──
-  const note=d.analysis||d.text||d.summary; if(_na(note)) P.push(`<div class="sec-t">Заметка STARK</div><div class="p-hl" style="white-space:pre-wrap">${E(typeof note==='string'?note:JSON.stringify(note)).slice(0,2500)}</div>`);
+  // ── Свободный текст (если остался) ──
+  const note=d.analysis||d.text||d.summary; if(_na(note)&&typeof note==='string') P.push(`<div class="sec-t">Заметка STARK</div><div class="p-hl" style="white-space:pre-wrap">${E(note).slice(0,2500)}</div>`);
 
   // ── Источник ──
   if(_na(m.sourceNote)) P.push(`<div style="font-size:10px;color:var(--dim);margin-top:14px;line-height:1.5">📎 ${E(m.sourceNote)}</div>`);
