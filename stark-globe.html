@@ -1005,7 +1005,7 @@ function coerceAnalysis(d){
     const p=parseMaybeJson(t); if(p&&typeof p==='object') return p;
   }
   for(const k of ['analysis','result','text','summary','output','raw','json','message','data','body','answer']){
-    if(typeof d[k]==='string'){ const p=parseMaybeJson(d[k]); if(p&&typeof p==='object') return Object.assign({}, d, p); }
+    if(typeof d[k]==='string'){ const p=parseMaybeJson(d[k]); if(p&&typeof p==='object'){ const merged=Object.assign({}, d, p); delete merged[k]; return merged; } }
   }
   return d;
 }
@@ -1072,7 +1072,7 @@ function renderAnalysis(d){
   const rows=[];
   if(_na(m.marketCap)) rows.push(['Кап.', m.marketCap]);
   if(_na(m.peRatio)) rows.push(['P/E', m.peRatio]);
-  if(_na(m.dividend)) rows.push(['Дивиденд', m.dividend]);
+  if(_na(m.dividend)) rows.push(['Дивиденд', m.dividend]); else if(_na(m.dividendYield)) rows.push(['Див. доходность', m.dividendYield]);
   if(rows.length) P.push(`<div class="sec-t">Метрики</div>`+rows.map(([k,v])=>`<div class="sig"><span class="k">${E(k)}</span><span class="v">${E(v)}</span></div>`).join(''));
 
   // ── 52-нед диапазон ──
@@ -1083,8 +1083,27 @@ function renderAnalysis(d){
       const col=pos>85?'var(--bear)':pos<20?'var(--bull)':'var(--blue)';
       bar=`<div class="rngbar"><div class="rngfill" style="width:${pos.toFixed(0)}%;background:${col}"></div><div class="rngdot" style="left:${pos.toFixed(0)}%"></div></div><div class="rnglab"><span>${E(m.week52Low)}</span><span style="color:${col};font-weight:800">${pos.toFixed(0)}% диапазона</span><span>${E(m.week52High)}</span></div>`;
     } else bar=`<div class="sig"><span class="k">52-нед</span><span class="v">${E(m.week52Low)} — ${E(m.week52High)}</span></div>`;
-    P.push(`<div class="sec-t">52-нед диапазон</div>${bar}`);
-    if(_na(m.atHigh)) P.push(`<div style="font-size:11px;color:var(--dim);margin-top:3px;line-height:1.5">${E(m.atHigh)}</div>`);
+    const atHighFlag = (m.atHigh===true)?' · <span style="color:var(--bear)">у максимума</span>':'';
+    P.push(`<div class="sec-t">52-нед диапазон${atHighFlag}</div>${bar}`);
+    // описательная позиция: positionInRange (строка) или atHigh, если он СТРОКА (не булево)
+    const posNote = _na(m.positionInRange)?m.positionInRange : (typeof m.atHigh==='string'&&_na(m.atHigh)?m.atHigh:'');
+    if(posNote) P.push(`<div style="font-size:11px;color:var(--dim);margin-top:3px;line-height:1.5">${E(posNote)}</div>`);
+  }
+
+  // ── Семантический анализ (bull/bear/verdict) ──
+  const sa = (d.semanticAnalysis&&typeof d.semanticAnalysis==='object')?d.semanticAnalysis:d;
+  const verdict=sa.verdict||d.verdict, verdictText=sa.verdict_text||sa.verdictText||d.verdict_text;
+  const bullC=sa.bullCase||sa.bull||d.bullCase, bearC=sa.bearCase||sa.bear||d.bearCase;
+  if(_na(verdict)||_na(verdictText)||_na(bullC)||_na(bearC)){
+    P.push(`<div class="sec-t">Вердикт STARK</div>`);
+    if(_na(verdict)){
+      const vs=String(verdict).toUpperCase();
+      const vc=/BUY|ПОКУП|ЛОНГ|LONG/.test(vs)?'var(--bull)':/SELL|ПРОДА|ШОРТ|SHORT/.test(vs)?'var(--bear)':'var(--warn)';
+      P.push(`<div class="ana-price" style="margin:0 0 6px"><span class="px" style="font-size:20px;color:${vc}">${E(verdict)}</span></div>`);
+    }
+    if(_na(verdictText)) P.push(`<div class="p-hl">${E(verdictText)}</div>`);
+    if(_na(bullC)) P.push(`<div class="p-hl" style="border-color:rgba(48,209,88,.35);background:rgba(48,209,88,.06)"><b style="color:var(--bull)">Бык. </b>${E(bullC)}</div>`);
+    if(_na(bearC)) P.push(`<div class="p-hl" style="border-color:rgba(255,69,58,.35);background:rgba(255,69,58,.06)"><b style="color:var(--bear)">Медведь. </b>${E(bearC)}</div>`);
   }
 
   // ── Аналитики ──
@@ -1094,6 +1113,7 @@ function renderAnalysis(d){
   // ── Резюме / details ──
   if(_na(d.details)) P.push(`<div class="sec-t">Резюме STARK</div><div class="p-hl" style="white-space:pre-wrap;line-height:1.55">${E(d.details)}</div>`);
 
+
   // ── События ──
   const ev=d.События||d.events||d.catalysts;
   if(Array.isArray(ev)&&ev.length){
@@ -1101,13 +1121,15 @@ function renderAnalysis(d){
     P.push(ev.slice(0,10).map(e=>{
       if(typeof e==='string') return `<div class="p-hl">${E(e)}</div>`;
       const urg=e.urgent===true||/срочно|urgent/i.test(String(e.urgent||''));
-      const date=_na(e.date)?`<b style="font-family:var(--mono);color:${urg?'var(--bear)':'var(--blue)'}">${E(e.date)}</b> · `:'';
-      return `<div class="p-hl" style="${urg?'border-color:rgba(255,69,58,.4);background:rgba(255,69,58,.07)':''}">${date}${E(e.event||e.title||e.text||'')}</div>`;
+      const body=e.event||e.title||e.text||e.description||e.label||e.catalyst||e.detail||e.name||'';
+      const date=_na(e.date)?`<b style="font-family:var(--mono);color:${urg?'var(--bear)':'var(--blue)'}">${E(e.date)}</b>${_na(body)?' · ':''}`:'';
+      return `<div class="p-hl" style="${urg?'border-color:rgba(255,69,58,.4);background:rgba(255,69,58,.07)':''}">${date}${E(body)}</div>`;
     }).join(''));
   }
 
   // ── Свободный текст (если остался) ──
-  const note=d.analysis||d.text||d.summary; if(_na(note)&&typeof note==='string') P.push(`<div class="sec-t">Заметка STARK</div><div class="p-hl" style="white-space:pre-wrap">${E(note).slice(0,2500)}</div>`);
+  const note=d.analysis||d.text||d.summary;
+  if(_na(note)&&typeof note==='string'&&!/^\s*[`{[]/.test(note)&&!/```/.test(note)) P.push(`<div class="sec-t">Заметка STARK</div><div class="p-hl" style="white-space:pre-wrap">${E(note).slice(0,2500)}</div>`);
 
   // ── Источник ──
   if(_na(m.sourceNote)) P.push(`<div style="font-size:10px;color:var(--dim);margin-top:14px;line-height:1.5">📎 ${E(m.sourceNote)}</div>`);
