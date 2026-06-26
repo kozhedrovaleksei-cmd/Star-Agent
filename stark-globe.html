@@ -152,16 +152,23 @@
   .rngfill{position:absolute;left:0;top:0;height:100%;border-radius:6px;opacity:.55}
   .rngdot{position:absolute;top:50%;width:13px;height:13px;border-radius:50%;background:#fff;box-shadow:0 0 10px rgba(255,255,255,.7);transform:translate(-50%,-50%)}
   .rnglab{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--dim);font-variant-numeric:tabular-nums}
+  /* ── список «Мои акции» ── */
+  .uni-sec{font-size:10px;letter-spacing:.18em;font-weight:800;color:var(--dim);text-transform:uppercase;margin:14px 0 8px}
+  .uni-grid{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:4px}
+  .uni-chip{display:inline-flex;align-items:center;font-family:var(--mono);font-weight:800;font-size:12px;background:rgba(255,255,255,.05);border:1px solid var(--line);color:#cfe0f5;border-radius:9px;padding:7px 10px;cursor:pointer;transition:.14s}
+  .uni-chip:hover{background:var(--blue-soft);border-color:rgba(10,132,255,.6);color:#fff;transform:translateY(-1px)}
+  .uni-chip.hero{background:rgba(10,132,255,.16);border-color:rgba(10,132,255,.5);color:#9fd0ff}
   .spin{width:22px;height:22px;border:2px solid rgba(255,255,255,.15);border-top-color:var(--blue);border-radius:50%;animation:rot .8s linear infinite;margin:16px auto}
   @keyframes rot{to{transform:rotate(360deg)}}
   .loadmsg{text-align:center;font-size:11px;color:var(--dim);font-weight:600}
 
-  .tape{position:fixed;left:0;right:0;bottom:0;z-index:9;height:46px;display:flex;align-items:center;overflow:hidden;background:linear-gradient(0deg,rgba(3,5,11,.94),rgba(3,5,11,.4));backdrop-filter:blur(14px);border-top:1px solid var(--line)}
+  .tape{position:fixed;left:0;right:0;bottom:0;z-index:14;height:46px;display:flex;align-items:center;overflow:hidden;background:#04060d;border-top:1px solid var(--line);box-shadow:0 -8px 24px rgba(3,5,11,.6)}
   .tape .lbl{flex:0 0 auto;font-size:10px;letter-spacing:.18em;font-weight:800;color:var(--blue);padding:0 16px;border-right:1px solid var(--line)}
   .tape .track{display:flex;gap:30px;white-space:nowrap;animation:slide 36s linear infinite;padding-left:30px}
   .tape:hover .track{animation-play-state:paused}
   @keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-  .tchip{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600}
+  .tchip{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;cursor:pointer;padding:4px 2px;border-radius:8px;transition:.15s}
+  .tchip:hover{background:rgba(10,132,255,.12)}
   .tchip .t{font-family:var(--mono);font-weight:800}.tchip .px{font-variant-numeric:tabular-nums;color:var(--dim)}.tchip .trg{font-size:10px;color:var(--blue);font-weight:700}
 
   .booting{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:#03050b;font-size:12px;letter-spacing:.3em;color:var(--blue);font-weight:800;transition:opacity .6s}
@@ -208,7 +215,7 @@
 
 <div id="panel"><button class="close" onclick="closePanel()">✕</button><div id="panelBody"></div></div>
 
-<div class="tape"><div class="lbl">КРИПТО · WATCH</div><div class="track" id="tapeTrack"></div></div>
+<div class="tape"><div class="lbl">АКЦИИ · STARK</div><div class="track" id="tapeTrack"></div></div>
 
 <script>
 /* ════════ КОНФИГ ════════ */
@@ -233,6 +240,7 @@ const UNIVERSE_API = '/api/universe-geo';
 const MENU = [
   { id:'cat-market', label:'Рынок', icon:'📈', open:true, sub:[
     { id:'market-all', label:'Все сигналы', type:'signals', dot:'var(--blue)' },
+    { id:'my-stocks', label:'Мои акции', type:'universe', dot:'#8fc4ff' },
   ]},
   { id:'cat-geo', label:'Геополитика', icon:'🛡', open:false, sub:[
     { id:'geo-zones', label:'Зоны риска / войны', type:'zones', data:'risk', dot:'var(--warn)' },
@@ -571,6 +579,8 @@ function applyLayer(it){
     setFeedMode('commodity', it); renderCommodity(it); world.ringsData([]); renderArcs();
   } else if(it.type==='planes'){
     setFeedMode('planes'); rebuildHtml(); pollPlanes(); world.ringsData([]); renderArcs();
+  } else if(it.type==='universe'){
+    setFeedMode('universe'); renderUniverseList(); world.ringsData([]); world.arcsData([]);
   }
 }
 function activeItem(){ return findItem(activeView) || MENU[0].sub[0]; }
@@ -585,7 +595,7 @@ function init(){
     .pointsData(allPoints()).pointLat('lat').pointLng('lng')
     .pointColor(d=>d.uni?'rgba(90,175,255,.92)':(COL[d.dir]||COL.neutral))
     .pointAltitude(d=>d.dir==='chain'?0.01:(d.uni?0.025:0.04+(d.score||0)/260))
-    .pointRadius(d=>d.dir==='chain'?0.18:(d.uni?0.24:0.36)).pointResolution(14)
+    .pointRadius(d=>d.dir==='chain'?0.18:(d.uni?0.24:0.36)).pointResolution(24)
     .pointLabel(d=>`<div style="font-family:Inter;font-size:12px;color:#fff;background:rgba(8,12,20,.92);border:1px solid rgba(10,132,255,.4);border-radius:10px;padding:8px 11px"><b style="font-size:14px">${d.t}</b>${!d.uni&&d.dir!=='chain'?' · STARK '+d.score:''}<br><span style="color:#9aa3af">${d.sector||''}</span><br><span style="color:#5aafff;font-size:10px">клик → сводка</span></div>`)
     .onPointClick(d=>{ if(d.dir!=='chain'){ openPanelNode(d); world.controls().autoRotate=false; } })
     .arcStroke(d=>d.kind==='news'?0.45:0.55).arcDashGap(0.2).arcLabel('label')
@@ -600,7 +610,7 @@ function init(){
 
   fetch('https://unpkg.com/world-atlas@2/countries-110m.json').then(r=>r.json()).then(topo=>{
     countryFeats=topojson.feature(topo,topo.objects.countries).features;
-    world.hexPolygonsData(countryFeats).hexPolygonResolution(3).hexPolygonMargin(0.4).hexPolygonUseDots(true)
+    world.hexPolygonsData(countryFeats).hexPolygonResolution(4).hexPolygonMargin(0.35).hexPolygonUseDots(true)
       .hexPolygonColor(()=>'rgba(10,132,255,.16)').hexPolygonAltitude(0.003);
     world.polygonsData(countryFeats)
       .polygonCapColor(capColor)
@@ -611,6 +621,7 @@ function init(){
   }).catch(()=>world.globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg'));
 
   world.controls().autoRotate=true; world.controls().autoRotateSpeed=0.3; world.controls().enableZoom=true;
+  try{ world.renderer().setPixelRatio(Math.min(2.5, window.devicePixelRatio||1)); }catch(e){}
   world.pointOfView({lat:34,lng:-110,altitude:2.4},0);
   setTimeout(()=>world.pointOfView({lat:28,lng:-30,altitude:2.6},4500),700);
 
@@ -651,7 +662,8 @@ async function loadUniverse(){
         country:p.country||null,
         dir:'neutral', uni:true
       }));
-    rebuildByT(); rebuildSectorMap();
+    rebuildByT(); rebuildSectorMap(); buildTape();
+    if(activeItem().type==='universe') renderUniverseList();
     if(world && activeItem().type==='signals'){ world.pointsData(allPoints()); rebuildHtml(); }
     document.getElementById('uniCount').textContent=UNIVERSE.length+NODES.length;
     console.log(`[STARK] вселенная: ${UNIVERSE.length} имён (+${NODES.length} hero) из ${j.count} разрешённых`);
@@ -858,6 +870,7 @@ function setFeedMode(kind, it){
   else if(kind==='zones'){ titleEl.textContent='ЗОНЫ РИСКА'; }
   else if(kind==='commodity'){ const cm=COMMODITIES[it.data]; titleEl.textContent=(it.label||'СЫРЬЁ').toUpperCase(); }
   else if(kind==='planes'){ titleEl.textContent='ВОЕННЫЕ БОРТЫ'; }
+  else if(kind==='universe'){ titleEl.textContent='МОИ АКЦИИ'; }
 }
 function render(){
   if(activeItem().type!=='signals') return;
@@ -900,6 +913,41 @@ function renderCommodity(it){
   if(cm.sources[0]) world.pointOfView({lat:30,lng:20,altitude:2.4},1000);
 }
 
+/* ════════ ВЫБОР КОМПАНИИ → СВЯЗЬ → АНАЛИЗ ════════ */
+function chainArcsFor(t){
+  return ARCS.filter(a=>a.from===t||a.to===t).map(a=>{
+    const f=coordOf(a.from), tt=coordOf(a.to); if(!f||!tt) return null;
+    return {startLat:f.lat,startLng:f.lng,endLat:tt.lat,endLng:tt.lng,label:a.label,kind:'supply'};
+  }).filter(Boolean);
+}
+function focusTicker(t){
+  const p=byT[t]; if(!p){ return; }
+  toggleDrawer(false);
+  if(world) world.arcsData(chainArcsFor(t));     // рисуем связи именно этой компании
+  if(p.uni) openPanelUniverse(p); else openPanelNode(p);
+}
+function renderUniverseList(){
+  const list=document.getElementById('feedList'); if(!list) return;
+  const all=[...NODES.map(n=>({t:n.t,sector:nodeSectorRu(n.sector),hero:true})), ...UNIVERSE.map(u=>({t:u.t,sector:normSector(u.sector)}))];
+  if(!all.length){ list.innerHTML='<div class="feed-empty">Вселенная загружается…<br><span style="font-size:10px">тянем /api/universe-geo</span></div>'; return; }
+  const prev=document.getElementById('uniSearch');
+  const q=(prev?prev.value:'').trim().toUpperCase();
+  const groups={}; all.forEach(x=>{ const s=x.sector||'Прочее'; (groups[s]=groups[s]||[]).push(x); });
+  let html=`<input id="uniSearch" placeholder="Поиск тикера…" oninput="renderUniverseList()" value="${esc(q)}" autocomplete="off" spellcheck="false" style="width:100%;margin-bottom:12px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;padding:9px 12px;color:var(--text);font-family:Inter;font-size:13px;outline:none">`;
+  let shown=0;
+  Object.keys(groups).sort().forEach(sec=>{
+    const items=groups[sec].filter(x=>!q||x.t.toUpperCase().includes(q)).sort((a,b)=>a.t.localeCompare(b.t));
+    if(!items.length) return;
+    shown+=items.length;
+    html+=`<div class="uni-sec">${esc(sec)} <span style="opacity:.45">${items.length}</span></div><div class="uni-grid">`+
+      items.map(x=>`<span class="uni-chip${x.hero?' hero':''}" onclick="focusTicker('${esc(x.t)}')">${esc(x.t)}</span>`).join('')+`</div>`;
+  });
+  if(!shown) html+=`<div class="feed-empty">Ничего не найдено.</div>`;
+  list.innerHTML=html;
+  const si=document.getElementById('uniSearch');
+  if(q&&si){ si.focus(); try{ si.setSelectionRange(q.length,q.length); }catch(e){} }
+}
+
 /* ════════ LIVE STARK-АНАЛИЗ ════════ */
 // Блок с кнопкой-триггером (НЕ автозапуск — /api/analyze дёргается только по клику)
 function analysisBlock(ticker){
@@ -921,81 +969,97 @@ async function loadAnalysis(ticker){
 }
 function renderInsiders(ins){
   const E=esc;
-  const card=(txt,buy)=>`<div class="p-hl" style="border-color:${buy?'rgba(48,209,88,.45)':'rgba(255,69,58,.45)'};background:${buy?'rgba(48,209,88,.08)':'rgba(255,69,58,.08)'}"><span style="font-weight:800;color:${buy?'var(--bull)':'var(--bear)'}">${buy?'▲ ПОКУПКА':'▼ ПРОДАЖА'}</span> · ${E(txt)}</div>`;
-  const guessBuy=t=>{const s=String(t).toLowerCase();if(/прода|sell|sold|sale|dispos/.test(s))return false;if(/куп|buy|bought|acqui|purchase/.test(s))return true;return null;};
-  if(typeof ins==='string'){const b=guessBuy(ins);return b===null?`<div class="p-hl">${E(ins)}</div>`:card(ins,b);}
+  const isBuy=t=>{const s=String(t||'').toLowerCase();if(/sell|sold|sale|прода|dispos|減|reduc/.test(s))return false;if(/buy|bought|purchase|acqui|куп|приобр/.test(s))return true;return null;};
+  const card=it=>{
+    const b = it.buy===true?true : it.buy===false?false : isBuy(it.type||it.action||it.transaction||it.direction);
+    const buy=b===true, sell=b===false;
+    const col=buy?'var(--bull)':sell?'var(--bear)':'var(--neutral)';
+    const tag=buy?'▲ ПОКУПКА':sell?'▼ ПРОДАЖА':'• сделка';
+    const who=[it.name||it.insider||it.who, it.role||it.title].filter(_na).join(' · ');
+    const facts=[ _na(it.amount)?`<b style="color:${col}">${E(it.amount)}</b>`:'', _na(it.shares)?E(it.shares):'', _na(it.date)?E(it.date):'' ].filter(Boolean).join(' · ');
+    return `<div class="p-hl" style="border-color:${buy?'rgba(48,209,88,.45)':sell?'rgba(255,69,58,.45)':'var(--line)'};background:${buy?'rgba(48,209,88,.08)':sell?'rgba(255,69,58,.08)':'rgba(255,255,255,.04)'}">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:${who||facts?'3px':'0'}"><span style="font-weight:800;color:${col}">${tag}</span>${who?`<span style="font-size:11px;color:var(--dim);text-align:right">${E(who)}</span>`:''}</div>
+      ${facts?`<div style="font-family:var(--mono);font-size:12px">${facts}</div>`:''}
+      ${_na(it.context)?`<div style="font-size:11.5px;color:var(--dim);margin-top:3px;line-height:1.45">${E(it.context)}</div>`:''}</div>`;
+  };
+  if(typeof ins==='string') return `<div class="p-hl">${E(ins)}</div>`;
   if(Array.isArray(ins)){
     if(!ins.length) return `<div class="p-hl" style="color:var(--dim)">Сделок инсайдеров не найдено.</div>`;
-    return ins.slice(0,12).map(it=>{
-      if(typeof it==='string'){const b=guessBuy(it);return b===null?`<div class="p-hl">${E(it)}</div>`:card(it,b);}
-      const who=it.name||it.insider||it.who||'', role=it.role||it.title||'', type=it.type||it.action||it.transaction||'';
-      const sh=it.shares||it.qty||it.amount||'', px=it.price||it.priceRange||'', date=it.date||'';
-      const b=it.buy===true?true:(it.buy===false?false:guessBuy(type||''));
-      const line=[who&&role?`${who} (${role})`:(who||role), type, sh&&`${sh} акц.`, px&&`@ ${px}`, date].filter(Boolean).join(' · ');
-      return b===null?`<div class="p-hl">${E(line)}</div>`:card(line,b);
-    }).join('');
+    return ins.slice(0,14).map(it=> typeof it==='string'?`<div class="p-hl">${E(it)}</div>`:card(it)).join('');
   }
   return `<div class="p-hl" style="white-space:pre-wrap;font-size:11px">${E(JSON.stringify(ins,null,2)).slice(0,1200)}</div>`;
 }
 function renderAnalysis(d){
   if(!d) return '<div class="warn-note">Пустой ответ.</div>';
   if(typeof d==='string') return `<div class="p-hl" style="white-space:pre-wrap">${esc(d).slice(0,3000)}</div>`;
-  const E=esc, P=[], has=v=>v!==undefined&&v!==null&&v!=='';
-  const pick=(...keys)=>{for(const k of keys){if(has(d[k]))return d[k];}return undefined;};
+  const E=esc, P=[];
+  const m=Object.assign({}, d, d.metadata||{});      // metadata перекрывает top-level
+  const f=d.flags||{};
+  const ins=d.insiders||d.Инсайдеры||d.insiderTrades||null;
 
-  // ── Цена / шапка ──
-  let priceStr=pick('price'); if(!has(priceStr)&&has(d.priceNum)) priceStr=`${d.priceNum} ${d.currency||''}`.trim();
-  if(has(priceStr)) P.push(`<div class="ana-price"><span class="px">${E(priceStr)}</span>${has(d.companyName)?`<span class="cn">${E(d.companyName)}</span>`:''}</div>`);
+  // ── Шапка: цена + имя + сектор ──
+  let priceStr = _na(d.price)?d.price : (_na(d.priceNum)?`${d.priceNum} ${d.currency||''}`.trim():'');
+  const nm = (_na(d.companyName)&&d.companyName) || (_na(d.title)&&d.title) || (_na(m.ticker)?`Анализ ${m.ticker}`:'');
+  if(priceStr||nm) P.push(`<div class="ana-price">${priceStr?`<span class="px">${E(priceStr)}</span>`:''}${nm?`<span class="cn">${E(nm)}</span>`:''}</div>`);
+  if(_na(m.sector)) P.push(`<div class="geo" style="margin:0 0 4px">🏷 ${E(m.sector)}</div>`);
+
+  // ── ⚑ СИГНАЛЬНЫЕ ФЛАГИ (главный блок: инсайдеры/катализаторы/предвосхищение) ──
+  const fb=[];
+  if(_na(f.insiderIntensity)){
+    const crit=/критич|critical|высок|аном/i.test(String(f.insiderIntensity));
+    fb.push(`<div class="sig"><span class="k">Интенсивность инсайдеров</span><span class="v" style="color:${crit?'var(--bear)':'var(--text)'}">${E(f.insiderIntensity)}</span></div>`);
+  }
+  if(_na(f.insiderRational)) fb.push(`<div class="p-hl" style="border-color:rgba(255,69,58,.4);background:rgba(255,69,58,.07)">${E(f.insiderRational)}</div>`);
+  if(f.positiveWhales!=null||f.negativeWhales!=null) fb.push(`<div class="sig"><span class="k">Киты + / −</span><span class="v"><span style="color:var(--bull)">${f.positiveWhales??0}</span> / <span style="color:var(--bear)">${f.negativeWhales??0}</span></span></div>`);
+  if(_na(f.earningsDateProximity)) fb.push(`<div class="sig"><span class="k">Отчёт</span><span class="v" style="color:var(--warn)">${E(f.earningsDateProximity)}</span></div>`);
+  if(_na(f.earningsDateDetail)) fb.push(`<div class="p-hl">${E(f.earningsDateDetail)}</div>`);
+  if(_na(f.anticipationSignal)) fb.push(`<div class="sig"><span class="k">Предвосхищение</span><span class="v" style="color:var(--blue)">${E(f.anticipationSignal)}</span></div>`);
+  if(_na(f.anticipationDetail)) fb.push(`<div class="p-hl" style="border-color:rgba(10,132,255,.3)">${E(f.anticipationDetail)}</div>`);
+  if(fb.length) P.push(`<div class="sec-t">⚑ Сигнальные флаги</div>`+fb.join(''));
+
+  // ── ИНСАЙДЕРЫ (приоритет: кто/сколько/когда, покупка/продажа цветом) ──
+  if(ins && (Array.isArray(ins)?ins.length:_na(ins))) P.push(`<div class="sec-t">⚑ Инсайдеры / мажоритарии</div>`+renderInsiders(ins));
 
   // ── Метрики ──
-  const rows=[]; const cap=pick('marketCap'); if(has(cap))rows.push(['Кап.',cap]);
-  const pe=pick('peRatio','pe'); if(has(pe))rows.push(['P/E',pe]);
-  const dv=pick('dividend'); if(has(dv))rows.push(['Дивиденд',dv]);
-  if(rows.length) P.push(rows.map(([k,v])=>`<div class="sig"><span class="k">${E(k)}</span><span class="v">${E(v)}</span></div>`).join(''));
+  const rows=[];
+  if(_na(m.marketCap)) rows.push(['Кап.', m.marketCap]);
+  if(_na(m.peRatio)) rows.push(['P/E', m.peRatio]);
+  if(_na(m.dividend)) rows.push(['Дивиденд', m.dividend]);
+  if(rows.length) P.push(`<div class="sec-t">Метрики</div>`+rows.map(([k,v])=>`<div class="sig"><span class="k">${E(k)}</span><span class="v">${E(v)}</span></div>`).join(''));
 
   // ── 52-нед диапазон ──
-  const hi=pick('week52High'), lo=pick('week52Low');
-  if(has(hi)||has(lo)){
-    let atHigh=null; if(has(d.atHigh)) atHigh=typeof d.atHigh==='number'?d.atHigh:parseFloat(String(d.atHigh).replace('%',''));
-    const hN=d.week52HighNum, lN=d.week52LowNum, pN=d.priceNum; let bar;
-    if([hN,lN,pN].every(x=>typeof x==='number'&&isFinite(x))&&hN>lN){
+  if(_na(m.week52Low)||_na(m.week52High)){
+    const hN=+m.week52HighNum, lN=+m.week52LowNum, pN=+(d.priceNum!=null?d.priceNum:m.priceNum); let bar;
+    if(isFinite(hN)&&isFinite(lN)&&isFinite(pN)&&hN>lN){
       const pos=Math.max(0,Math.min(100,((pN-lN)/(hN-lN))*100));
       const col=pos>85?'var(--bear)':pos<20?'var(--bull)':'var(--blue)';
-      bar=`<div class="rngbar"><div class="rngfill" style="width:${pos.toFixed(0)}%;background:${col}"></div><div class="rngdot" style="left:${pos.toFixed(0)}%"></div></div><div class="rnglab"><span>${E(lo)}</span><span style="color:${col};font-weight:800">${pos.toFixed(0)}% диапазона</span><span>${E(hi)}</span></div>`;
-    } else bar=`<div class="sig"><span class="k">52-нед</span><span class="v">${E(lo)} — ${E(hi)}</span></div>`;
-    const flag=(atHigh!=null&&isFinite(atHigh)&&atHigh>=90)?' · <span style="color:var(--bear)">у максимума</span>':'';
-    P.push(`<div class="sec-t">52-нед диапазон${flag}</div>${bar}`);
+      bar=`<div class="rngbar"><div class="rngfill" style="width:${pos.toFixed(0)}%;background:${col}"></div><div class="rngdot" style="left:${pos.toFixed(0)}%"></div></div><div class="rnglab"><span>${E(m.week52Low)}</span><span style="color:${col};font-weight:800">${pos.toFixed(0)}% диапазона</span><span>${E(m.week52High)}</span></div>`;
+    } else bar=`<div class="sig"><span class="k">52-нед</span><span class="v">${E(m.week52Low)} — ${E(m.week52High)}</span></div>`;
+    P.push(`<div class="sec-t">52-нед диапазон</div>${bar}`);
+    if(_na(m.atHigh)) P.push(`<div style="font-size:11px;color:var(--dim);margin-top:3px">${E(m.atHigh)}</div>`);
   }
 
   // ── Аналитики ──
-  const cons=pick('analystConsensus'), atxt=pick('analystText');
-  if(has(cons)||has(atxt)){
-    P.push(`<div class="sec-t">Консенсус аналитиков</div>`);
-    if(has(cons)) P.push(`<div class="sig"><span class="k">Рейтинг</span><span class="v" style="color:var(--blue)">${E(cons)}</span></div>`);
-    if(has(atxt)) P.push(`<div class="p-hl">${E(atxt)}</div>`);
-  }
+  if(_na(m.analystConsensus)) P.push(`<div class="sec-t">Консенсус аналитиков</div><div class="p-hl">${E(m.analystConsensus)}</div>`);
+  if(_na(m.analystText)) P.push(`<div class="p-hl">${E(m.analystText)}</div>`);
 
-  // ── ИНСАЙДЕРЫ (приоритетный сигнал Алексея) ──
-  const ins=pick('insiders','Инсайдеры','insiderActivity','insiderTrades','insider','insiderBuys','insiderSelling');
-  if(has(ins)){ P.push(`<div class="sec-t">⚑ Инсайдеры / мажоритарии</div>`); P.push(renderInsiders(ins)); }
-
-  // ── СОБЫТИЯ ──
-  const ev=pick('События','events','Events','catalysts','calendar');
+  // ── События (если бэкенд их вернёт) ──
+  const ev=d.События||d.events||d.catalysts;
   if(Array.isArray(ev)&&ev.length){
     P.push(`<div class="sec-t">События / катализаторы</div>`);
     P.push(ev.slice(0,10).map(e=>{
       if(typeof e==='string') return `<div class="p-hl">${E(e)}</div>`;
-      const urg=e.urgent===true||/срочно|urgent|true/i.test(String(e.urgent||''));
-      const date=has(e.date)?`<b style="font-family:var(--mono);color:${urg?'var(--bear)':'var(--blue)'}">${E(e.date)}</b> · `:'';
+      const urg=e.urgent===true||/срочно|urgent/i.test(String(e.urgent||''));
+      const date=_na(e.date)?`<b style="font-family:var(--mono);color:${urg?'var(--bear)':'var(--blue)'}">${E(e.date)}</b> · `:'';
       return `<div class="p-hl" style="${urg?'border-color:rgba(255,69,58,.4);background:rgba(255,69,58,.07)':''}">${date}${E(e.event||e.title||e.text||'')}</div>`;
     }).join(''));
-  } else if(has(ev)&&typeof ev==='string') P.push(`<div class="sec-t">События</div><div class="p-hl" style="white-space:pre-wrap">${E(ev)}</div>`);
+  }
 
-  // ── Тезисы / свободный текст ──
-  const thesis=pick('thesis','тезис'); if(has(thesis)) P.push(`<div class="sec-t">Тезис</div><div class="p-hl">${E(thesis)}</div>`);
-  const bull=pick('bull','bull_case'); if(has(bull)) P.push(`<div class="sec-t">Бык</div><div class="p-hl" style="border-color:rgba(48,209,88,.3)">${E(bull)}</div>`);
-  const bear=pick('bear','bear_case'); if(has(bear)) P.push(`<div class="sec-t">Медведь</div><div class="p-hl" style="border-color:rgba(255,69,58,.3)">${E(bear)}</div>`);
-  const note=pick('analysis','text','summary','result'); if(has(note)) P.push(`<div class="sec-t">Заметка STARK</div><div class="p-hl" style="white-space:pre-wrap">${E(typeof note==='string'?note:JSON.stringify(note)).slice(0,2500)}</div>`);
+  // ── Свободный текст (если есть) ──
+  const note=d.analysis||d.text||d.summary; if(_na(note)) P.push(`<div class="sec-t">Заметка STARK</div><div class="p-hl" style="white-space:pre-wrap">${E(typeof note==='string'?note:JSON.stringify(note)).slice(0,2500)}</div>`);
+
+  // ── Источник ──
+  if(_na(m.sourceNote)) P.push(`<div style="font-size:10px;color:var(--dim);margin-top:14px;line-height:1.5">📎 ${E(m.sourceNote)}</div>`);
 
   if(P.length) return P.join('');
   return `<div class="p-hl" style="white-space:pre-wrap;font-size:11px">${E(JSON.stringify(d,null,2)).slice(0,1800)}</div>`;
@@ -1080,8 +1144,17 @@ function openPanelCommodity(cmKey, i){
 function closePanel(){document.getElementById('panel').classList.remove('open');if(world)world.controls().autoRotate=true;}
 function flyTo(lat,lng){if(world&&lat!=null){world.controls().autoRotate=false;world.pointOfView({lat,lng,altitude:1.5},1000);}}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function _na(v){ if(v==null) return false; const s=String(v).trim().toLowerCase(); return s!==''&&s!=='н/д'&&s!=='n/a'&&s!=='—'&&s!=='null'&&s!=='undefined'; }
 
-function buildTape(){const t=CRYPTO.map(c=>`<span class="tchip"><span class="t">${c.t}</span><span class="px">${c.px}</span><span class="trg">${c.trg}</span></span>`).join('');document.getElementById('tapeTrack').innerHTML=t+t;}
+function buildTape(){
+  // лента акций: hero-узлы (STARK Score) + первые имена вселенной; клик → фокус + связь + анализ
+  const heroes=NODES.map(n=>({t:n.t, px:'STARK '+n.score, trg:n.sector}));
+  const extra=UNIVERSE.slice(0,30).map(u=>({t:u.t, px:'', trg:(u.sector||'').replace(/\s*\/\s*/g,'/')}));
+  const items=heroes.concat(extra);
+  const chip=c=>`<span class="tchip" onclick="focusTicker('${esc(c.t)}')"><span class="t">${esc(c.t)}</span>${c.px?`<span class="px">${esc(c.px)}</span>`:''}${c.trg?`<span class="trg">${esc(c.trg)}</span>`:''}</span>`;
+  const html=items.map(chip).join('');
+  document.getElementById('tapeTrack').innerHTML=html+html;
+}
 
 init();
 </script>
