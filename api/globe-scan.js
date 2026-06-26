@@ -59,7 +59,7 @@ async function callLLM(system, user) {
           method: 'POST', signal: ctrl.signal,
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + OPENROUTER },
           body: JSON.stringify({
-            model: OPENROUTER_MODEL, temperature: 0.2, max_tokens: 4000,
+            model: OPENROUTER_MODEL, temperature: 0.2, max_tokens: 8000,
             messages: [{ role: 'system', content: system }, { role: 'user', content: user }]
           })
         });
@@ -73,7 +73,7 @@ async function callLLM(system, user) {
         method: 'POST', signal: ctrl.signal,
         headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC, 'anthropic-version': '2023-06-01' },
         body: JSON.stringify({
-          model: ANTHROPIC_MODEL, max_tokens: 4000, system,
+          model: ANTHROPIC_MODEL, max_tokens: 8000, system,
           messages: [{ role: 'user', content: user }]
         })
       });
@@ -83,6 +83,31 @@ async function callLLM(system, user) {
     }
     return { text: null, provider: 'none' };
   } finally { clearTimeout(timer); }
+}
+
+// ── Извлечь JSON-массив из ответа, даже с мусором/метками вокруг ─
+function extractJsonArray(text) {
+  if (!text) return null;
+  // 1) обычный путь: чистим метки, парсим
+  let t = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+  try { const a = JSON.parse(t); return Array.isArray(a) ? a : [a]; } catch (e) {}
+  // 2) вырезаем от первого '[' до последнего ']'
+  const i = t.indexOf('['), j = t.lastIndexOf(']');
+  if (i !== -1 && j !== -1 && j > i) {
+    const slice = t.slice(i, j + 1);
+    try { const a = JSON.parse(slice); return Array.isArray(a) ? a : [a]; } catch (e) {}
+  }
+  // 3) усечённый ответ: собираем целые объекты {...} по верхнему уровню
+  const objs = [];
+  let depth = 0, start = -1;
+  for (let k = 0; k < t.length; k++) {
+    const c = t[k];
+    if (c === '{') { if (depth === 0) start = k; depth++; }
+    else if (c === '}') { depth--; if (depth === 0 && start !== -1) { objs.push(t.slice(start, k + 1)); start = -1; } }
+  }
+  const parsed = [];
+  for (const o of objs) { try { parsed.push(JSON.parse(o)); } catch (e) {} }
+  return parsed.length ? parsed : null;
 }
 
 // ── Промпт: LLM отдаёт ТОЛЬКО анализ, без координат ─────────────
@@ -113,15 +138,16 @@ function buildSystem(ourTickers) {
     'ПРИОРИТЕТ — эти тикеры (наш юниверс), но можно и вне его, если связь сильная:',
     ourTickers.join(', '),
     '',
-    'Верни ТОЛЬКО JSON-массив (без преамбулы, без Markdown). Каждый элемент:',
+    'Верни ТОЛЬКО валидный JSON-массив (начни с [ и закончи ]). Без преамбулы, без Markdown, без ```. Каждый элемент:',
     schema,
     '',
     'ЖЁСТКО:',
+    '- ВЫВОД: только JSON-массив, первый символ [ , последний ] . Никакого текста до или после.',
     '- ЯЗЫК: headline, chain, second_order.why и bull_case_counter — ВСЕГДА на русском, даже если источник английский. Переводи смысл, не дословно. Тикеры и названия компаний — латиницей как есть.',
     '- НЕ выдумывай числа и факты — только то, что есть в новостях.',
     '- НЕ указывай координаты — это сделает код.',
     '- impact_score от -1 до 1, confidence от 0 до 1.',
-    '- Если событие незначимое или цели нет — НЕ включай его в массив.',
+    '- Максимум 8 сигналов. Если событие незначимое или цели нет — НЕ включай.',
     '- bull_case_counter обязателен для каждого сигнала.'
   ].join('\n');
 }
@@ -179,12 +205,8 @@ export default async function handler(req, res) {
     diag.provider = provider;
     if (!text) return res.status(200).json({ ...diag, verdict: '❌ LLM не ответил' });
 
-    let arr;
-    try {
-      const clean = text.replace(/```json|```/g, '').trim();
-      arr = JSON.parse(clean);
-      if (!Array.isArray(arr)) arr = [arr];
-    } catch (e) {
+    const arr = extractJsonArray(text);
+    if (!arr || !arr.length) {
       return res.status(200).json({ ...diag, verdict: '❌ JSON не распарсился', sample: text.slice(0, 300) });
     }
     diag.parsed = arr.length;
