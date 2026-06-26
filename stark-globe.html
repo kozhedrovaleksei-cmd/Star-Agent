@@ -13,6 +13,7 @@
     --bg:#03050b; --glass:rgba(14,18,28,.66); --line:rgba(255,255,255,.08);
     --blue:#0a84ff; --blue-deep:#0071e3; --blue-soft:rgba(10,132,255,.16);
     --bull:#30d158; --bear:#ff453a; --neutral:#8a9099; --warn:#ff9f0a;
+    --oil:#c9a227; --metal:#d8dde3; --agro:#7ed957;
     --text:#f5f7fa; --dim:#9aa3af; --r:18px;
     --mono:'Inter',ui-monospace,'SF Mono',Menlo,monospace;
   }
@@ -30,8 +31,11 @@
   .conflict-mark .nm{font-size:9px;font-weight:800;color:#ffd79a;text-shadow:0 0 6px rgba(0,0,0,.9);white-space:nowrap}
   @keyframes pulse{0%{transform:scale(.7);opacity:1}70%{transform:scale(1.7);opacity:.15}100%{transform:scale(.7);opacity:1}}
   .plane-mark{transform:translate(-50%,-50%);pointer-events:none;font-size:11px;color:#7fd0ff;text-shadow:0 0 6px rgba(10,132,255,.8);opacity:.8}
+  .commo-mark{transform:translate(-50%,-50%);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:var(--mono)}
+  .commo-mark .dot{border-radius:50%;box-shadow:0 0 12px currentColor}
+  .commo-mark .nm{font-size:9px;font-weight:800;text-shadow:0 0 6px rgba(0,0,0,.95);white-space:nowrap}
 
-  header{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 22px;background:linear-gradient(180deg,rgba(3,5,11,.9),transparent);backdrop-filter:blur(14px)}
+  header{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 22px 14px 64px;background:linear-gradient(180deg,rgba(3,5,11,.9),transparent);backdrop-filter:blur(14px)}
   .brand{display:flex;align-items:center;gap:12px}
   .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--blue);box-shadow:0 0 16px var(--blue);animation:beat 2.4s ease-in-out infinite}
   @keyframes beat{0%,100%{opacity:.55;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
@@ -41,6 +45,34 @@
   .status .grp{display:flex;align-items:center;gap:7px}
   .status .live{width:7px;height:7px;border-radius:50%;background:var(--bull);box-shadow:0 0 10px var(--bull);animation:beat 2s infinite}
   .status b{color:var(--text);font-variant-numeric:tabular-nums}
+
+  /* ── БУРГЕР + ВЫЕЗДНОЕ МЕНЮ ── */
+  #burger{position:fixed;top:14px;left:18px;z-index:22;width:38px;height:38px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:11px;cursor:pointer;transition:.2s}
+  #burger:hover{border-color:rgba(10,132,255,.5)}
+  #burger span{width:16px;height:2px;background:var(--text);border-radius:2px;transition:.25s}
+  #burger.open span:nth-child(1){transform:translateY(6px) rotate(45deg)}
+  #burger.open span:nth-child(2){opacity:0}
+  #burger.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+
+  #drawer{position:fixed;top:0;left:0;bottom:0;width:300px;max-width:86vw;z-index:21;background:rgba(8,11,18,.92);backdrop-filter:blur(26px);border-right:1px solid var(--line);transform:translateX(-104%);transition:transform .4s cubic-bezier(.22,1,.36,1);padding:62px 0 20px;overflow-y:auto;scrollbar-width:thin}
+  #drawer.open{transform:translateX(0)}
+  #drawer .dr-head{padding:0 20px 14px;font-size:10px;letter-spacing:.24em;font-weight:800;color:var(--blue)}
+  .mcat{border-top:1px solid var(--line)}
+  .mcat>.mcat-h{display:flex;align-items:center;gap:10px;padding:13px 20px;cursor:pointer;font-size:13px;font-weight:800;color:var(--text);transition:.15s;user-select:none}
+  .mcat>.mcat-h:hover{background:rgba(255,255,255,.03)}
+  .mcat>.mcat-h .ico{font-size:15px;width:20px;text-align:center}
+  .mcat>.mcat-h .arr{margin-left:auto;font-size:10px;color:var(--dim);transition:.25s}
+  .mcat.open>.mcat-h .arr{transform:rotate(90deg)}
+  .mcat .msub{max-height:0;overflow:hidden;transition:max-height .3s ease}
+  .mcat.open .msub{max-height:600px}
+  .mitem{display:flex;align-items:center;gap:9px;padding:9px 20px 9px 50px;cursor:pointer;font-size:12px;font-weight:600;color:var(--dim);transition:.15s;border-left:2px solid transparent}
+  .mitem:hover{background:rgba(255,255,255,.03);color:var(--text)}
+  .mitem.on{color:#fff;border-left-color:var(--blue);background:var(--blue-soft)}
+  .mitem .mi-dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+  .mitem .mi-cnt{margin-left:auto;font-family:var(--mono);font-size:10px;font-weight:800;opacity:.6}
+  .mitem .mi-soon{margin-left:auto;font-size:8.5px;letter-spacing:.1em;font-weight:800;color:var(--warn);background:rgba(255,159,10,.14);border-radius:6px;padding:2px 6px}
+  #drawerScrim{position:fixed;inset:0;z-index:20;background:rgba(3,5,11,.4);opacity:0;pointer-events:none;transition:opacity .3s}
+  #drawerScrim.on{opacity:1;pointer-events:auto}
 
   #clusterbar{position:fixed;top:60px;left:0;right:0;z-index:9;display:flex;align-items:center;gap:10px;padding:8px 18px;background:linear-gradient(180deg,rgba(3,5,11,.7),transparent);backdrop-filter:blur(8px)}
   .toggle{display:flex;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:11px;padding:3px;flex:0 0 auto}
@@ -52,11 +84,7 @@
   .chip:hover{border-color:rgba(10,132,255,.5)}
   .chip.on{background:var(--blue);border-color:var(--blue);color:#fff}
   .chip .cnt{font-family:var(--mono);font-size:10px;font-weight:800;opacity:.7}.chip.on .cnt{opacity:.9}
-
-  #layers{position:fixed;left:22px;bottom:158px;z-index:9;display:flex;flex-direction:column;gap:6px}
-  .lyr{display:flex;align-items:center;gap:7px;background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:11px;color:var(--dim);font-family:Inter;font-size:11px;font-weight:700;padding:7px 11px;cursor:pointer;transition:.2s;text-align:left}
-  .lyr.on{color:var(--text);border-color:rgba(10,132,255,.45)}
-  .lyr .cnt{font-family:var(--mono);font-size:10px;opacity:.7;margin-left:6px}
+  #clusterbar.muted{opacity:.4;pointer-events:none}
 
   .legend{position:fixed;left:22px;bottom:62px;z-index:9;display:flex;flex-direction:column;gap:7px;background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
   .legend .row{display:flex;align-items:center;gap:9px;font-size:11px;font-weight:600;color:var(--dim)}
@@ -69,7 +97,9 @@
   #feed .ft .upd{color:var(--dim);letter-spacing:.04em;font-weight:600}
   .sigcard{background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:14px;padding:11px 13px;margin-bottom:9px;cursor:pointer;transition:.2s;animation:slidein .5s ease}
   .sigcard:hover{border-color:rgba(10,132,255,.5);transform:translateX(-3px)}
+  .sigcard.fresh{border-color:rgba(48,209,88,.6);box-shadow:0 0 22px rgba(48,209,88,.25);animation:flashin .9s ease}
   @keyframes slidein{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+  @keyframes flashin{0%{opacity:0;transform:translateX(20px);box-shadow:0 0 34px rgba(48,209,88,.6)}100%{opacity:1;transform:translateX(0)}}
   .sigcard .top{display:flex;align-items:center;gap:8px;margin-bottom:5px}
   .sigcard .tk{font-family:var(--mono);font-weight:800;font-size:13px}
   .sigcard .dir{font-size:9px;font-weight:800;letter-spacing:.08em;padding:2px 6px;border-radius:6px;text-transform:uppercase}
@@ -77,11 +107,18 @@
   .sigcard .hl{font-size:12px;line-height:1.4;color:var(--text);opacity:.92}
   .sigcard .meta{font-size:10px;color:var(--dim);margin-top:5px;font-weight:500}
   .feed-empty{font-size:12px;color:var(--dim);text-align:center;padding:30px 10px;line-height:1.6}
+  .commocard{background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:14px;padding:11px 13px;margin-bottom:9px;cursor:pointer;transition:.2s}
+  .commocard:hover{border-color:rgba(201,162,39,.5);transform:translateX(-3px)}
+  .commocard .top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .commocard .rk{font-family:var(--mono);font-weight:800;font-size:12px;color:var(--oil)}
+  .commocard .ct{font-weight:700;font-size:13px}
+  .commocard .vol{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .commocard .share{font-size:10px;color:var(--dim);margin-top:2px}
 
   #feedToggle{position:fixed;top:106px;right:14px;z-index:11;background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:11px;font-weight:700;padding:7px 11px;cursor:pointer;display:none}
   @media (max-width:760px){#feed{width:100%}#feedToggle{display:block}.brand small{display:none}}
 
-  #panel{position:fixed;top:0;right:0;bottom:0;width:380px;max-width:90vw;z-index:20;background:var(--glass);backdrop-filter:blur(26px);border-left:1px solid var(--line);transform:translateX(102%);transition:transform .42s cubic-bezier(.22,1,.36,1);padding:78px 24px 24px;overflow-y:auto}
+  #panel{position:fixed;top:0;right:0;bottom:0;width:380px;max-width:90vw;z-index:25;background:var(--glass);backdrop-filter:blur(26px);border-left:1px solid var(--line);transform:translateX(102%);transition:transform .42s cubic-bezier(.22,1,.36,1);padding:78px 24px 24px;overflow-y:auto}
   #panel.open{transform:translateX(0)}
   #panel .close{position:absolute;top:18px;right:18px;width:30px;height:30px;border:none;border-radius:50%;background:rgba(255,255,255,.08);color:var(--text);font-size:16px;cursor:pointer;line-height:1}
   .p-tick{display:flex;align-items:baseline;gap:10px}
@@ -103,6 +140,7 @@
   .tk-chip{display:inline-flex;align-items:center;font-family:var(--mono);font-weight:800;font-size:12px;background:var(--blue-soft);border:1px solid rgba(10,132,255,.4);color:#9fd0ff;border-radius:8px;padding:5px 9px;margin:0 6px 6px 0}
   .seed-note{margin-top:18px;font-size:10.5px;line-height:1.5;color:var(--dim);background:var(--blue-soft);border:1px solid rgba(10,132,255,.3);border-radius:12px;padding:11px 13px}
   .warn-note{margin-top:8px;font-size:10.5px;line-height:1.5;color:#ffd79a;background:rgba(255,159,10,.1);border:1px solid rgba(255,159,10,.3);border-radius:12px;padding:11px 13px}
+  .soon-note{margin-top:8px;font-size:11px;line-height:1.55;color:var(--dim);background:rgba(255,255,255,.04);border:1px dashed var(--line);border-radius:12px;padding:13px}
   .spin{width:22px;height:22px;border:2px solid rgba(255,255,255,.15);border-top-color:var(--blue);border-radius:50%;animation:rot .8s linear infinite;margin:16px auto}
   @keyframes rot{to{transform:rotate(360deg)}}
   .loadmsg{text-align:center;font-size:11px;color:var(--dim);font-weight:600}
@@ -126,6 +164,10 @@
 <div id="globe"></div>
 <div class="vignette"></div>
 
+<div id="burger" onclick="toggleDrawer()"><span></span><span></span><span></span></div>
+<div id="drawerScrim" onclick="toggleDrawer(false)"></div>
+<nav id="drawer"><div class="dr-head">НАВИГАЦИЯ STARK</div><div id="menuTree"></div></nav>
+
 <header>
   <div class="brand"><div class="dot"></div><div><h1><span>STARK</span> · ГЛОБУС</h1><small>I AM IRON MAN · GLOBAL SIGNAL TERMINAL</small></div></div>
   <div class="status"><span class="grp"><span class="live"></span>LIVE</span><span class="grp"><b id="sigCount">0</b> сигналов</span><span class="grp"><b id="uniCount">0</b> акций</span><span class="grp">обновлено <b id="updTime">—</b></span></div>
@@ -141,15 +183,7 @@
 
 <button id="feedToggle" onclick="document.getElementById('feed').classList.toggle('hidden')">☰ Лента</button>
 
-<div id="layers">
-  <button id="tglTk"    class="lyr" onclick="toggleLayer('tickers')">🏷 Тикеры</button>
-  <button id="tglConf"  class="lyr on" onclick="toggleLayer('conf')">⚠ Зоны риска</button>
-  <button id="tglArc"   class="lyr on" onclick="toggleLayer('arc')">🔗 Связи цепочек</button>
-  <button id="tglNews"  class="lyr on" onclick="toggleLayer('news')">📰 Новость → тикер</button>
-  <button id="tglPlane" class="lyr on" onclick="toggleLayer('plane')">✈ Военные борты<span class="cnt" id="planeCount">…</span></button>
-</div>
-
-<div class="legend">
+<div class="legend" id="legend">
   <div class="row"><span class="sw" style="background:var(--bull)"></span>BULL — тезис в силе</div>
   <div class="row"><span class="sw" style="background:var(--bear)"></span>BEAR — давление</div>
   <div class="row"><span class="sw" style="background:#5aafff"></span>акция вселенной</div>
@@ -171,8 +205,85 @@ const SUPA_URL = 'https://wfoyypwscvcxriqbsnew.supabase.co';
 const SUPA_KEY = 'sb_publishable_EwMdgEUXGLLlygEgzfNwYw_XcirqHgg';
 const POLL_MS = 60000, PLANE_MS = 45000;
 const PLANE_URL = 'https://api.adsb.lol/v2/mil';
-const ANALYZE_URL  = '/api/analyze';        /* тот же домен — без CORS */
-const UNIVERSE_API = '/api/universe-geo';   /* юниверс+HQ из бэкенда (lib/stark_universe.js) */
+const ANALYZE_URL  = '/api/analyze';
+const UNIVERSE_API = '/api/universe-geo';
+
+/* ════════════════════════════════════════════════════════════════
+   MENU — ДЕРЕВО-КОНФИГ. ЕДИНЫЙ ИСТОЧНИК НАВИГАЦИИ.
+   Добавить слой = дописать объект в sub[]. Вёрстку трогать НЕ нужно.
+   Поля пункта:
+     id     — уникальный ключ (активный слой хранится по нему)
+     label  — что в меню
+     type   — 'signals' | 'zones' | 'commodity' | 'planes'
+     dot    — цвет точки в меню (опц.)
+     data   — ключ набора данных для commodity/zones (см. COMMODITIES/ZONE_SETS)
+     soon   — true → пункт-заглушка (гнездо готово, данных пока нет)
+   ════════════════════════════════════════════════════════════════ */
+const MENU = [
+  { id:'cat-market', label:'Рынок', icon:'📈', open:true, sub:[
+    { id:'market-all', label:'Все сигналы', type:'signals', dot:'var(--blue)' },
+  ]},
+  { id:'cat-geo', label:'Геополитика', icon:'🛡', open:false, sub:[
+    { id:'geo-zones', label:'Зоны риска / войны', type:'zones', data:'risk', dot:'var(--warn)' },
+    { id:'geo-planes', label:'Военные борты', type:'planes', dot:'#7fd0ff' },
+  ]},
+  { id:'cat-energy', label:'Энергия', icon:'🛢', open:false, sub:[
+    { id:'cmd-oil', label:'Нефть', type:'commodity', data:'oil', dot:'var(--oil)' },
+    { id:'cmd-gas', label:'Природный газ', type:'commodity', data:'gas', dot:'var(--oil)', soon:true },
+    { id:'cmd-uranium', label:'Уран', type:'commodity', data:'uranium', dot:'var(--oil)', soon:true },
+  ]},
+  { id:'cat-metals', label:'Металлы', icon:'🪙', open:false, sub:[
+    { id:'cmd-gold', label:'Золото', type:'commodity', data:'gold', dot:'var(--metal)', soon:true },
+    { id:'cmd-platinum', label:'Платина', type:'commodity', data:'platinum', dot:'var(--metal)', soon:true },
+    { id:'cmd-palladium', label:'Палладий', type:'commodity', data:'palladium', dot:'var(--metal)', soon:true },
+    { id:'cmd-copper', label:'Медь', type:'commodity', data:'copper', dot:'var(--metal)', soon:true },
+  ]},
+  { id:'cat-agro', label:'Агро', icon:'🌾', open:false, sub:[
+    { id:'cmd-wheat', label:'Пшеница', type:'commodity', data:'wheat', dot:'var(--agro)', soon:true },
+    { id:'cmd-cocoa', label:'Какао', type:'commodity', data:'cocoa', dot:'var(--agro)', soon:true },
+    { id:'cmd-corn', label:'Кукуруза', type:'commodity', data:'corn', dot:'var(--agro)', soon:true },
+  ]},
+];
+
+/* ════════════════════════════════════════════════════════════════
+   COMMODITIES — справочник стран-добытчиков (статика, публичная фактура).
+   Сейчас наполнена только 'oil' как образец формата. Остальные = soon.
+   Формат: { unit, color, sources:[{country,lat,lng,vol,share}] }
+   Наполнять следующими ходами — структура уже готова.
+   ════════════════════════════════════════════════════════════════ */
+const COMMODITIES = {
+  oil: {
+    unit:'млн барр/сут', color:'#c9a227',
+    note:'Добыча сырой нефти, топ-производители (порядок величин, 2024–25).',
+    sources:[
+      {country:'США',           lat:39.8, lng:-98.6, vol:'≈13.2', share:'~20%'},
+      {country:'Саудовская Аравия',lat:23.9,lng:45.1, vol:'≈9.0',  share:'~11%'},
+      {country:'Россия',        lat:61.5, lng:105.3, vol:'≈9.5',  share:'~11%'},
+      {country:'Канада',        lat:56.1, lng:-106.3,vol:'≈4.8',  share:'~6%'},
+      {country:'Ирак',          lat:33.2, lng:43.7,  vol:'≈4.3',  share:'~5%'},
+      {country:'Китай',         lat:35.0, lng:103.0, vol:'≈4.2',  share:'~5%'},
+      {country:'ОАЭ',           lat:23.4, lng:53.8,  vol:'≈3.4',  share:'~4%'},
+      {country:'Иран',          lat:32.4, lng:53.7,  vol:'≈3.2',  share:'~4%'},
+      {country:'Бразилия',      lat:-14.2,lng:-51.9, vol:'≈3.4',  share:'~4%'},
+    ]
+  },
+  // gas / uranium / gold / platinum / palladium / copper / wheat / cocoa / corn
+  // — добавятся по тому же формату следующими ходами (пункты помечены soon)
+};
+
+/* ════════════════════════════════════════════════════════════════
+   ZONE_SETS — наборы зон риска (статика). 'risk' = текущие CONFLICT_ZONES.
+   Новый набор зон = новый ключ + пункт в MENU с data:'<ключ>'.
+   ════════════════════════════════════════════════════════════════ */
+const ZONE_SETS = {
+  risk: [
+    {name:'Тайваньский пролив', lat:24.5,lng:119.5, tickers:['NVDA','AMD','TSM','AVGO','ASML'], note:'Эскалация = риск для всей цепочки полупроводников. ~90% передовых чипов производит TSMC.'},
+    {name:'Украина',            lat:49.0,lng:32.0,  tickers:['LMT','RTX','NOC','GD'],            note:'Оборонные заказы и поставки вооружений. Косвенно — зерно и энергия ЕС.'},
+    {name:'Израиль / Газа',     lat:31.5,lng:34.8,  tickers:['LMT','RTX','XOM'],                 note:'Оборона + риск-премия на нефть при расширении конфликта.'},
+    {name:'Красное море',       lat:13.5,lng:43.0,  tickers:['XOM','CVX'],                       note:'Атаки на судоходство → фрахт, страховка, нефть. Обход вокруг Африки = +10–14 дней.'},
+    {name:'Ормузский пролив',   lat:26.5,lng:56.5,  tickers:['XOM','CVX','COP'],                 note:'Через пролив идёт ~20% мировой нефти. Угроза блокировки = шок цен на нефть.'},
+  ]
+};
 
 /* ════════ ВОТЧЛИСТ + STARK SCORE (hero-узлы, статика) ════════ */
 const NODES = [
@@ -187,11 +298,7 @@ const NODES = [
 ];
 
 /* ════════ ВСЕЛЕННАЯ STARK — тянется из /api/universe-geo ════════ */
-/* Источник истины тикеров: lib/stark_universe.js. Координаты HQ ставит */
-/* бэкенд (resolveHQ: override→supply→geo_cache→FMP) — фронт их не выдумывает. */
-let UNIVERSE = [];                          // заполняется loadUniverse() на старте
-
-/* нормализация секторов: бэкенд отдаёт 'Полупроводники/AI', фронт рисует 'Полупроводники / AI' */
+let UNIVERSE = [];
 const SECTOR_NORM = {
   'Полупроводники/AI':'Полупроводники / AI',
   'Оборона/Аэрокосмос':'Оборона / Аэрокосмос',
@@ -220,14 +327,6 @@ const supplyArcs = ARCS.map(a=>{const f=coordOf(a.from),tt=coordOf(a.to);if(!f||
 const CRYPTO = [
   {t:'TAO',px:'$259',trg:'AI compute'},{t:'RNDR',px:'$1.90',trg:'вход на пробой $1.95'},
   {t:'FET',px:'$0.17',trg:'вход на пробой $0.27'},{t:'SUI',px:'—',trg:'next Solana'},{t:'LINK',px:'—',trg:'DeFi infra'},
-];
-
-const CONFLICT_ZONES = [
-  {name:'Тайваньский пролив', lat:24.5,lng:119.5, tickers:['NVDA','AMD','TSM','AVGO','ASML'], note:'Эскалация = риск для всей цепочки полупроводников. ~90% передовых чипов производит TSMC.'},
-  {name:'Украина',            lat:49.0,lng:32.0,  tickers:['LMT','RTX','NOC','GD'],            note:'Оборонные заказы и поставки вооружений. Косвенно — зерно и энергия ЕС.'},
-  {name:'Израиль / Газа',     lat:31.5,lng:34.8,  tickers:['LMT','RTX','XOM'],                 note:'Оборона + риск-премия на нефть при расширении конфликта.'},
-  {name:'Красное море',       lat:13.5,lng:43.0,  tickers:['XOM','CVX'],                       note:'Атаки на судоходство → фрахт, страховка, нефть. Обход вокруг Африки = +10–14 дней.'},
-  {name:'Ормузский пролив',   lat:26.5,lng:56.5,  tickers:['XOM','CVX','COP'],                 note:'Через пролив идёт ~20% мировой нефти. Угроза блокировки = шок цен на нефть.'},
 ];
 
 const COL={bull:'#30d158',bear:'#ff453a',neutral:'#8a9099',chain:'#0a84ff'};
@@ -282,10 +381,74 @@ function geoName(c){ if(!c) return null; return COUNTRY_ALIAS[c]||c; }
 /* ════════ СОСТОЯНИЕ ════════ */
 let world, liveSignals=[], mode='sector', active=null;
 let countryLabels=[], labelsShown=false, countryFeats=[], countryAgg={}, labelK=1.0;
-let planes=[], layerConflicts=true, layerPlanes=true, layerArcs=true, layerNews=true, layerTickers=false;
+let planes=[];
+let activeView='market-all';        // активный пункт меню (id)
+let layerPlanes=false;              // борты как слой меню
+let seenEventIds=new Set();         // для подсветки свежих новостей
+let firstSignalLoad=true;
+
+/* ════════ ДВИЖОК МЕНЮ ════════ */
+function findItem(id){
+  for(const cat of MENU){ for(const it of cat.sub){ if(it.id===id) return it; } }
+  return null;
+}
+function buildMenu(){
+  const root=document.getElementById('menuTree');
+  root.innerHTML=MENU.map(cat=>{
+    const items=cat.sub.map(it=>{
+      const dot=it.dot?`<span class="mi-dot" style="background:${it.dot}"></span>`:'';
+      const tail = it.soon ? `<span class="mi-soon">СКОРО</span>`
+                : it.type==='signals' ? `<span class="mi-cnt" id="cnt-${it.id}"></span>`
+                : '';
+      return `<div class="mitem ${activeView===it.id?'on':''}" id="mi-${it.id}" onclick="selectView('${it.id}')">${dot}<span>${it.label}</span>${tail}</div>`;
+    }).join('');
+    return `<div class="mcat ${cat.open?'open':''}" id="${cat.id}">
+      <div class="mcat-h" onclick="toggleCat('${cat.id}')"><span class="ico">${cat.icon}</span><span>${cat.label}</span><span class="arr">▶</span></div>
+      <div class="msub">${items}</div></div>`;
+  }).join('');
+}
+function toggleCat(id){ document.getElementById(id).classList.toggle('open'); }
+function toggleDrawer(force){
+  const d=document.getElementById('drawer'), b=document.getElementById('burger'), s=document.getElementById('drawerScrim');
+  const open = force===undefined ? !d.classList.contains('open') : force;
+  d.classList.toggle('open',open); b.classList.toggle('open',open); s.classList.toggle('on',open);
+}
+function markActiveMenu(){
+  document.querySelectorAll('.mitem').forEach(el=>el.classList.remove('on'));
+  const el=document.getElementById('mi-'+activeView); if(el) el.classList.add('on');
+}
+
+/* Выбор пункта меню → переключение типа слоя */
+function selectView(id){
+  const it=findItem(id); if(!it) return;
+  activeView=id; markActiveMenu();
+  layerPlanes = (it.type==='planes');
+  // муть верхних чипов для не-рыночных слоёв (чипы работают только для signals)
+  document.getElementById('clusterbar').classList.toggle('muted', it.type!=='signals');
+
+  if(it.type==='signals'){ active=null; renderChips(); }
+  applyLayer(it);
+  toggleDrawer(false);
+}
+
+/* applyLayer — единая точка: что рисуем по типу активного слоя */
+function applyLayer(it){
+  if(!world) return;
+  if(it.type==='signals'){
+    setFeedMode('signals'); render(); renderArcs(); rebuildHtml(); world.ringsData(currentRings());
+  } else if(it.type==='zones'){
+    setFeedMode('zones', it); renderZones(it); world.ringsData([]); renderArcs();
+  } else if(it.type==='commodity'){
+    setFeedMode('commodity', it); renderCommodity(it); world.ringsData([]); renderArcs();
+  } else if(it.type==='planes'){
+    setFeedMode('planes'); rebuildHtml(); pollPlanes(); world.ringsData([]); renderArcs();
+  }
+}
+function activeItem(){ return findItem(activeView) || MENU[0].sub[0]; }
 
 function init(){
   if(typeof Globe==='undefined'){fail('Не загрузился globe.gl. На Vercel загрузится.');return;}
+  buildMenu();
   world=Globe()(document.getElementById('globe'))
     .backgroundColor('#03050b')
     .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
@@ -335,20 +498,20 @@ function init(){
   setTimeout(()=>document.getElementById('boot').classList.add('gone'),900);
   buildTape(); rebuildHtml(); renderArcs(); loadUniverse();
   pollSignals(); setInterval(pollSignals, POLL_MS);
-  pollPlanes(); setInterval(pollPlanes, PLANE_MS);
+  setInterval(()=>{ if(layerPlanes) pollPlanes(); }, PLANE_MS);
 }
 function allPoints(){ return [...NODES, ...UNIVERSE, ...CHAIN_NODES.map(n=>({...n,dir:'chain',score:0,sector:'Supply node'}))]; }
 function fail(msg){const b=document.getElementById('boot');b.textContent=msg;b.style.letterSpacing='normal';b.style.fontWeight='500';b.style.color='#9aa3af';b.style.padding='30px';b.style.textAlign='center';}
 function centroid(geom){let x=0,y=0,n=0;const walk=c=>{if(typeof c[0]==='number'){x+=c[0];y+=c[1];n++;}else c.forEach(walk);};walk(geom.coordinates);return[x/n,y/n];}
 
-/* ════ ЗАГРУЗКА ВСЕЛЕННОЙ ИЗ БЭКЕНДА (Шаг 2) ════ */
+/* ════ ЗАГРУЗКА ВСЕЛЕННОЙ ИЗ БЭКЕНДА ════ */
 async function loadUniverse(){
   try{
     const r=await fetch(UNIVERSE_API);
     if(!r.ok) throw new Error('HTTP '+r.status);
     const j=await r.json();
     const pts=Array.isArray(j.points)?j.points:[];
-    const inNodes=new Set(NODES.map(n=>n.t));      // hero-узлы приоритетнее — без дублей
+    const inNodes=new Set(NODES.map(n=>n.t));
     UNIVERSE = pts
       .filter(p=>p&&p.ticker&&p.hq_lat!=null&&p.hq_lng!=null&&!inNodes.has(p.ticker))
       .map(p=>({
@@ -360,7 +523,7 @@ async function loadUniverse(){
         dir:'neutral', uni:true
       }));
     rebuildByT(); rebuildSectorMap();
-    if(world){ world.pointsData(allPoints()); rebuildHtml(); }
+    if(world && activeItem().type==='signals'){ world.pointsData(allPoints()); rebuildHtml(); }
     document.getElementById('uniCount').textContent=UNIVERSE.length+NODES.length;
     console.log(`[STARK] вселенная: ${UNIVERSE.length} имён (+${NODES.length} hero) из ${j.count} разрешённых`);
   }catch(e){
@@ -394,7 +557,13 @@ function htmlEl(d){
   if(d.kind==='conflict'){
     const el=document.createElement('div'); el.className='conflict-mark';
     el.innerHTML=`<div class="pin"></div><div class="nm">${d.name}</div>`;
-    el.onclick=()=>openPanelConflict(d.idx); return el;
+    el.onclick=()=>openPanelZone(d.idx); return el;
+  }
+  if(d.kind==='commodity'){
+    const el=document.createElement('div'); el.className='commo-mark';
+    const sz=Math.max(9, Math.min(22, d.size||12));
+    el.innerHTML=`<div class="dot" style="width:${sz}px;height:${sz}px;background:${d.color};color:${d.color}"></div><div class="nm" style="color:${d.color}">${d.country} ${d.vol}</div>`;
+    el.onclick=()=>openPanelCommodity(d.cmKey, d.i); return el;
   }
   if(d.kind==='plane'){
     const el=document.createElement('div'); el.className='plane-mark';
@@ -408,25 +577,41 @@ function htmlEl(d){
   el.innerHTML=`<span style="color:${COL[d.dir]}">${d.t}</span><span class="s" style="color:#9aa3af">${d.score}</span>`;
   return el;
 }
+
+/* rebuildHtml зависит от активного типа слоя */
 function rebuildHtml(){
   if(!world) return;
-  const labels=NODES.filter(n=>n.score>=72).map(n=>({...n,kind:'label'}));
-  const confs=layerConflicts?CONFLICT_ZONES.map((z,i)=>({...z,idx:i,kind:'conflict'})):[];
-  const pl=layerPlanes?planes:[];
-  const uni=layerTickers?UNIVERSE.map(n=>({...n,kind:'uniLabel'})):[];
-  world.htmlElementsData([...labels,...confs,...pl,...uni]);
+  const it=activeItem();
+  let arr=[];
+  if(it.type==='signals'){
+    arr=arr.concat(NODES.filter(n=>n.score>=72).map(n=>({...n,kind:'label'})));
+  }
+  if(it.type==='zones'){
+    const zones=ZONE_SETS[it.data]||[];
+    arr=arr.concat(zones.map((z,i)=>({...z,idx:i,kind:'conflict'})));
+  }
+  if(it.type==='commodity'){
+    const cm=COMMODITIES[it.data];
+    if(cm) arr=arr.concat(cm.sources.map((s,i)=>({
+      lat:s.lat,lng:s.lng,kind:'commodity',country:s.country,vol:s.vol,
+      color:cm.color,cmKey:it.data,i,size:10+i*0  // размер можно завязать на vol позже
+    })));
+  }
+  if(it.type==='planes' || layerPlanes){ arr=arr.concat(planes); }
+  world.htmlElementsData(arr);
 }
 
 /* ════════ ДУГИ ════════ */
 function renderArcs(){
   if(!world) return;
+  const it=activeItem();
   let arr=[];
-  if(layerArcs) arr=arr.concat(supplyArcs);
-  if(layerNews){
+  // цепочки и новостные дуги только в рыночном слое
+  if(it.type==='signals'){
+    arr=arr.concat(supplyArcs);
     const data=active===null?liveSignals:liveSignals.filter(s=>clusterOf(s)===active);
     const news=[];
     data.forEach(s=>{
-      // конец дуги: известный узел вселенной ИЛИ координаты HQ из самой строки (globe-scan)
       const node = byT[s.ticker] || (s.hq_lat!=null?{lat:+s.hq_lat,lng:+s.hq_lng}:null);
       if(!node||s.lat==null) return;
       news.push({startLat:+s.lat,startLng:+s.lng,endLat:node.lat,endLng:node.lng,dir:s.direction,kind:'news',label:`${s.ticker} ← ${esc(s.headline||'')}`});
@@ -435,17 +620,17 @@ function renderArcs(){
   }
   world.arcsData(arr);
 }
-function toggleLayer(which){
-  if(which==='conf'){ layerConflicts=!layerConflicts; document.getElementById('tglConf').classList.toggle('on',layerConflicts); rebuildHtml(); }
-  if(which==='plane'){ layerPlanes=!layerPlanes; document.getElementById('tglPlane').classList.toggle('on',layerPlanes); if(layerPlanes) pollPlanes(); rebuildHtml(); }
-  if(which==='arc'){ layerArcs=!layerArcs; document.getElementById('tglArc').classList.toggle('on',layerArcs); renderArcs(); }
-  if(which==='news'){ layerNews=!layerNews; document.getElementById('tglNews').classList.toggle('on',layerNews); renderArcs(); }
-  if(which==='tickers'){ layerTickers=!layerTickers; document.getElementById('tglTk').classList.toggle('on',layerTickers); rebuildHtml(); }
+function currentRings(){
+  const data = active===null?liveSignals:liveSignals.filter(s=>clusterOf(s)===active);
+  return data.filter(s=>s.lat!=null&&s.lng!=null).map(s=>{
+    const imp=+s.impact||0, hot=imp>=70;
+    return {lat:+s.lat,lng:+s.lng,col:COL[s.direction]||COL.neutral,speed:hot?2.2:1.0+imp/70,max:hot?4.2:2.0+imp/35,period:hot?1100:1700};
+  });
 }
 
 /* ════════ ВОЕННЫЕ БОРТЫ ════════ */
 async function pollPlanes(){
-  if(!layerPlanes) return;
+  if(!layerPlanes && activeItem().type!=='planes') return;
   try{
     const r=await fetch(PLANE_URL,{headers:{'Accept':'application/json'}});
     if(!r.ok) throw new Error('HTTP '+r.status);
@@ -453,55 +638,61 @@ async function pollPlanes(){
     planes=ac.filter(a=>a.lat!=null&&(a.lon!=null||a.lng!=null)).slice(0,120).map(a=>({
       kind:'plane', lat:+a.lat, lng:+(a.lon!=null?a.lon:a.lng),
       callsign:String(a.flight||a.r||'MIL').trim(), type:a.t||'', track:+a.track||0 }));
-    document.getElementById('planeCount').textContent=planes.length;
-  }catch(e){ planes=[]; document.getElementById('planeCount').textContent='—'; }
+  }catch(e){ planes=[]; }
   rebuildHtml();
 }
 
-/* ════ АДАПТЕР: контракт globe-scan (событие + targets[]) → плоские сигналы ════ */
+/* ════ АДАПТЕР: контракт globe-scan → плоские сигналы ════ */
 function flattenSignals(rows){
   const out=[];
   (rows||[]).forEach(row=>{
     if(Array.isArray(row.targets) && row.targets.length){
       row.targets.forEach(tg=>{
-        const imp01=+tg.impact_score||0;                 // -1..1
+        const imp01=+tg.impact_score||0;
         out.push({
-          ticker: tg.ticker,
-          company: tg.name||row.headline,
-          headline: row.headline,
-          url: row.url,
-          created_at: row.created_at,
-          country: row.origin_country,
-          lat: row.origin_lat, lng: row.origin_lng,       // старт дуги = место события
-          hq_lat: tg.hq_lat, hq_lng: tg.hq_lng,            // конец дуги = HQ цели
-          impact: Math.round(Math.abs(imp01)*100),         // 0..100 для колец/иконок
+          ticker: tg.ticker, company: tg.name||row.headline, headline: row.headline,
+          url: row.url, created_at: row.created_at, country: row.origin_country,
+          lat: row.origin_lat, lng: row.origin_lng, hq_lat: tg.hq_lat, hq_lng: tg.hq_lng,
+          impact: Math.round(Math.abs(imp01)*100),
           direction: imp01>0.05?'bull':imp01<-0.05?'bear':'neutral',
-          sector: row.sector,
-          chain: tg.chain,
-          confidence: tg.confidence,
-          bull_case_counter: row.bull_case_counter,
-          second_order: row.second_order,
+          sector: row.sector, chain: tg.chain, confidence: tg.confidence,
+          bull_case_counter: row.bull_case_counter, second_order: row.second_order,
           event_id: row.event_id
         });
       });
-    } else { out.push(row); }   // старый плоский формат — как есть
+    } else { out.push(row); }
   });
   return out;
 }
 
-/* ════════ LIVE СИГНАЛЫ ════════ */
+/* ════════ LIVE СИГНАЛЫ (с автоподсветкой свежих) ════════ */
 async function pollSignals(){
   try{
     const r=await fetch(`${SUPA_URL}/rest/v1/signals?select=*&order=created_at.desc&limit=120`,{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
     if(!r.ok) throw new Error('HTTP '+r.status);
-    const rows=await r.json(); liveSignals=flattenSignals(Array.isArray(rows)?rows:[]);
+    const rows=await r.json();
+    const flat=flattenSignals(Array.isArray(rows)?rows:[]);
+
+    // вычисляем свежие event_id (появились в этом опросе, не в первом)
+    const incoming=new Set(flat.map(s=>s.event_id).filter(Boolean));
+    if(!firstSignalLoad){
+      flat.forEach(s=>{ if(s.event_id && !seenEventIds.has(s.event_id)) s._fresh=true; });
+    }
+    incoming.forEach(id=>seenEventIds.add(id));
+    firstSignalLoad=false;
+
+    liveSignals=flat;
     const now=new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
     document.getElementById('updTime').textContent=now; document.getElementById('feedUpd').textContent=now;
     document.getElementById('sigCount').textContent=liveSignals.length;
-    recomputeAgg(); renderChoropleth(); renderChips(); render(); renderArcs();
-  }catch(e){ if(!liveSignals.length) document.getElementById('feedList').innerHTML=`<div class="feed-empty">Поток недоступен.<br><span style="font-size:10px">${e.message}</span></div>`; }
+    recomputeAgg(); renderChoropleth(); renderChips(); updateMenuCounts();
+
+    // обновляем шар только если активен рыночный слой
+    if(activeItem().type==='signals'){ render(); renderArcs(); world.ringsData(currentRings()); }
+  }catch(e){ if(!liveSignals.length && activeItem().type==='signals') document.getElementById('feedList').innerHTML=`<div class="feed-empty">Поток недоступен.<br><span style="font-size:10px">${e.message}</span></div>`; }
 }
 function renderChoropleth(){ if(!world||!countryFeats.length) return; world.polygonCapColor(capColor).polygonAltitude(f=>countryAgg[f.properties.name]?0.022:0.006); }
+function updateMenuCounts(){ const el=document.getElementById('cnt-market-all'); if(el) el.textContent=liveSignals.length; }
 
 function clusterOf(s){ return mode==='sector'?sectorOf(s):regionOf(s); }
 function renderChips(){
@@ -514,7 +705,8 @@ function renderChips(){
   chips.innerHTML=html;
 }
 function pick(c){
-  active=c; renderChips(); render(); renderArcs();
+  if(activeItem().type!=='signals') return;   // чипы работают только в рыночном слое
+  active=c; renderChips(); render(); renderArcs(); world.ringsData(currentRings());
   if(c){
     const subset=liveSignals.filter(s=>clusterOf(s)===c).filter(s=>s.lat!=null);
     let center;
@@ -527,15 +719,20 @@ function setMode(m){
   mode=m; active=null;
   document.getElementById('modeSector').classList.toggle('on',m==='sector');
   document.getElementById('modeRegion').classList.toggle('on',m==='region');
-  renderChips(); render(); renderArcs();
+  if(activeItem().type==='signals'){ renderChips(); render(); renderArcs(); }
+}
+
+/* ════════ ЛЕНТА (по режимам) ════════ */
+function setFeedMode(kind, it){
+  const titleEl=document.getElementById('feedTitle');
+  if(kind==='signals'){ titleEl.textContent = active===null?'ВЕСЬ РЫНОК':active.toUpperCase(); }
+  else if(kind==='zones'){ titleEl.textContent='ЗОНЫ РИСКА'; }
+  else if(kind==='commodity'){ const cm=COMMODITIES[it.data]; titleEl.textContent=(it.label||'СЫРЬЁ').toUpperCase(); }
+  else if(kind==='planes'){ titleEl.textContent='ВОЕННЫЕ БОРТЫ'; }
 }
 function render(){
+  if(activeItem().type!=='signals') return;
   const data = active===null?liveSignals:liveSignals.filter(s=>clusterOf(s)===active);
-  const rings=data.filter(s=>s.lat!=null&&s.lng!=null).map(s=>{
-    const imp=+s.impact||0, hot=imp>=70;
-    return {lat:+s.lat,lng:+s.lng,col:COL[s.direction]||COL.neutral,speed:hot?2.2:1.0+imp/70,max:hot?4.2:2.0+imp/35,period:hot?1100:1700};
-  });
-  world.ringsData(rings).ringColor(d=>t=>`rgba(${hexRgb(d.col)},${1-t})`).ringMaxRadius(d=>d.max).ringPropagationSpeed(d=>d.speed).ringRepeatPeriod(d=>d.period);
   document.getElementById('feedTitle').textContent = active===null?'ВЕСЬ РЫНОК':active.toUpperCase();
   const list=document.getElementById('feedList');
   if(!data.length){ list.innerHTML='<div class="feed-empty">Нет сигналов в этом кластере.</div>'; return; }
@@ -543,11 +740,38 @@ function render(){
     const c=COL[s.direction]||COL.neutral, dir={bull:'BULL',bear:'BEAR',neutral:'НЕЙТР'}[s.direction]||'—';
     const when=s.created_at?new Date(s.created_at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'';
     const payload=encodeURIComponent(JSON.stringify(s));
-    return `<div class="sigcard" onclick="openPanelSignal('${payload}')"><div class="top"><span class="tk">${esc(s.ticker||'—')}</span><span class="dir" style="background:${c}22;color:${c}">${dir}</span><span class="imp">${s.impact??''}</span></div><div class="hl">${esc(s.headline||s.company||'')}</div><div class="meta">${esc(clusterOf(s))}${when?' · '+when:''}</div></div>`;
+    return `<div class="sigcard ${s._fresh?'fresh':''}" onclick="openPanelSignal('${payload}')"><div class="top"><span class="tk">${esc(s.ticker||'—')}</span><span class="dir" style="background:${c}22;color:${c}">${dir}</span><span class="imp">${s.impact??''}</span></div><div class="hl">${esc(s.headline||s.company||'')}</div><div class="meta">${esc(clusterOf(s))}${when?' · '+when:''}</div></div>`;
   }).join('');
 }
 
-/* ════════ LIVE STARK-АНАЛИЗ (твой /api/analyze) ════════ */
+/* Рендер слоя ЗОН */
+function renderZones(it){
+  rebuildHtml();
+  const zones=ZONE_SETS[it.data]||[];
+  const list=document.getElementById('feedList');
+  list.innerHTML = zones.length ? zones.map((z,i)=>
+    `<div class="sigcard" onclick="openPanelZone(${i})"><div class="top"><span class="tk" style="font-size:12px;color:var(--warn)">⚠ ${esc(z.name)}</span></div><div class="hl">${esc(z.note)}</div><div class="meta">${z.tickers.join(' · ')}</div></div>`
+  ).join('') : '<div class="feed-empty">Зоны не заданы.</div>';
+  if(zones[0]) world.pointOfView({lat:zones[0].lat,lng:zones[0].lng,altitude:2.0},1000);
+}
+
+/* Рендер слоя СЫРЬЯ */
+function renderCommodity(it){
+  rebuildHtml();
+  const cm=COMMODITIES[it.data];
+  const list=document.getElementById('feedList');
+  if(!cm){
+    list.innerHTML=`<div class="soon-note"><b>${esc(it.label)}</b> — слой готов, данные подключим следующим ходом.<br><br>Структура уже на месте: добавляем страны-добытчики с объёмами в COMMODITIES['${it.data}'] — и они сразу появятся на карте и в этой ленте.</div>`;
+    return;
+  }
+  list.innerHTML = `<div style="font-size:10px;color:var(--dim);margin-bottom:10px;line-height:1.5">${esc(cm.note||'')}</div>` +
+    cm.sources.map((s,i)=>
+      `<div class="commocard" onclick="openPanelCommodity('${it.data}',${i})"><div class="top"><span class="rk" style="color:${cm.color}">#${i+1}</span><span class="ct">${esc(s.country)}</span><span class="vol">${esc(s.vol)} ${esc(cm.unit)}</span></div><div class="share">доля рынка ${esc(s.share||'—')}</div></div>`
+    ).join('');
+  if(cm.sources[0]) world.pointOfView({lat:30,lng:20,altitude:2.4},1000);
+}
+
+/* ════════ LIVE STARK-АНАЛИЗ ════════ */
 async function loadAnalysis(ticker){
   const box=document.getElementById('liveAnalysis'); if(!box) return;
   box.innerHTML=`<div class="spin"></div><div class="loadmsg">STARK анализирует ${esc(ticker)}…<br>Tavily + Claude, ~10–30 сек</div>`;
@@ -557,7 +781,7 @@ async function loadAnalysis(ticker){
     const data=await r.json();
     box.innerHTML=renderAnalysis(data);
   }catch(e){
-    box.innerHTML=`<div class="warn-note"><b>Live-анализ не загрузился</b> (${esc(e.message)}). Если хочешь сводку по клику — кинь мне <b>api/analyze.js</b>, подгоню запрос под твой бэкенд за минуту.</div>`;
+    box.innerHTML=`<div class="warn-note"><b>Live-анализ не загрузился</b> (${esc(e.message)}).</div>`;
   }
 }
 function renderAnalysis(d){
@@ -628,16 +852,27 @@ function openPanelSignal(payload){
   document.getElementById('panel').classList.add('open'); if(s.lat!=null) flyTo(+s.lat,+s.lng);
   if(s.ticker) loadAnalysis(s.ticker);
 }
-function openPanelConflict(idx){
-  const z=CONFLICT_ZONES[idx]; if(!z) return;
+function openPanelZone(idx){
+  const zones=ZONE_SETS[activeItem().data]||[]; const z=zones[idx]; if(!z) return;
   const chips=z.tickers.map(t=>`<span class="tk-chip">${t}</span>`).join('');
   document.getElementById('panelBody').innerHTML=`
-    <div class="p-tick"><h2 style="font-size:22px">${z.name}</h2><span class="p-badge" style="background:rgba(255,159,10,.18);color:var(--warn)">ЗОНА РИСКА</span></div>
+    <div class="p-tick"><h2 style="font-size:22px">${esc(z.name)}</h2><span class="p-badge" style="background:rgba(255,159,10,.18);color:var(--warn)">ЗОНА РИСКА</span></div>
     <div class="p-name">📍 ${z.lat.toFixed(2)}, ${z.lng.toFixed(2)}</div>
     <div class="sec-t">Тикеры под влиянием</div><div style="margin-bottom:6px">${chips}</div>
-    <div class="sec-t">Рыночное эхо</div><div class="p-hl">${z.note}</div>
-    <div class="warn-note"><b>Статичная зона риска.</b> Карта связей «катализатор → сектор», а не live-данные о боевых действиях.</div>`;
+    <div class="sec-t">Рыночное эхо</div><div class="p-hl">${esc(z.note)}</div>
+    <div class="warn-note"><b>Статичная зона риска.</b> Карта связей «катализатор → сектор». Точные live-данные о боях подключим отдельным слоем.</div>`;
   document.getElementById('panel').classList.add('open'); flyTo(z.lat,z.lng);
+}
+function openPanelCommodity(cmKey, i){
+  const cm=COMMODITIES[cmKey]; if(!cm) return; const s=cm.sources[i]; if(!s) return;
+  document.getElementById('panelBody').innerHTML=`
+    <div class="p-tick"><h2 style="font-size:22px">${esc(s.country)}</h2><span class="p-badge" style="background:${cm.color}22;color:${cm.color}">ДОБЫЧА</span></div>
+    <div class="p-name">📍 ${s.lat.toFixed(2)}, ${s.lng.toFixed(2)}</div>
+    <div class="sec-t">Объём</div><div class="p-hl"><b style="font-family:var(--mono);font-size:20px;color:${cm.color}">${esc(s.vol)}</b> ${esc(cm.unit)}</div>
+    <div class="sig"><span class="k">Доля мирового рынка</span><span class="v">${esc(s.share||'—')}</span></div>
+    <div class="sig"><span class="k">Ранг</span><span class="v">#${i+1}</span></div>
+    <div class="soon-note">${esc(cm.note||'')}<br><br>Следующим ходом подключим: связь с тикерами-производителями, динамику цены, новостные дуги по этому товару.</div>`;
+  document.getElementById('panel').classList.add('open'); flyTo(s.lat,s.lng);
 }
 function closePanel(){document.getElementById('panel').classList.remove('open');if(world)world.controls().autoRotate=true;}
 function flyTo(lat,lng){if(world&&lat!=null){world.controls().autoRotate=false;world.pointOfView({lat,lng,altitude:1.5},1000);}}
