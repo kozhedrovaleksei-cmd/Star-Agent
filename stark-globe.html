@@ -171,9 +171,10 @@ const SUPA_URL = 'https://wfoyypwscvcxriqbsnew.supabase.co';
 const SUPA_KEY = 'sb_publishable_EwMdgEUXGLLlygEgzfNwYw_XcirqHgg';
 const POLL_MS = 60000, PLANE_MS = 45000;
 const PLANE_URL = 'https://api.adsb.lol/v2/mil';
-const ANALYZE_URL = '/api/analyze';   /* тот же домен — без CORS */
+const ANALYZE_URL  = '/api/analyze';        /* тот же домен — без CORS */
+const UNIVERSE_API = '/api/universe-geo';   /* юниверс+HQ из бэкенда (lib/stark_universe.js) */
 
-/* ════════ ВОТЧЛИСТ + STARK SCORE ════════ */
+/* ════════ ВОТЧЛИСТ + STARK SCORE (hero-узлы, статика) ════════ */
 const NODES = [
   {t:'NVDA',name:'NVIDIA — Santa Clara, CA',       lat:37.37,lng:-121.96,score:84,dir:'bull',    sector:'Semis / AI', scThesis:90,scAntic:82,scInsider:70,scMom:88,scRR:80,scSent:86},
   {t:'TSM', name:'TSMC — Hsinchu, Taiwan',         lat:24.78,lng:121.00, score:79,dir:'bull',    sector:'Foundry',    scThesis:84,scAntic:88,scInsider:60,scMom:75,scRR:78,scSent:80},
@@ -185,68 +186,23 @@ const NODES = [
   {t:'TSLA',name:'Tesla — Austin, TX',             lat:30.27,lng:-97.74, score:44,dir:'bear',    sector:'Auto / EV',  scThesis:42,scAntic:38,scInsider:35,scMom:40,scRR:48,scSent:52},
 ];
 
-/* ════════ ВСЕЛЕННАЯ ~106 крупных US-имён ════════ */
-const UNIVERSE_RAW = [
-  ['AVGO','Broadcom — Palo Alto, CA',37.44,-122.14,'Полупроводники / AI'],['QCOM','Qualcomm — San Diego, CA',32.90,-117.20,'Полупроводники / AI'],
-  ['INTC','Intel — Santa Clara, CA',37.39,-121.96,'Полупроводники / AI'],['MU','Micron — Boise, ID',43.62,-116.20,'Полупроводники / AI'],
-  ['TXN','Texas Instruments — Dallas, TX',32.78,-96.80,'Полупроводники / AI'],['ADI','Analog Devices — Wilmington, MA',42.55,-71.17,'Полупроводники / AI'],
-  ['LRCX','Lam Research — Fremont, CA',37.55,-121.99,'Полупроводники / AI'],['AMAT','Applied Materials — Santa Clara, CA',37.39,-121.95,'Полупроводники / AI'],
-  ['KLAC','KLA — Milpitas, CA',37.43,-121.90,'Полупроводники / AI'],['MRVL','Marvell — Santa Clara, CA',37.39,-121.97,'Полупроводники / AI'],
-  ['MCHP','Microchip — Chandler, AZ',33.30,-111.84,'Полупроводники / AI'],['ASML','ASML — Veldhoven, NL',51.42,5.40,'Полупроводники / AI'],
-  ['ARM','Arm — Cambridge, UK',52.20,0.13,'Полупроводники / AI'],
-  ['MSFT','Microsoft — Redmond, WA',47.64,-122.13,'Мега-тех'],['GOOGL','Alphabet — Mountain View, CA',37.42,-122.08,'Мега-тех'],
-  ['AMZN','Amazon — Seattle, WA',47.62,-122.34,'Мега-тех'],['ORCL','Oracle — Austin, TX',30.27,-97.74,'Мега-тех'],
-  ['CRM','Salesforce — San Francisco, CA',37.79,-122.40,'Мега-тех'],['ADBE','Adobe — San Jose, CA',37.33,-121.89,'Мега-тех'],
-  ['CSCO','Cisco — San Jose, CA',37.33,-121.83,'Мега-тех'],['IBM','IBM — Armonk, NY',41.11,-73.72,'Мега-тех'],
-  ['NOW','ServiceNow — Santa Clara, CA',37.40,-121.97,'Мега-тех'],['INTU','Intuit — Mountain View, CA',37.40,-122.07,'Мега-тех'],
-  ['PLTR','Palantir — Denver, CO',39.74,-104.99,'Мега-тех'],
-  ['DIS','Disney — Burbank, CA',34.18,-118.32,'Медиа / Комм'],['CMCSA','Comcast — Philadelphia, PA',39.95,-75.17,'Медиа / Комм'],
-  ['T','AT&T — Dallas, TX',32.78,-96.80,'Медиа / Комм'],['VZ','Verizon — New York, NY',40.71,-74.01,'Медиа / Комм'],
-  ['TMUS','T-Mobile — Bellevue, WA',47.61,-122.20,'Медиа / Комм'],['NFLX','Netflix — Los Gatos, CA',37.23,-121.96,'Медиа / Комм'],
-  ['WBD','Warner Bros Discovery — New York, NY',40.75,-73.99,'Медиа / Комм'],
-  ['SBUX','Starbucks — Seattle, WA',47.58,-122.34,'Потребительский'],['MCD','McDonald’s — Chicago, IL',41.88,-87.63,'Потребительский'],
-  ['KO','Coca-Cola — Atlanta, GA',33.76,-84.39,'Потребительский'],['PEP','PepsiCo — Purchase, NY',41.04,-73.71,'Потребительский'],
-  ['PG','Procter & Gamble — Cincinnati, OH',39.10,-84.51,'Потребительский'],['COST','Costco — Issaquah, WA',47.53,-122.03,'Потребительский'],
-  ['WMT','Walmart — Bentonville, AR',36.37,-94.21,'Потребительский'],['HD','Home Depot — Atlanta, GA',33.76,-84.39,'Потребительский'],
-  ['LOW','Lowe’s — Mooresville, NC',35.58,-80.81,'Потребительский'],['TGT','Target — Minneapolis, MN',44.98,-93.27,'Потребительский'],
-  ['LULU','Lululemon — Vancouver, CA',49.28,-123.12,'Потребительский'],['F','Ford — Dearborn, MI',42.32,-83.18,'Потребительский'],
-  ['GM','General Motors — Detroit, MI',42.33,-83.05,'Потребительский'],['BKNG','Booking — Norwalk, CT',41.12,-73.42,'Потребительский'],
-  ['ABNB','Airbnb — San Francisco, CA',37.77,-122.41,'Потребительский'],['CMG','Chipotle — Newport Beach, CA',33.62,-117.93,'Потребительский'],
-  ['RTX','RTX — Arlington, VA',38.88,-77.10,'Оборона / Аэрокосмос'],['NOC','Northrop Grumman — Falls Church, VA',38.88,-77.17,'Оборона / Аэрокосмос'],
-  ['GD','General Dynamics — Reston, VA',38.96,-77.36,'Оборона / Аэрокосмос'],['BA','Boeing — Arlington, VA',38.88,-77.10,'Оборона / Аэрокосмос'],
-  ['LHX','L3Harris — Melbourne, FL',28.08,-80.61,'Оборона / Аэрокосмос'],['HII','Huntington Ingalls — Newport News, VA',36.98,-76.43,'Оборона / Аэрокосмос'],
-  ['XOM','ExxonMobil — Irving, TX',32.81,-96.95,'Энергетика'],['CVX','Chevron — San Ramon, CA',37.78,-121.96,'Энергетика'],
-  ['COP','ConocoPhillips — Houston, TX',29.76,-95.37,'Энергетика'],['SLB','SLB — Houston, TX',29.74,-95.36,'Энергетика'],
-  ['EOG','EOG Resources — Houston, TX',29.75,-95.36,'Энергетика'],['OXY','Occidental — Houston, TX',29.76,-95.38,'Энергетика'],
-  ['MPC','Marathon Petroleum — Findlay, OH',41.05,-83.65,'Энергетика'],['PSX','Phillips 66 — Houston, TX',29.77,-95.37,'Энергетика'],
-  ['VLO','Valero — San Antonio, TX',29.42,-98.49,'Энергетика'],['WMB','Williams — Tulsa, OK',36.15,-95.99,'Энергетика'],
-  ['JPM','JPMorgan — New York, NY',40.75,-73.97,'Финансы'],['BAC','Bank of America — Charlotte, NC',35.22,-80.84,'Финансы'],
-  ['WFC','Wells Fargo — San Francisco, CA',37.79,-122.40,'Финансы'],['GS','Goldman Sachs — New York, NY',40.71,-74.01,'Финансы'],
-  ['MS','Morgan Stanley — New York, NY',40.76,-73.98,'Финансы'],['C','Citigroup — New York, NY',40.72,-74.01,'Финансы'],
-  ['BLK','BlackRock — New York, NY',40.76,-73.97,'Финансы'],['V','Visa — San Francisco, CA',37.78,-122.41,'Финансы'],
-  ['MA','Mastercard — Purchase, NY',41.04,-73.71,'Финансы'],['AXP','American Express — New York, NY',40.71,-74.01,'Финансы'],
-  ['SCHW','Charles Schwab — Westlake, TX',32.99,-97.20,'Финансы'],['SPGI','S&P Global — New York, NY',40.71,-74.01,'Финансы'],
-  ['PYPL','PayPal — San Jose, CA',37.33,-121.89,'Финансы'],['COIN','Coinbase — San Francisco, CA',37.77,-122.42,'Финансы'],
-  ['BX','Blackstone — New York, NY',40.76,-73.97,'Финансы'],
-  ['LLY','Eli Lilly — Indianapolis, IN',39.77,-86.16,'Здравоохранение'],['UNH','UnitedHealth — Minnetonka, MN',44.92,-93.50,'Здравоохранение'],
-  ['JNJ','Johnson & Johnson — New Brunswick, NJ',40.49,-74.45,'Здравоохранение'],['PFE','Pfizer — New York, NY',40.71,-74.01,'Здравоохранение'],
-  ['MRK','Merck — Rahway, NJ',40.62,-74.28,'Здравоохранение'],['ABBV','AbbVie — North Chicago, IL',42.32,-87.84,'Здравоохранение'],
-  ['TMO','Thermo Fisher — Waltham, MA',42.39,-71.24,'Здравоохранение'],['ABT','Abbott — Abbott Park, IL',42.31,-87.86,'Здравоохранение'],
-  ['DHR','Danaher — Washington, DC',38.90,-77.04,'Здравоохранение'],['BMY','Bristol Myers — New York, NY',40.71,-74.01,'Здравоохранение'],
-  ['AMGN','Amgen — Thousand Oaks, CA',34.17,-118.84,'Здравоохранение'],['GILD','Gilead — Foster City, CA',37.55,-122.27,'Здравоохранение'],
-  ['CVS','CVS Health — Woonsocket, RI',42.00,-71.51,'Здравоохранение'],['ISRG','Intuitive Surgical — Sunnyvale, CA',37.40,-122.01,'Здравоохранение'],
-  ['VRTX','Vertex — Boston, MA',42.35,-71.05,'Здравоохранение'],
-  ['CAT','Caterpillar — Irving, TX',32.81,-96.95,'Промышленность'],['GE','GE Aerospace — Cincinnati, OH',39.10,-84.51,'Промышленность'],
-  ['HON','Honeywell — Charlotte, NC',35.22,-80.84,'Промышленность'],['UNP','Union Pacific — Omaha, NE',41.26,-95.93,'Промышленность'],
-  ['UPS','UPS — Atlanta, GA',33.76,-84.39,'Промышленность'],['DE','Deere — Moline, IL',41.51,-90.52,'Промышленность'],
-  ['MMM','3M — St. Paul, MN',44.95,-93.09,'Промышленность'],['EMR','Emerson — St. Louis, MO',38.63,-90.20,'Промышленность'],
-  ['ETN','Eaton — Dublin, IE',53.35,-6.26,'Промышленность'],['CSX','CSX — Jacksonville, FL',30.33,-81.66,'Промышленность'],
-  ['MSTR','MicroStrategy — Tysons, VA',38.92,-77.22,'Крипто'],['MARA','Marathon Digital — Fort Lauderdale, FL',26.12,-80.14,'Крипто'],
-  ['RIOT','Riot Platforms — Castle Rock, CO',39.37,-104.86,'Крипто'],
-];
-const UNIVERSE = UNIVERSE_RAW.map(([t,name,lat,lng,sector])=>({t,name,lat,lng,sector,dir:'neutral',uni:true}));
+/* ════════ ВСЕЛЕННАЯ STARK — тянется из /api/universe-geo ════════ */
+/* Источник истины тикеров: lib/stark_universe.js. Координаты HQ ставит */
+/* бэкенд (resolveHQ: override→supply→geo_cache→FMP) — фронт их не выдумывает. */
+let UNIVERSE = [];                          // заполняется loadUniverse() на старте
 
-const byT = Object.fromEntries([...NODES,...UNIVERSE].map(n=>[n.t,n]));
+/* нормализация секторов: бэкенд отдаёт 'Полупроводники/AI', фронт рисует 'Полупроводники / AI' */
+const SECTOR_NORM = {
+  'Полупроводники/AI':'Полупроводники / AI',
+  'Оборона/Аэрокосмос':'Оборона / Аэрокосмос',
+  'Медиа/Комм':'Медиа / Комм'
+};
+const normSector = s => SECTOR_NORM[s] || s || 'Прочее';
+
+let byT = {};
+function rebuildByT(){ byT = Object.fromEntries([...NODES,...UNIVERSE].map(n=>[n.t,n])); }
+rebuildByT();
+
 const CHAIN_NODES = [
   {t:'OEM·TW',name:'Pou Chen / Feng Tay — Taichung (OEM Nike)',lat:24.15,lng:120.67},
   {t:'FOX·CN',name:'Foxconn — Zhengzhou (сборка Apple)',       lat:34.75,lng:113.62},
@@ -279,10 +235,21 @@ function hexRgb(h){const n=parseInt(h.slice(1),16);return`${(n>>16)&255},${(n>>8
 
 /* ════════ ТАКСОНОМИЯ ════════ */
 const SECTOR_BY_TICKER = {};
-[...NODES.map(n=>[n.t, n.sector==='Foundry'||n.sector==='Semis / AI'?'Полупроводники / AI':n.sector==='Mega-cap'?'Мега-тех':n.sector==='Defense'?'Оборона / Аэрокосмос':(n.sector==='Consumer'||n.sector==='Auto / EV')?'Потребительский':'Прочее']),
- ...UNIVERSE.map(n=>[n.t,n.sector])].forEach(([t,s])=>{SECTOR_BY_TICKER[t]=s;});
-['TAO','RNDR','FET','SUI','LINK','BTC','ETH'].forEach(t=>SECTOR_BY_TICKER[t]='Крипто');
-SECTOR_BY_TICKER['SMCI']='Полупроводники / AI';
+function nodeSectorRu(s){
+  return s==='Foundry'||s==='Semis / AI' ? 'Полупроводники / AI'
+       : s==='Mega-cap'                  ? 'Мега-тех'
+       : s==='Defense'                   ? 'Оборона / Аэрокосмос'
+       : (s==='Consumer'||s==='Auto / EV') ? 'Потребительский'
+       : 'Прочее';
+}
+function rebuildSectorMap(){
+  for(const k in SECTOR_BY_TICKER) delete SECTOR_BY_TICKER[k];
+  [...NODES.map(n=>[n.t,nodeSectorRu(n.sector)]),
+   ...UNIVERSE.map(n=>[n.t,n.sector])].forEach(([t,s])=>{SECTOR_BY_TICKER[t]=s;});
+  ['TAO','RNDR','FET','SUI','LINK','BTC','ETH'].forEach(t=>SECTOR_BY_TICKER[t]='Крипто');
+  SECTOR_BY_TICKER['SMCI']='Полупроводники / AI';
+}
+rebuildSectorMap();
 
 function sectorOf(s){
   if(SECTOR_BY_TICKER[s.ticker]) return SECTOR_BY_TICKER[s.ticker];
@@ -366,13 +333,41 @@ function init(){
   document.getElementById('uniCount').textContent=UNIVERSE.length+NODES.length;
   window.addEventListener('resize',()=>world.width(innerWidth).height(innerHeight));
   setTimeout(()=>document.getElementById('boot').classList.add('gone'),900);
-  buildTape(); rebuildHtml(); renderArcs();
+  buildTape(); rebuildHtml(); renderArcs(); loadUniverse();
   pollSignals(); setInterval(pollSignals, POLL_MS);
   pollPlanes(); setInterval(pollPlanes, PLANE_MS);
 }
 function allPoints(){ return [...NODES, ...UNIVERSE, ...CHAIN_NODES.map(n=>({...n,dir:'chain',score:0,sector:'Supply node'}))]; }
 function fail(msg){const b=document.getElementById('boot');b.textContent=msg;b.style.letterSpacing='normal';b.style.fontWeight='500';b.style.color='#9aa3af';b.style.padding='30px';b.style.textAlign='center';}
 function centroid(geom){let x=0,y=0,n=0;const walk=c=>{if(typeof c[0]==='number'){x+=c[0];y+=c[1];n++;}else c.forEach(walk);};walk(geom.coordinates);return[x/n,y/n];}
+
+/* ════ ЗАГРУЗКА ВСЕЛЕННОЙ ИЗ БЭКЕНДА (Шаг 2) ════ */
+async function loadUniverse(){
+  try{
+    const r=await fetch(UNIVERSE_API);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    const pts=Array.isArray(j.points)?j.points:[];
+    const inNodes=new Set(NODES.map(n=>n.t));      // hero-узлы приоритетнее — без дублей
+    UNIVERSE = pts
+      .filter(p=>p&&p.ticker&&p.hq_lat!=null&&p.hq_lng!=null&&!inNodes.has(p.ticker))
+      .map(p=>({
+        t:p.ticker,
+        name:p.city?`${p.ticker} · ${p.city}`:p.ticker,
+        lat:+p.hq_lat, lng:+p.hq_lng,
+        sector:normSector(p.sector),
+        country:p.country||null,
+        dir:'neutral', uni:true
+      }));
+    rebuildByT(); rebuildSectorMap();
+    if(world){ world.pointsData(allPoints()); rebuildHtml(); }
+    document.getElementById('uniCount').textContent=UNIVERSE.length+NODES.length;
+    console.log(`[STARK] вселенная: ${UNIVERSE.length} имён (+${NODES.length} hero) из ${j.count} разрешённых`);
+  }catch(e){
+    console.warn('[STARK] /api/universe-geo недоступен — рисую только hero-узлы:',e.message);
+    document.getElementById('uniCount').textContent=NODES.length;
+  }
+}
 
 /* ════════ CHOROPLETH ════════ */
 function capColor(f){
