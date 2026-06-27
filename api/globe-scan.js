@@ -1,8 +1,7 @@
 // ════════════════════════════════════════════════════════════════
 // api/globe-scan.js — STARK ГЛОБУС · мозг автономного радара
 // Tavily (новости) → LLM (анализ в контракт) → код ставит координаты → Supabase upsert
-// Триггер: вручную в браузере (тест GET), затем n8n Schedule 30m
-//          (НЕ Vercel Cron — на Hobby он раз в сутки)
+// Триггер: n8n Schedule 30m → GET этого эндпоинта (НЕ Vercel Cron — Hobby = 1/сут)
 // Pure ESM. Импортирует lib/* — они должны быть закоммичены.
 // ════════════════════════════════════════════════════════════════
 
@@ -23,12 +22,40 @@ const SB_KEY     = process.env.SUPABASE_SECRET || '';   // service_role, НЕ an
 const OPENROUTER_MODEL = 'anthropic/claude-sonnet-4-5';
 const ANTHROPIC_MODEL  = 'claude-sonnet-4-5';
 
-// ── Сканеры (v1: семикон/Тайвань + общий шок). Расширяем позже. ──
-const QUERIES = [
-  'Taiwan TSMC semiconductor disruption earthquake export control',
-  'NVIDIA AMD chip supply chain risk',
-  'major supply chain disruption manufacturing',
-  'Federal Reserve inflation rate decision market'
+// ── ПУЛ ЗАПРОСОВ ПО СЕКТОРАМ (ротация, чтобы оживить ВСЮ доску) ──
+// За вызов берём окно из 5 (см. pickQueries). За ~6ч прокручивается весь рынок.
+const QUERY_POOL = [
+  'Taiwan TSMC semiconductor chip supply export control disruption',
+  'NVIDIA AMD Broadcom AI chip demand datacenter guidance',
+  'Apple Microsoft Google Meta Amazon big tech earnings guidance',
+  'Lockheed RTX Northrop defense contractor military budget order',
+  'oil gas energy OPEC Exxon Chevron production price shock',
+  'Nike Starbucks McDonalds consumer retail demand spending',
+  'Eli Lilly UnitedHealth Pfizer pharma healthcare drug FDA',
+  'JPMorgan Visa Mastercard bank finance credit interest rate',
+  'Federal Reserve inflation rate decision US economy data',
+  'geopolitics conflict sanctions tariff trade war supply chain',
+  'Tesla EV auto production demand China market',
+  'gold copper uranium metals commodity mining price'
+];
+// окно ротации: меняется каждые 30 минут, обходит весь пул
+function pickQueries(n = 5) {
+  const slot = Math.floor(Date.now() / (30 * 60 * 1000));
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(QUERY_POOL[(slot + i) % QUERY_POOL.length]);
+  // макро/гео всегда в окне как якорь рынка
+  if (!out.includes(QUERY_POOL[8])) out.push(QUERY_POOL[8]);
+  return [...new Set(out)];
+}
+
+// ── приоритетные тикеры: широкий срез по секторам (а не только чипы) ──
+const PRIORITY_TICKERS = [
+  'AAPL','MSFT','GOOGL','META','AMZN',
+  'NVDA','AMD','TSM','AVGO','QCOM',
+  'TSLA','LMT','RTX','NOC','GD',
+  'XOM','CVX','COP','NKE','SBUX',
+  'MCD','BKNG','JPM','V','MA',
+  'UNH','LLY','PFE','DIS','BAC'
 ];
 
 // ── Tavily: одна поисковая волна ────────────────────────────────
@@ -88,16 +115,13 @@ async function callLLM(system, user) {
 // ── Извлечь JSON-массив из ответа, даже с мусором/метками вокруг ─
 function extractJsonArray(text) {
   if (!text) return null;
-  // 1) обычный путь: чистим метки, парсим
   let t = text.replace(/```json/gi, '').replace(/```/g, '').trim();
   try { const a = JSON.parse(t); return Array.isArray(a) ? a : [a]; } catch (e) {}
-  // 2) вырезаем от первого '[' до последнего ']'
   const i = t.indexOf('['), j = t.lastIndexOf(']');
   if (i !== -1 && j !== -1 && j > i) {
     const slice = t.slice(i, j + 1);
     try { const a = JSON.parse(slice); return Array.isArray(a) ? a : [a]; } catch (e) {}
   }
-  // 3) усечённый ответ: собираем целые объекты {...} по верхнему уровню
   const objs = [];
   let depth = 0, start = -1;
   for (let k = 0; k < t.length; k++) {
@@ -147,7 +171,9 @@ function buildSystem(ourTickers) {
     '- НЕ выдумывай числа и факты — только то, что есть в новостях.',
     '- НЕ указывай координаты — это сделает код.',
     '- impact_score от -1 до 1, confidence от 0 до 1.',
-    '- Максимум 8 сигналов. Если событие незначимое или цели нет — НЕ включай.',
+    '- РАСПРЕДЕЛЯЙ сигналы по РАЗНЫМ секторам и компаниям — не зацикливайся на полупроводниках.',
+    '- Если несколько новостей описывают ОДНО событие — выдай ОДИН сигнал (склей, не дублируй).',
+    '- Максимум 12 сигналов. Если событие незначимое или цели нет — НЕ включай.',
     '- bull_case_counter обязателен для каждого сигнала.'
   ].join('\n');
 }
@@ -185,7 +211,8 @@ async function upsert(signals) {
 
 // ── Handler ─────────────────────────────────────────────────────
 export default async function handler(req, res) {
-  const diag = { queries: QUERIES.length, evidence: 0, provider: null,
+  const QUERIES = pickQueries(5);
+  const diag = { queries: QUERIES.length, queryList: QUERIES, evidence: 0, provider: null,
                  parsed: 0, valid: 0, written: 0, errors: [] };
   try {
     const waves = await Promise.all(QUERIES.map(tavily));
@@ -193,9 +220,7 @@ export default async function handler(req, res) {
     diag.evidence = evidence.length;
     if (!evidence.length) return res.status(200).json({ ...diag, verdict: '⚠️ Tavily 0 новостей' });
 
-    const ourTickers = [];
-    for (const tk of ['AAPL','MSFT','NVDA','AMD','QCOM','TSM','NKE','META','GOOGL','AVGO'])
-      if (isOurs(tk) || ['NVDA','TSM','AVGO'].includes(tk)) ourTickers.push(tk);
+    const ourTickers = PRIORITY_TICKERS.slice();
 
     const evidenceBlock = evidence.map((e, i) =>
       '[' + (i + 1) + '] ' + (e.published_date || 'дата?') + ' · ' + e.title + '\n' + e.content + '\n' + e.url
