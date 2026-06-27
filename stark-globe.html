@@ -903,18 +903,8 @@ function renderArcs(){
       });
       highlightConnForTicker(selectedT);
     } else {
-      // БЕЗ ВЫБОРА — никакого статичного скелета, только живые новостные дуги
-      const data=active===null?liveSignals:liveSignals.filter(s=>clusterOf(s)===active);
-      const news=[];
-      data.forEach(s=>{
-        const node = byT[s.ticker] || (s.hq_lat!=null?{lat:+s.hq_lat,lng:+s.hq_lng}:null);
-        if(!node||s.lat==null) return;
-        news.push({startLat:+s.lat,startLng:+s.lng,endLat:node.lat,endLng:node.lng,dir:s.direction,kind:'news',label:`${s.ticker} ← ${esc(s.headline||'')}`});
-      });
-      arr=arr.concat(news.slice(0,28));
-      const conn={};
-      data.forEach(s=>{ addConn(conn, s.country, COL[s.direction]||COL.neutral); addConn(conn, countryOfTicker(s.ticker), COL[s.direction]||COL.neutral); });
-      connCountries=conn; renderChoropleth();
+      // СПОКОЙНЫЙ ДЕФОЛТ: никаких дуг — фонтан убран. Сигналы живут в ленте + тинт стран по countryAgg.
+      renderChoropleth();
     }
   }
   if(it.type==='scene' && sceneState){
@@ -926,8 +916,10 @@ function renderArcs(){
   world.arcsData(arr);
 }
 function currentRings(){
-  const data = active===null?liveSignals:liveSignals.filter(s=>clusterOf(s)===active);
-  return data.filter(s=>s.lat!=null&&s.lng!=null).map(s=>{
+  if(selectedT) return [];                                   // в фокусе кольца не нужны
+  const data=(active===null?liveSignals:liveSignals.filter(s=>clusterOf(s)===active))
+    .filter(s=>s._fresh && s.lat!=null && s.lng!=null).slice(0,8);   // мягкий «вдох» только новинок
+  return data.map(s=>{
     const imp=+s.impact||0, hot=imp>=70;
     return {lat:+s.lat,lng:+s.lng,col:COL[s.direction]||COL.neutral,speed:hot?2.2:1.0+imp/70,max:hot?4.2:2.0+imp/35,period:hot?1100:1700};
   });
@@ -1094,6 +1086,7 @@ function focusTicker(t){
     world.arcsData(selectedArcs(t));         // связи именно этой компании (любой слой)
     highlightConnForTicker(t);               // страны-партнёры
     rebuildHtml();                           // флаг + подписи партнёров
+    world.ringsData([]);                     // гасим кольца сигналов в фокусе
     flyTo(p.lat, p.lng);                     // камера к ней
   }
   if(p.uni) openPanelUniverse(p); else openPanelNode(p);
