@@ -559,6 +559,25 @@ const REGION_CENTER={'Северная Америка':[39,-98],'Южная Ам
 const COUNTRY_ALIAS={'United States':'United States of America','USA':'United States of America','US':'United States of America','UK':'United Kingdom','Korea':'South Korea','UAE':'United Arab Emirates','Czech Republic':'Czechia'};
 function geoName(c){ if(!c) return null; return COUNTRY_ALIAS[c]||c; }
 
+/* страна штаб-квартиры по тикеру (для подсветки стран по связям) */
+const HQ_COUNTRY = {
+  NVDA:'United States of America', AMD:'United States of America', META:'United States of America',
+  AAPL:'United States of America', LMT:'United States of America', TSLA:'United States of America',
+  NKE:'United States of America', TSM:'Taiwan', 'OEM·TW':'Taiwan', 'FOX·CN':'China'
+};
+function countryOfTicker(t){ return HQ_COUNTRY[t] || (byT[t]&&byT[t].country) || (chainByT[t]&&chainByT[t].country) || null; }
+function addConn(map, raw, col){ const nm=geoName(raw); if(nm) map[nm]=col; }
+/* при выборе компании — подсветить её страну + страны её цепочек */
+function highlightConnForTicker(t){
+  const conn={}; const dir=(byT[t]&&byT[t].dir)||'neutral';
+  addConn(conn, countryOfTicker(t), COL[dir]||COL.chain);
+  ARCS.filter(a=>a.from===t||a.to===t).forEach(a=>{
+    addConn(conn, countryOfTicker(a.from), COL.chain);
+    addConn(conn, countryOfTicker(a.to),   COL.chain);
+  });
+  connCountries=conn; renderChoropleth();
+}
+
 /* ════════ СОСТОЯНИЕ ════════ */
 let world, liveSignals=[], mode='sector', active=null;
 let countryLabels=[], labelsShown=false, countryFeats=[], countryAgg={}, labelK=1.0;
@@ -568,6 +587,8 @@ let layerPlanes=false;              // борты как слой меню
 let seenEventIds=new Set();         // для подсветки свежих новостей
 let firstSignalLoad=true;
 let sceneState=null;                // ПЛАСТИЛИН: активная сцена globe-query (null = обычные слои)
+let selectedT=null;                 // выбранный тикер — поднимается «из земли»
+let connCountries={};               // страны, подсвеченные активными связями: {atlasName: colorCss}
 
 /* ════════ ДВИЖОК МЕНЮ ════════ */
 function findItem(id){
@@ -617,6 +638,7 @@ function selectView(id){
 /* applyLayer — единая точка: что рисуем по типу активного слоя */
 function applyLayer(it){
   if(!world) return;
+  connCountries={};   // сброс подсветки связей; для signals её пересоберёт renderArcs
   if(it.type==='signals'){
     setFeedMode('signals'); render(); renderArcs(); rebuildHtml(); world.ringsData(currentRings());
   } else if(it.type==='zones'){
@@ -642,11 +664,12 @@ function init(){
     .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
     .showAtmosphere(true).atmosphereColor('#1f8fff').atmosphereAltitude(0.25)
     .pointsData(allPoints()).pointLat('lat').pointLng('lng')
-    .pointColor(d=>d.uni?'rgba(90,175,255,.92)':(COL[d.dir]||COL.neutral))
-    .pointAltitude(d=>d.dir==='chain'?0.01:(d.uni?0.025:0.04+(d.score||0)/260))
-    .pointRadius(d=>d.dir==='chain'?0.18:(d.uni?0.24:0.36)).pointResolution(24)
+    .pointColor(d=>(d.t&&d.t===selectedT)?'#9fd8ff':(d.uni?'rgba(90,175,255,.92)':(COL[d.dir]||COL.neutral)))
+    .pointAltitude(d=>(d.t&&d.t===selectedT)?0.24:(d.dir==='chain'?0.01:(d.uni?0.025:0.04+(d.score||0)/260)))
+    .pointRadius(d=>(d.t&&d.t===selectedT)?0.55:(d.dir==='chain'?0.18:(d.uni?0.24:0.36))).pointResolution(32)
+    .pointsTransitionDuration(900)
     .pointLabel(d=>`<div style="font-family:Inter;font-size:12px;color:#fff;background:rgba(8,12,20,.92);border:1px solid rgba(10,132,255,.4);border-radius:10px;padding:8px 11px"><b style="font-size:14px">${d.t}</b>${!d.uni&&d.dir!=='chain'?' · STARK '+d.score:''}<br><span style="color:#9aa3af">${d.sector||''}</span><br><span style="color:#5aafff;font-size:10px">клик → сводка</span></div>`)
-    .onPointClick(d=>{ if(d.dir!=='chain'){ openPanelNode(d); world.controls().autoRotate=false; } })
+    .onPointClick(d=>{ if(d.dir!=='chain'){ setSelected(d.t); openPanelNode(d); world.controls().autoRotate=false; } })
     .arcStroke(d=>d.kind==='news'?0.45:0.55).arcDashGap(0.2).arcLabel('label')
     .arcDashLength(d=>d.kind==='news'?0.45:0.5).arcDashAnimateTime(d=>d.kind==='news'?1600:2600)
     .arcAltitude(d=>d.kind==='news'?0.18:0.28)
@@ -659,7 +682,7 @@ function init(){
 
   fetch('https://unpkg.com/world-atlas@2/countries-110m.json').then(r=>r.json()).then(topo=>{
     countryFeats=topojson.feature(topo,topo.objects.countries).features;
-    world.hexPolygonsData(countryFeats).hexPolygonResolution(4).hexPolygonMargin(0.35).hexPolygonUseDots(true)
+    world.hexPolygonsData(countryFeats).hexPolygonResolution(5).hexPolygonMargin(0.35).hexPolygonUseDots(true)
       .hexPolygonColor(()=>'rgba(10,132,255,.16)').hexPolygonAltitude(0.003);
     world.polygonsData(countryFeats)
       .polygonCapColor(capColor)
@@ -670,7 +693,7 @@ function init(){
   }).catch(()=>world.globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg'));
 
   world.controls().autoRotate=true; world.controls().autoRotateSpeed=0.3; world.controls().enableZoom=true;
-  try{ world.renderer().setPixelRatio(Math.min(2.5, window.devicePixelRatio||1)); }catch(e){}
+  try{ world.renderer().setPixelRatio(Math.min(3, window.devicePixelRatio||1)); }catch(e){}
   world.pointOfView({lat:34,lng:-110,altitude:2.4},0);
   setTimeout(()=>world.pointOfView({lat:28,lng:-30,altitude:2.6},4500),700);
 
@@ -724,12 +747,17 @@ async function loadUniverse(){
 
 /* ════════ CHOROPLETH ════════ */
 function capColor(f){
-  const a=countryAgg[f.properties.name];
-  if(!a) return 'rgba(0,0,0,0)';
-  const intensity=Math.min(1, a.total/130)*0.5+0.14;
-  if(a.net>2)  return `rgba(48,209,88,${intensity})`;
-  if(a.net<-2) return `rgba(255,69,58,${intensity})`;
-  return `rgba(138,144,153,${intensity*0.8})`;
+  const nm=f.properties.name;
+  const a=countryAgg[nm];
+  if(a){
+    const intensity=Math.min(1, a.total/130)*0.5+0.14;
+    if(a.net>2)  return `rgba(48,209,88,${intensity})`;
+    if(a.net<-2) return `rgba(255,69,58,${intensity})`;
+    return `rgba(138,144,153,${intensity*0.8})`;
+  }
+  const c=connCountries[nm];                          // страна загорается, если в неё идёт связь
+  if(c){ return `rgba(${hexRgb(c)},.30)`; }
+  return 'rgba(0,0,0,0)';
 }
 function recomputeAgg(){
   countryAgg={};
@@ -822,6 +850,11 @@ function renderArcs(){
       news.push({startLat:+s.lat,startLng:+s.lng,endLat:node.lat,endLng:node.lng,dir:s.direction,kind:'news',label:`${s.ticker} ← ${esc(s.headline||'')}`});
     });
     arr=arr.concat(news.slice(0,28));
+    // связи → подсветка стран (цепочки = синий, новости = цвет направления)
+    const conn={};
+    ARCS.forEach(a=>{ addConn(conn, countryOfTicker(a.from), COL.chain); addConn(conn, countryOfTicker(a.to), COL.chain); });
+    data.forEach(s=>{ addConn(conn, s.country, COL[s.direction]||COL.neutral); addConn(conn, countryOfTicker(s.ticker), COL[s.direction]||COL.neutral); });
+    connCountries=conn; renderChoropleth();
   }
   if(it.type==='scene' && sceneState){
     arr=(sceneState.arcs||[]).map(a=>({
@@ -902,7 +935,7 @@ async function pollSignals(){
     if(activeItem().type==='signals'){ render(); renderArcs(); world.ringsData(currentRings()); }
   }catch(e){ if(!liveSignals.length && activeItem().type==='signals') document.getElementById('feedList').innerHTML=`<div class="feed-empty">Поток недоступен.<br><span style="font-size:10px">${e.message}</span></div>`; }
 }
-function renderChoropleth(){ if(!world||!countryFeats.length) return; world.polygonCapColor(capColor).polygonAltitude(f=>countryAgg[f.properties.name]?0.022:0.006); }
+function renderChoropleth(){ if(!world||!countryFeats.length) return; world.polygonCapColor(capColor).polygonAltitude(f=>(countryAgg[f.properties.name]||connCountries[f.properties.name])?0.022:0.006); }
 function updateMenuCounts(){ const el=document.getElementById('cnt-market-all'); if(el) el.textContent=liveSignals.length; }
 
 function clusterOf(s){ return mode==='sector'?sectorOf(s):regionOf(s); }
@@ -990,10 +1023,12 @@ function chainArcsFor(t){
     return {startLat:f.lat,startLng:f.lng,endLat:tt.lat,endLng:tt.lng,label:a.label,kind:'supply'};
   }).filter(Boolean);
 }
+function setSelected(t){ selectedT=(t&&byT[t])?t:null; if(world) world.pointsData(allPoints()); }   // плавный подъём «из земли»
 function focusTicker(t){
   const p=byT[t]; if(!p){ return; }
   toggleDrawer(false);
-  if(world) world.arcsData(chainArcsFor(t));     // рисуем связи именно этой компании
+  setSelected(t);                                 // тикер встаёт столбом над поверхностью
+  if(world){ world.arcsData(chainArcsFor(t)); highlightConnForTicker(t); }   // связи + подсветка стран
   if(p.uni) openPanelUniverse(p); else openPanelNode(p);
 }
 function renderUniverseList(){
@@ -1446,7 +1481,7 @@ function openPanelCommodity(cmKey, i){
     <div class="soon-note">${esc(cm.note||'')}<br><br>Следующим ходом подключим: связь с тикерами-производителями, динамику цены, новостные дуги по этому товару.</div>`;
   document.getElementById('panel').classList.add('open'); flyTo(s.lat,s.lng);
 }
-function closePanel(){document.getElementById('panel').classList.remove('open');if(world)world.controls().autoRotate=true;}
+function closePanel(){document.getElementById('panel').classList.remove('open');if(world)world.controls().autoRotate=true; setSelected(null); if(activeItem().type==='signals') renderArcs();}
 function flyTo(lat,lng){if(world&&lat!=null){world.controls().autoRotate=false;world.pointOfView({lat,lng,altitude:1.5},1000);}}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function _na(v){ if(v==null) return false; const s=String(v).trim().toLowerCase(); return s!==''&&s!=='н/д'&&s!=='n/a'&&s!=='—'&&s!=='null'&&s!=='undefined'; }
