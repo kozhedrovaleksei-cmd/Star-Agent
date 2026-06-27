@@ -175,7 +175,7 @@
 
   .tape{position:fixed;left:0;right:0;bottom:0;z-index:14;height:46px;display:flex;align-items:center;overflow:hidden;background:#04060d;border-top:1px solid var(--line);box-shadow:0 -8px 24px rgba(3,5,11,.6)}
   .tape .lbl{flex:0 0 auto;font-size:10px;letter-spacing:.18em;font-weight:800;color:var(--blue);padding:0 16px;border-right:1px solid var(--line)}
-  .tape .track{display:flex;gap:30px;white-space:nowrap;animation:slide 36s linear infinite;padding-left:30px}
+  .tape .track{display:flex;gap:30px;white-space:nowrap;animation:slide 90s linear infinite;padding-left:30px}
   .tape:hover .track{animation-play-state:paused}
   @keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
   .tchip{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;cursor:pointer;padding:4px 2px;border-radius:8px;transition:.15s}
@@ -208,6 +208,12 @@
   .scene-zone .pin{width:13px;height:13px;border-radius:50%;background:var(--warn);box-shadow:0 0 16px var(--warn);animation:pulse 2s ease-out infinite}
   .scene-zone .lab{font-size:9.5px;font-weight:800;color:#ffd79a;text-shadow:0 0 6px rgba(0,0,0,.9);white-space:nowrap}
   .scene-badge{display:inline-block;background:var(--blue-soft);color:#8fc4ff;border:1px solid rgba(10,132,255,.3);border-radius:8px;font-size:10px;font-weight:800;padding:3px 8px;margin:0 5px 5px 0}
+
+  /* ── ФЛАГ ВЫБОРА (поднимается из земли) ── */
+  .sel-beam{transform:translate(-50%,-100%);pointer-events:none;display:flex;flex-direction:column;align-items:center;font-family:var(--mono)}
+  .sel-beam .sb-pin{width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 18px currentColor;animation:pulse 1.6s ease-out infinite}
+  .sel-beam .sb-lab{margin-top:4px;font-size:13px;font-weight:900;letter-spacing:.04em;text-shadow:0 0 8px rgba(0,0,0,.95)}
+  .sel-beam .sb-stem{width:2px;height:30px;background:linear-gradient(180deg,currentColor,transparent);margin-top:3px;opacity:.75}
 </style>
 </head>
 <body>
@@ -589,6 +595,7 @@ let firstSignalLoad=true;
 let sceneState=null;                // ПЛАСТИЛИН: активная сцена globe-query (null = обычные слои)
 let selectedT=null;                 // выбранный тикер — поднимается «из земли»
 let connCountries={};               // страны, подсвеченные активными связями: {atlasName: colorCss}
+let tapeQuotes={};                  // котировки для ленты: {ticker:{price,changePct}}
 
 /* ════════ ДВИЖОК МЕНЮ ════════ */
 function findItem(id){
@@ -675,7 +682,7 @@ function init(){
     .arcAltitude(d=>d.kind==='news'?0.18:0.28)
     .arcColor(d=> d.kind==='news' ? [`rgba(${hexRgb(COL[d.dir]||COL.neutral)},.05)`, COL[d.dir]||COL.neutral] : ['rgba(10,132,255,.05)','rgba(10,132,255,1)'])
     .htmlLat('lat').htmlLng('lng')
-    .htmlAltitude(d=>d.kind==='label'?0.05+d.score/240:(d.kind==='plane'?0.05:0.025))
+    .htmlAltitude(d=>d.kind==='selbeam'?0.27:(d.kind==='label'?0.05+d.score/240:(d.kind==='plane'?0.05:0.025)))
     .htmlElement(htmlEl)
     .labelsData([]).labelLat('lat').labelLng('lng').labelText('name')
     .labelSize(()=>labelK).labelDotRadius(0).labelColor(()=>'rgba(225,236,255,.82)').labelResolution(1).labelAltitude(0.008);
@@ -709,6 +716,7 @@ function init(){
   window.addEventListener('resize',()=>world.width(innerWidth).height(innerHeight));
   setTimeout(()=>document.getElementById('boot').classList.add('gone'),900);
   buildTape(); rebuildHtml(); renderArcs(); loadUniverse();
+  loadQuotes(); setInterval(loadQuotes, 15*60000);   // цены ленты: на старте + раз в 15 мин (FMP free 250/сут)
   pollSignals(); setInterval(pollSignals, POLL_MS);
   setInterval(()=>{ if(layerPlanes) pollPlanes(); }, PLANE_MS);
 }
@@ -734,7 +742,7 @@ async function loadUniverse(){
         country:p.country||null,
         dir:'neutral', uni:true
       }));
-    rebuildByT(); rebuildSectorMap(); buildTape();
+    rebuildByT(); rebuildSectorMap(); buildTape(); loadQuotes();
     if(activeItem().type==='universe') renderUniverseList();
     if(world && activeItem().type==='signals'){ world.pointsData(allPoints()); rebuildHtml(); }
     document.getElementById('uniCount').textContent=UNIVERSE.length+NODES.length;
@@ -802,6 +810,12 @@ function htmlEl(d){
     el.innerHTML=`<div class="pin"></div><div class="lab">⚠ ${esc(d.name||'')}</div>`;
     el.onclick=()=>{ if(world)world.pointOfView({lat:d.lat,lng:d.lng,altitude:1.4},900); }; return el;
   }
+  if(d.kind==='selbeam'){
+    const c=COL[d.dir]||'#9fd8ff';
+    const el=document.createElement('div'); el.className='sel-beam'; el.style.color=c;
+    el.innerHTML=`<div class="sb-pin" style="background:${c}"></div><div class="sb-lab">${esc(d.t)}</div><div class="sb-stem"></div>`;
+    return el;
+  }
   const el=document.createElement('div'); el.className='floatlab';
   el.innerHTML=`<span style="color:${COL[d.dir]}">${d.t}</span><span class="s" style="color:#9aa3af">${d.score}</span>`;
   return el;
@@ -831,6 +845,7 @@ function rebuildHtml(){
     arr=arr.concat((sceneState.points||[]).map(p=>({...p,kind3:p.kind,kind:'scenePoint'})));
     arr=arr.concat((sceneState.zones||[]).map((z,i)=>({lat:z.lat,lng:z.lng,name:z.name,idx:i,kind:'sceneZone'})));
   }
+  if(selectedT && byT[selectedT]){ const n=byT[selectedT]; arr.push({kind:'selbeam', lat:n.lat, lng:n.lng, t:selectedT, dir:n.dir}); }
   world.htmlElementsData(arr);
 }
 
@@ -841,20 +856,28 @@ function renderArcs(){
   let arr=[];
   // цепочки и новостные дуги только в рыночном слое
   if(it.type==='signals'){
-    arr=arr.concat(supplyArcs);
-    const data=active===null?liveSignals:liveSignals.filter(s=>clusterOf(s)===active);
-    const news=[];
-    data.forEach(s=>{
-      const node = byT[s.ticker] || (s.hq_lat!=null?{lat:+s.hq_lat,lng:+s.hq_lng}:null);
-      if(!node||s.lat==null) return;
-      news.push({startLat:+s.lat,startLng:+s.lng,endLat:node.lat,endLng:node.lng,dir:s.direction,kind:'news',label:`${s.ticker} ← ${esc(s.headline||'')}`});
-    });
-    arr=arr.concat(news.slice(0,28));
-    // связи → подсветка стран (цепочки = синий, новости = цвет направления)
-    const conn={};
-    ARCS.forEach(a=>{ addConn(conn, countryOfTicker(a.from), COL.chain); addConn(conn, countryOfTicker(a.to), COL.chain); });
-    data.forEach(s=>{ addConn(conn, s.country, COL[s.direction]||COL.neutral); addConn(conn, countryOfTicker(s.ticker), COL[s.direction]||COL.neutral); });
-    connCountries=conn; renderChoropleth();
+    if(selectedT){
+      // СВЯЗИ ТОЛЬКО ДЛЯ ВЫБРАННОЙ КОМПАНИИ — летят от неё к зависимостям
+      arr=arr.concat(chainArcsFor(selectedT));
+      liveSignals.filter(s=>s.ticker===selectedT).forEach(s=>{
+        const node=byT[s.ticker]||(s.hq_lat!=null?{lat:+s.hq_lat,lng:+s.hq_lng}:null);
+        if(node&&s.lat!=null) arr.push({startLat:+s.lat,startLng:+s.lng,endLat:node.lat,endLng:node.lng,dir:s.direction,kind:'news',label:`${s.ticker} ← ${esc(s.headline||'')}`});
+      });
+      highlightConnForTicker(selectedT);
+    } else {
+      // БЕЗ ВЫБОРА — никакого статичного скелета, только живые новостные дуги
+      const data=active===null?liveSignals:liveSignals.filter(s=>clusterOf(s)===active);
+      const news=[];
+      data.forEach(s=>{
+        const node = byT[s.ticker] || (s.hq_lat!=null?{lat:+s.hq_lat,lng:+s.hq_lng}:null);
+        if(!node||s.lat==null) return;
+        news.push({startLat:+s.lat,startLng:+s.lng,endLat:node.lat,endLng:node.lng,dir:s.direction,kind:'news',label:`${s.ticker} ← ${esc(s.headline||'')}`});
+      });
+      arr=arr.concat(news.slice(0,28));
+      const conn={};
+      data.forEach(s=>{ addConn(conn, s.country, COL[s.direction]||COL.neutral); addConn(conn, countryOfTicker(s.ticker), COL[s.direction]||COL.neutral); });
+      connCountries=conn; renderChoropleth();
+    }
   }
   if(it.type==='scene' && sceneState){
     arr=(sceneState.arcs||[]).map(a=>({
@@ -1023,12 +1046,15 @@ function chainArcsFor(t){
     return {startLat:f.lat,startLng:f.lng,endLat:tt.lat,endLng:tt.lng,label:a.label,kind:'supply'};
   }).filter(Boolean);
 }
-function setSelected(t){ selectedT=(t&&byT[t])?t:null; if(world) world.pointsData(allPoints()); }   // плавный подъём «из земли»
+function setSelected(t){ selectedT=(t&&byT[t])?t:null; if(world){ world.pointsData(allPoints()); rebuildHtml(); } }   // подъём точки + флаг-столб
 function focusTicker(t){
   const p=byT[t]; if(!p){ return; }
   toggleDrawer(false);
-  setSelected(t);                                 // тикер встаёт столбом над поверхностью
-  if(world){ world.arcsData(chainArcsFor(t)); highlightConnForTicker(t); }   // связи + подсветка стран
+  setSelected(t);
+  if(world){
+    if(activeItem().type==='signals'){ renderArcs(); }              // selected-aware: связи только выбранной
+    else { world.arcsData(chainArcsFor(t)); highlightConnForTicker(t); }
+  }
   if(p.uni) openPanelUniverse(p); else openPanelNode(p);
 }
 function renderUniverseList(){
@@ -1486,13 +1512,35 @@ function flyTo(lat,lng){if(world&&lat!=null){world.controls().autoRotate=false;w
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function _na(v){ if(v==null) return false; const s=String(v).trim().toLowerCase(); return s!==''&&s!=='н/д'&&s!=='n/a'&&s!=='—'&&s!=='null'&&s!=='undefined'; }
 
+const QUOTES_URL = '/api/quotes';
+async function loadQuotes(){
+  const tk=[...new Set([...NODES.map(n=>n.t), ...UNIVERSE.slice(0,40).map(u=>u.t)])].slice(0,50);
+  if(!tk.length) return;
+  try{
+    const r=await fetch(`${QUOTES_URL}?tickers=${encodeURIComponent(tk.join(','))}`);
+    if(!r.ok) return;
+    const j=await r.json();
+    if(j&&j.ok&&Array.isArray(j.quotes)){
+      const m={}; j.quotes.forEach(q=>{ m[q.ticker]={price:q.price, chg:q.changePct}; });
+      tapeQuotes=m; buildTape();
+    }
+  }catch(e){}
+}
 function buildTape(){
-  // лента акций: hero-узлы (STARK Score) + первые имена вселенной; клик → фокус + связь + анализ
-  const heroes=NODES.map(n=>({t:n.t, px:'STARK '+n.score, trg:n.sector}));
-  const extra=UNIVERSE.slice(0,30).map(u=>({t:u.t, px:'', trg:(u.sector||'').replace(/\s*\/\s*/g,'/')}));
-  const items=heroes.concat(extra);
-  const chip=c=>`<span class="tchip" onclick="focusTicker('${esc(c.t)}')"><span class="t">${esc(c.t)}</span>${c.px?`<span class="px">${esc(c.px)}</span>`:''}${c.trg?`<span class="trg">${esc(c.trg)}</span>`:''}</span>`;
-  const html=items.map(chip).join('');
+  // лента: hero + вселенная, с ценами; «самые живые» (макс |изм.%|) — слева. Клик → фокус.
+  const base=[...new Set([...NODES.map(n=>n.t), ...UNIVERSE.slice(0,40).map(u=>u.t)])];
+  const items=base.map(t=>{ const q=tapeQuotes[t]||{}; return {t, price:q.price, chg:q.chg}; });
+  const hasQuotes=items.some(x=>x.chg!=null);
+  if(hasQuotes) items.sort((a,b)=>Math.abs(b.chg||0)-Math.abs(a.chg||0));   // самые живые вперёд
+  const top=items.slice(0,30);
+  const chip=c=>{
+    const has=c.chg!=null;
+    const col=has?(c.chg>=0?'var(--bull)':'var(--bear)'):'var(--dim)';
+    const px=c.price!=null?('$'+(+c.price).toFixed(2)):'';
+    const chg=has?((c.chg>=0?'+':'')+(+c.chg).toFixed(2)+'%'):'';
+    return `<span class="tchip" onclick="focusTicker('${esc(c.t)}')"><span class="t">${esc(c.t)}</span>${px?`<span class="px">${px}</span>`:''}${chg?`<span class="trg" style="color:${col}">${chg}</span>`:''}</span>`;
+  };
+  const html=top.map(chip).join('');
   document.getElementById('tapeTrack').innerHTML=html+html;
 }
 
