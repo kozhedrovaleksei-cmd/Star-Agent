@@ -214,6 +214,7 @@
   .sel-beam .sb-pin{width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 18px currentColor;animation:pulse 1.6s ease-out infinite}
   .sel-beam .sb-lab{margin-top:4px;font-size:13px;font-weight:900;letter-spacing:.04em;text-shadow:0 0 8px rgba(0,0,0,.95)}
   .sel-beam .sb-stem{width:2px;height:30px;background:linear-gradient(180deg,currentColor,transparent);margin-top:3px;opacity:.75}
+  .partner-lbl{transform:translate(-50%,-50%);cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:800;color:#ffd089;background:rgba(8,12,20,.78);border:1px solid rgba(255,194,77,.5);border-radius:7px;padding:3px 7px;white-space:nowrap;box-shadow:0 0 12px rgba(255,194,77,.3)}
 </style>
 </head>
 <body>
@@ -583,6 +584,22 @@ function highlightConnForTicker(t){
   });
   connCountries=conn; renderChoropleth();
 }
+/* тикеры, напрямую связанные с выбранным (его партнёры по цепочкам) */
+function isTargetOf(sel, t){
+  if(!sel||!t) return false;
+  return ARCS.some(a=>(a.from===sel&&a.to===t)||(a.to===sel&&a.from===t));
+}
+/* все дуги выбранной компании: цепочки + её свежие новости (если рыночный слой) */
+function selectedArcs(t){
+  let arr=chainArcsFor(t);
+  if(activeItem().type==='signals'){
+    liveSignals.filter(s=>s.ticker===t).forEach(s=>{
+      const node=byT[s.ticker]||(s.hq_lat!=null?{lat:+s.hq_lat,lng:+s.hq_lng}:null);
+      if(node&&s.lat!=null) arr.push({startLat:+s.lat,startLng:+s.lng,endLat:node.lat,endLng:node.lng,dir:s.direction,kind:'news',label:`${s.ticker} ← ${esc(s.headline||'')}`});
+    });
+  }
+  return arr;
+}
 
 /* ════════ СОСТОЯНИЕ ════════ */
 let world, liveSignals=[], mode='sector', active=null;
@@ -671,9 +688,16 @@ function init(){
     .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
     .showAtmosphere(true).atmosphereColor('#1f8fff').atmosphereAltitude(0.25)
     .pointsData(allPoints()).pointLat('lat').pointLng('lng')
-    .pointColor(d=>(d.t&&d.t===selectedT)?'#9fd8ff':(d.uni?'rgba(90,175,255,.92)':(COL[d.dir]||COL.neutral)))
-    .pointAltitude(d=>(d.t&&d.t===selectedT)?0.24:(d.dir==='chain'?0.01:(d.uni?0.025:0.04+(d.score||0)/260)))
-    .pointRadius(d=>(d.t&&d.t===selectedT)?0.55:(d.dir==='chain'?0.18:(d.uni?0.24:0.36))).pointResolution(32)
+    .pointColor(d=>{
+      if(selectedT){
+        if(d.t===selectedT) return '#7fd0ff';                                  // выбранный — ярко
+        if(isTargetOf(selectedT,d.t)) return '#ffc24d';                         // его партнёр — янтарь
+        return d.uni?'rgba(90,175,255,.10)':`rgba(${hexRgb(COL[d.dir]||COL.neutral)},.15)`;  // остальные — гаснут
+      }
+      return d.uni?'rgba(90,175,255,.5)':(COL[d.dir]||COL.neutral);             // спокойный дефолт
+    })
+    .pointAltitude(d=>(d.t&&d.t===selectedT)?0.22:(isTargetOf(selectedT,d.t)?0.08:(d.dir==='chain'?0.01:(d.uni?0.02:0.03+(d.score||0)/320))))
+    .pointRadius(d=>(d.t&&d.t===selectedT)?0.5:(isTargetOf(selectedT,d.t)?0.34:(d.dir==='chain'?0.14:(d.uni?0.18:0.28)))).pointResolution(18)
     .pointsTransitionDuration(900)
     .pointLabel(d=>`<div style="font-family:Inter;font-size:12px;color:#fff;background:rgba(8,12,20,.92);border:1px solid rgba(10,132,255,.4);border-radius:10px;padding:8px 11px"><b style="font-size:14px">${d.t}</b>${!d.uni&&d.dir!=='chain'?' · STARK '+d.score:''}<br><span style="color:#9aa3af">${d.sector||''}</span><br><span style="color:#5aafff;font-size:10px">клик → сводка</span></div>`)
     .onPointClick(d=>{ if(d.dir!=='chain'){ setSelected(d.t); openPanelNode(d); world.controls().autoRotate=false; } })
@@ -689,7 +713,7 @@ function init(){
 
   fetch('https://unpkg.com/world-atlas@2/countries-110m.json').then(r=>r.json()).then(topo=>{
     countryFeats=topojson.feature(topo,topo.objects.countries).features;
-    world.hexPolygonsData(countryFeats).hexPolygonResolution(5).hexPolygonMargin(0.35).hexPolygonUseDots(true)
+    world.hexPolygonsData(countryFeats).hexPolygonResolution(3).hexPolygonMargin(0.4).hexPolygonUseDots(true)
       .hexPolygonColor(()=>'rgba(10,132,255,.16)').hexPolygonAltitude(0.003);
     world.polygonsData(countryFeats)
       .polygonCapColor(capColor)
@@ -700,7 +724,7 @@ function init(){
   }).catch(()=>world.globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg'));
 
   world.controls().autoRotate=true; world.controls().autoRotateSpeed=0.3; world.controls().enableZoom=true;
-  try{ world.renderer().setPixelRatio(Math.min(3, window.devicePixelRatio||1)); }catch(e){}
+  try{ world.renderer().setPixelRatio(Math.min(2, window.devicePixelRatio||1)); }catch(e){}
   world.pointOfView({lat:34,lng:-110,altitude:2.4},0);
   setTimeout(()=>world.pointOfView({lat:28,lng:-30,altitude:2.6},4500),700);
 
@@ -756,15 +780,17 @@ async function loadUniverse(){
 /* ════════ CHOROPLETH ════════ */
 function capColor(f){
   const nm=f.properties.name;
+  if(selectedT){                                      // ФОКУС: горят только страны-партнёры выбранного
+    const c=connCountries[nm];
+    return c?`rgba(${hexRgb(c)},.42)`:'rgba(0,0,0,0)';
+  }
   const a=countryAgg[nm];
   if(a){
-    const intensity=Math.min(1, a.total/130)*0.5+0.14;
+    const intensity=Math.min(1, a.total/130)*0.32+0.08; // спокойнее, чтобы не «горело» хаотично
     if(a.net>2)  return `rgba(48,209,88,${intensity})`;
     if(a.net<-2) return `rgba(255,69,58,${intensity})`;
     return `rgba(138,144,153,${intensity*0.8})`;
   }
-  const c=connCountries[nm];                          // страна загорается, если в неё идёт связь
-  if(c){ return `rgba(${hexRgb(c)},.30)`; }
   return 'rgba(0,0,0,0)';
 }
 function recomputeAgg(){
@@ -816,6 +842,10 @@ function htmlEl(d){
     el.innerHTML=`<div class="sb-pin" style="background:${c}"></div><div class="sb-lab">${esc(d.t)}</div><div class="sb-stem"></div>`;
     return el;
   }
+  if(d.kind==='partnerlbl'){
+    const el=document.createElement('div'); el.className='partner-lbl';
+    el.textContent=d.t; el.onclick=()=>{ if(byT[d.t]) focusTicker(d.t); }; return el;
+  }
   const el=document.createElement('div'); el.className='floatlab';
   el.innerHTML=`<span style="color:${COL[d.dir]}">${d.t}</span><span class="s" style="color:#9aa3af">${d.score}</span>`;
   return el;
@@ -827,7 +857,7 @@ function rebuildHtml(){
   const it=activeItem();
   let arr=[];
   if(it.type==='signals'){
-    arr=arr.concat(NODES.filter(n=>n.score>=72).map(n=>({...n,kind:'label'})));
+    // в спокойном дефолте НИКАКИХ всегда-висящих ярлыков — чисто. подпись по наведению + флаг выбора
   }
   if(it.type==='zones'){
     const zones=ZONE_SETS[it.data]||[];
@@ -845,7 +875,15 @@ function rebuildHtml(){
     arr=arr.concat((sceneState.points||[]).map(p=>({...p,kind3:p.kind,kind:'scenePoint'})));
     arr=arr.concat((sceneState.zones||[]).map((z,i)=>({lat:z.lat,lng:z.lng,name:z.name,idx:i,kind:'sceneZone'})));
   }
-  if(selectedT && byT[selectedT]){ const n=byT[selectedT]; arr.push({kind:'selbeam', lat:n.lat, lng:n.lng, t:selectedT, dir:n.dir}); }
+  if(selectedT && byT[selectedT]){
+    const n=byT[selectedT];
+    arr.push({kind:'selbeam', lat:n.lat, lng:n.lng, t:selectedT, dir:n.dir});
+    // подписи партнёров — чтобы было видно, КУДА летит связь
+    ARCS.filter(a=>a.from===selectedT||a.to===selectedT).forEach(a=>{
+      const other=a.from===selectedT?a.to:a.from; const o=coordOf(other);
+      if(o) arr.push({kind:'partnerlbl', lat:o.lat, lng:o.lng, t:other});
+    });
+  }
   world.htmlElementsData(arr);
 }
 
@@ -1050,10 +1088,13 @@ function setSelected(t){ selectedT=(t&&byT[t])?t:null; if(world){ world.pointsDa
 function focusTicker(t){
   const p=byT[t]; if(!p){ return; }
   toggleDrawer(false);
-  setSelected(t);
+  selectedT=t;
   if(world){
-    if(activeItem().type==='signals'){ renderArcs(); }              // selected-aware: связи только выбранной
-    else { world.arcsData(chainArcsFor(t)); highlightConnForTicker(t); }
+    world.pointsData(allPoints());          // фокус: мир гаснет, горит выбранный + партнёры
+    world.arcsData(selectedArcs(t));         // связи именно этой компании (любой слой)
+    highlightConnForTicker(t);               // страны-партнёры
+    rebuildHtml();                           // флаг + подписи партнёров
+    flyTo(p.lat, p.lng);                     // камера к ней
   }
   if(p.uni) openPanelUniverse(p); else openPanelNode(p);
 }
@@ -1105,6 +1146,7 @@ function applyScene(scene){
   // Тикер-кейс из нашей вселенной → падаем в готовый focusTicker (поглощённая А)
   if(scene.kind==='ticker' && scene.resolvedTicker && byT[scene.resolvedTicker]){
     sceneState=null; document.getElementById('gsExit').classList.remove('on');
+    activeView='market-all'; document.getElementById('clusterbar').classList.remove('muted'); markActiveMenu();
     focusTicker(scene.resolvedTicker);
     return;
   }
