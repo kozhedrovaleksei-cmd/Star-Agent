@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STARK · Детектор расхождений</title>
+<style>
+  :root{
+    --bg:#0b0d10; --card:#15181d; --line:#262b33; --txt:#e8eaed; --mut:#9aa3ad;
+    --acc:#0a84ff; --green:#30d158; --red:#ff453a; --amber:#ff9f0a; --grey:#8e8e93;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:720px;margin:0 auto;padding:20px 16px 60px}
+  h1{font-size:20px;font-weight:700;letter-spacing:.3px;margin:6px 0 2px}
+  .sub{color:var(--mut);font-size:13px;margin:0 0 18px}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);padding:10px 0;z-index:5}
+  input{flex:1;min-width:140px;background:var(--card);border:1px solid var(--line);color:var(--txt);
+    border-radius:12px;padding:13px 14px;font-size:16px;outline:none;text-transform:uppercase}
+  input:focus{border-color:var(--acc)}
+  button{border:0;border-radius:12px;padding:13px 16px;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap}
+  .b1{background:var(--acc);color:#fff}
+  .b2{background:var(--card);color:var(--txt);border:1px solid var(--line)}
+  button:active{transform:scale(.98)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .verdict{font-size:13px;font-weight:700;padding:4px 10px;border-radius:999px}
+  .v-LAG{background:rgba(48,209,88,.15);color:var(--green)}
+  .v-DECOUPLED{background:rgba(255,69,58,.15);color:var(--red)}
+  .v-NO_SIGNAL{background:rgba(142,142,147,.18);color:var(--grey)}
+  .v-WATCH{background:rgba(10,132,255,.15);color:var(--acc)}
+  .lead{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0}
+  .lead .tag{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px}
+  .lead b{font-size:15px}
+  .lead.primary{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset}
+  .metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .m{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+  .m .k{font-size:11px;color:var(--mut)}
+  .m .val{font-size:16px;font-weight:700}
+  .pos{color:var(--green)} .neg{color:var(--red)}
+  .lbl{font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 4px}
+  .thesis{font-size:15px;line-height:1.5}
+  .dir{font-size:14px;line-height:1.5;color:var(--txt);background:var(--bg);border-left:3px solid var(--acc);border-radius:0 8px 8px 0;padding:10px 12px;margin-top:10px}
+  .map{border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin:8px 0}
+  .map .check{font-weight:600;font-size:14px}
+  .map .meta{font-size:12px;color:var(--mut);margin-top:3px}
+  .map .q{font-size:13px;background:var(--bg);border:1px dashed var(--line);border-radius:8px;padding:6px 8px;margin-top:6px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-word}
+  .ins{border:1px solid var(--amber);border-radius:12px;padding:11px 12px;background:rgba(255,159,10,.06)}
+  .src a{color:var(--acc);font-size:12px;text-decoration:none;display:block;margin:3px 0;word-break:break-all}
+  .hide{display:none}
+  .loading{color:var(--mut);font-size:14px;padding:14px 2px}
+  .err{color:var(--red);font-size:14px}
+  .pillrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .pill{background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:5px 10px;font-size:12px;cursor:pointer;color:var(--mut)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📡 Детектор расхождений</h1>
+  <p class="sub">Введи тикер. «Расхождение» — кто лидер, жива ли связь, LAG/DECOUPLED, куда. «Что смотреть» — карта разведки + инсайдеры.</p>
+
+  <div class="bar">
+    <input id="tk" placeholder="ТИКЕР · напр. FCX" autocomplete="off" autocapitalize="characters">
+    <button class="b1" onclick="run('analysis')">📡 Расхождение</button>
+    <button class="b2" onclick="run('map')">🔍 Что смотреть</button>
+  </div>
+  <div class="pillrow" id="quick"></div>
+
+  <div id="status"></div>
+  <div id="analysis"></div>
+  <div id="mapbox" class="hide"></div>
+</div>
+
+<script>
+  const QUICK = ['FCX','LRCX','UPS','MU','NVDA','AMD','RCL'];
+  const qbox = document.getElementById('quick');
+  QUICK.forEach(t => {
+    const s = document.createElement('span');
+    s.className = 'pill'; s.textContent = t;
+    s.onclick = () => { document.getElementById('tk').value = t; run('analysis'); };
+    qbox.appendChild(s);
+  });
+
+  let cache = { ticker: null, data: null };
+
+  async function safeJson(r){ try{ return await r.json(); }catch(e){ return { error:'Ответ не JSON' }; } }
+
+  async function ensure(ticker){
+    if (cache.ticker === ticker && cache.data) return cache.data;
+    const r = await fetch('/api/diverge-one?ticker=' + encodeURIComponent(ticker));
+    const j = await safeJson(r);
+    cache = { ticker, data: j };
+    return j;
+  }
+
+  async function run(view){
+    const ticker = (document.getElementById('tk').value || '').trim().toUpperCase();
+    const status = document.getElementById('status');
+    const aBox = document.getElementById('analysis');
+    const mBox = document.getElementById('mapbox');
+    if (!ticker){ status.innerHTML = '<div class="err">Введи тикер</div>'; return; }
+
+    if (!(cache.ticker === ticker && cache.data)){
+      status.innerHTML = '<div class="loading">Сканирую ' + ticker + '… (поиск → анализ → корреляция)</div>';
+      aBox.innerHTML = ''; mBox.innerHTML = ''; mBox.classList.add('hide');
+    }
+
+    let d;
+    try { d = await ensure(ticker); }
+    catch(e){ status.innerHTML = '<div class="err">Сбой запроса: ' + e.message + '</div>'; return; }
+
+    if (d.error){ status.innerHTML = '<div class="err">' + d.error + (d.raw ? '<br><small>'+escapeHtml(d.raw)+'</small>' : '') + '</div>'; return; }
+    status.innerHTML = '';
+
+    if (view === 'analysis'){ renderAnalysis(d); mBox.classList.add('hide'); aBox.scrollIntoView({behavior:'smooth',block:'start'}); }
+    else { renderMap(d); mBox.classList.remove('hide'); mBox.scrollIntoView({behavior:'smooth',block:'start'}); }
+  }
+
+  function escapeHtml(s){ return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+  function sign(x){ return x>0 ? '+'+x : ''+x; }
+  function cls(x){ return x>0 ? 'pos' : (x<0 ? 'neg' : ''); }
+
+  function renderAnalysis(d){
+    const pIdx = d.primary_index || 0;
+    let leads = (d.leaders||[]).map((l,i)=>`
+      <div class="lead ${i===pIdx?'primary':''}">
+        <div class="tag">${escapeHtml(l.relation||'')}${i===pIdx?' · главный':''}</div>
+        <b>${escapeHtml(l.name||'')}${l.ticker?' · '+escapeHtml(l.ticker):''}</b>
+        <div class="meta" style="font-size:13px;color:var(--mut);margin-top:3px">${escapeHtml(l.why||'')}</div>
+      </div>`).join('');
+
+    let m = '';
+    if (d.metrics){
+      const x = d.metrics;
+      const cell = (k,v,suf,c)=>`<div class="m"><div class="k">${k}</div><div class="val ${c||''}">${v==null?'—':v}${(v!=null&&suf)?suf:''}</div></div>`;
+      m = `<div class="lbl">Реальные числа (FMP)</div>
+      <div style="font-size:12px;color:var(--mut);margin-bottom:6px">${escapeHtml(x.pair||'')} · ${escapeHtml(x.corrLabel||'')}</div>
+      <div class="metrics">
+        ${cell('Корреляция 60д', x.corr60, '', '')}
+        ${cell('Разрыв 5д', x.gap_5d_pp==null?null:sign(x.gap_5d_pp), ' пп', cls(x.gap_5d_pp))}
+        ${cell('Лидер 20д', x.leader_20d_pct==null?null:sign(x.leader_20d_pct), '%', cls(x.leader_20d_pct))}
+        ${cell('Ведомый 20д', x.laggard_20d_pct==null?null:sign(x.laggard_20d_pct), '%', cls(x.laggard_20d_pct))}
+      </div>
+      <div style="font-size:11px;color:var(--mut);margin-top:8px">${escapeHtml(x.note||'')}</div>`;
+    } else {
+      m = `<div style="font-size:12px;color:var(--mut);margin-top:10px">⚠️ Числа корреляции недоступны (FMP не отдал цены по паре). Вердикт — качественный, сверь цены в терминале.</div>`;
+    }
+
+    document.getElementById('analysis').innerHTML = `
+      <div class="card">
+        <div class="row">
+          <div style="font-size:18px;font-weight:700">${escapeHtml(d.ticker)}</div>
+          <span class="verdict v-${escapeHtml(d.verdict||'WATCH')}">${escapeHtml(d.verdict||'WATCH')}</span>
+        </div>
+        <div class="thesis" style="margin-top:10px">${escapeHtml(d.thesis||'')}</div>
+        ${d.verdict_reason?`<div style="font-size:13px;color:var(--mut);margin-top:8px"><b>Почему ${escapeHtml(d.verdict)}:</b> ${escapeHtml(d.verdict_reason)}</div>`:''}
+        ${d.direction?`<div class="dir"><b>Куда:</b> ${escapeHtml(d.direction)}</div>`:''}
+        <div class="lbl">Связи (лидеры)</div>
+        ${leads}
+        ${m}
+      </div>`;
+  }
+
+  function renderMap(d){
+    const map = (d.research_map||[]).map(r=>`
+      <div class="map">
+        <div class="check">${escapeHtml(r.check||'')}</div>
+        <div class="meta">📍 ${escapeHtml(r.where||'')}${r.watch_metric?' · следить: '+escapeHtml(r.watch_metric):''}</div>
+        ${r.query?`<div class="q">${escapeHtml(r.query)}</div>`:''}
+      </div>`).join('') || '<div style="color:var(--mut)">Карта пуста.</div>';
+
+    let ins = '';
+    if (d.insider_watch){
+      const iw = d.insider_watch;
+      const where = Array.isArray(iw.where) ? iw.where.join(' · ') : (iw.where||'');
+      ins = `<div class="lbl">Инсайдеры (правило: CEO/CFO от $500K — наверх)</div>
+        <div class="ins">
+          <div style="font-size:13px"><b>Где:</b> ${escapeHtml(where)}</div>
+          ${iw.threshold?`<div style="font-size:13px;margin-top:4px"><b>Порог:</b> ${escapeHtml(iw.threshold)}</div>`:''}
+          ${iw.note?`<div style="font-size:13px;color:var(--mut);margin-top:4px">${escapeHtml(iw.note)}</div>`:''}
+        </div>`;
+    }
+
+    let src = '';
+    if (d.sources && d.sources.length){
+      src = `<div class="lbl">Источники грунта</div><div class="src">` +
+        d.sources.map(s=>`<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.title||s.url)}</a>`).join('') + `</div>`;
+    }
+
+    document.getElementById('mapbox').innerHTML = `
+      <div class="card">
+        <div class="row"><div style="font-size:16px;font-weight:700">🔍 Что и где смотреть · ${escapeHtml(d.ticker)}</div></div>
+        <div class="lbl">Карта разведки</div>
+        ${map}
+        ${ins}
+        ${src}
+      </div>`;
+  }
+
+  // Enter в поле = анализ
+  document.getElementById('tk').addEventListener('keydown', e => { if (e.key === 'Enter') run('analysis'); });
+</script>
+</body>
+</html>
