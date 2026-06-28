@@ -184,7 +184,7 @@
       const cell = (k,v,suf,c)=>`<div class="m"><div class="k">${k}</div><div class="val ${c||''}">${v==null?'—':v}${(v!=null&&suf)?suf:''}</div></div>`;
       m = `<div class="lbl">Реальные числа (FMP)</div>
       ${summary?`<div class="summary">${summary}</div>`:''}
-      <div style="font-size:12px;color:var(--mut);margin:8px 0 6px">${escapeHtml(x.pair||'')}${x.corr_label?' · '+escapeHtml(x.corr_label):''}</div>
+      ${x.pair?`<div style="font-size:12px;color:var(--mut);margin:8px 0 6px">${escapeHtml(x.pair)}</div>`:''}
       <div class="metrics">
         ${cell('Корреляция 60д', x.corr60, '', '')}
         ${cell('Разрыв 5д', x.gap_5d_pp==null?null:sign(x.gap_5d_pp), ' пп', cls(x.gap_5d_pp))}
