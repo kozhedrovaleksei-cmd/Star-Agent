@@ -41,6 +41,8 @@
   .lbl{font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 4px}
   .thesis{font-size:15px;line-height:1.5}
   .dir{font-size:14px;line-height:1.5;color:var(--txt);background:var(--bg);border-left:3px solid var(--acc);border-radius:0 8px 8px 0;padding:10px 12px;margin-top:10px}
+  .summary{font-size:14px;line-height:1.55;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin-top:8px}
+  .summary b{color:var(--txt)}
   .map{border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin:8px 0}
   .map .check{font-weight:600;font-size:14px}
   .map .meta{font-size:12px;color:var(--mut);margin-top:3px}
@@ -120,21 +122,69 @@
   function sign(x){ return x>0 ? '+'+x : ''+x; }
   function cls(x){ return x>0 ? 'pos' : (x<0 ? 'neg' : ''); }
 
+  // Человеческое резюме из чисел: "связь живая, лидер +X%, ведомый -Y%, отстаёт на Z пунктов"
+  function buildMetricSummary(d){
+    const x = d.metrics; if (!x) return '';
+    const parts = [];
+
+    // 1) корреляция -> состояние связи
+    if (x.corr60 != null){
+      const c = Math.abs(x.corr60);
+      const state = c >= 0.5 ? 'связь живая' : (c >= 0.25 ? 'связь слабеет' : 'связь почти распалась');
+      parts.push('<b>' + state + '</b> (корр ' + x.corr60 + ')');
+    }
+
+    // 2) 20-дневная картина лидер vs ведомый + кто кого
+    const L = x.leader_20d_pct, G = x.laggard_20d_pct;
+    const lead = d.leaders && d.leaders[d.primary_index||0];
+    const leadName = lead ? (lead.ticker || lead.name || 'лидер') : 'лидер';
+    if (L != null && G != null){
+      const gap = +(L - G).toFixed(2);
+      let phrase;
+      if (gap > 0) phrase = 'ведомый ' + escapeHtml(d.ticker) + ' отстаёт на <b>~' + Math.abs(gap) + ' пункта</b>';
+      else if (gap < 0) phrase = 'ведомый ' + escapeHtml(d.ticker) + ' опережает на <b>~' + Math.abs(gap) + ' пункта</b>';
+      else phrase = 'идут вровень';
+      parts.push('за 20 дней лидер ' + escapeHtml(leadName) + ' ' + sign(L) + '%, ' + escapeHtml(d.ticker) + ' ' + sign(G) + '% — ' + phrase);
+    } else if (L != null){
+      parts.push('лидер ' + escapeHtml(leadName) + ' за 20 дней ' + sign(L) + '%');
+    }
+
+    // 3) короткий 5-дневный импульс разрыва
+    if (x.gap_5d_pp != null){
+      const g5 = x.gap_5d_pp;
+      if (g5 > 0) parts.push('за 5 дней разрыв расширяется на ' + sign(g5) + ' пп (лидер тянет вперёд)');
+      else if (g5 < 0) parts.push('за 5 дней разрыв сужается на ' + Math.abs(g5) + ' пп (ведомый догоняет)');
+    }
+
+    // 4) хвост под вердикт
+    const v = (d.verdict||'').toUpperCase();
+    let tail = '';
+    if (v === 'LAG') tail = ' Расхождение есть и связь жива — есть шанс на возврат корреляции.';
+    else if (v === 'DECOUPLED') tail = ' Расхождение есть, но это структурный сдвиг, а не догонялка — не фейдить.';
+    else if (v === 'WATCH') tail = ' Картина смешанная — нужен триггер, пока наблюдаем.';
+    else if (v === 'NO_SIGNAL') tail = ' Значимого расхождения нет — пара идёт синхронно.';
+
+    if (!parts.length) return '';
+    return parts.join('; ') + '.' + tail;
+  }
+
   function renderAnalysis(d){
     const pIdx = d.primary_index || 0;
     let leads = (d.leaders||[]).map((l,i)=>`
       <div class="lead ${i===pIdx?'primary':''}">
-        <div class="tag">${escapeHtml(l.relation||'')}${i===pIdx?' · главный':''}</div>
-        <b>${escapeHtml(l.name||'')}${l.ticker?' · '+escapeHtml(l.ticker):''}</b>
+        <div class="tag">${escapeHtml(l.relation||l.type||'')}${i===pIdx?' · главный':''}</div>
+        <b>${escapeHtml(l.name||'')}${(l.ticker||l.symbol)?' · '+escapeHtml(l.ticker||l.symbol):''}</b>
         <div class="meta" style="font-size:13px;color:var(--mut);margin-top:3px">${escapeHtml(l.why||'')}</div>
       </div>`).join('');
 
     let m = '';
     if (d.metrics){
       const x = d.metrics;
+      const summary = buildMetricSummary(d);
       const cell = (k,v,suf,c)=>`<div class="m"><div class="k">${k}</div><div class="val ${c||''}">${v==null?'—':v}${(v!=null&&suf)?suf:''}</div></div>`;
       m = `<div class="lbl">Реальные числа (FMP)</div>
-      <div style="font-size:12px;color:var(--mut);margin-bottom:6px">${escapeHtml(x.pair||'')} · ${escapeHtml(x.corrLabel||'')}</div>
+      ${summary?`<div class="summary">${summary}</div>`:''}
+      <div style="font-size:12px;color:var(--mut);margin:8px 0 6px">${escapeHtml(x.pair||'')}${x.corr_label?' · '+escapeHtml(x.corr_label):''}</div>
       <div class="metrics">
         ${cell('Корреляция 60д', x.corr60, '', '')}
         ${cell('Разрыв 5д', x.gap_5d_pp==null?null:sign(x.gap_5d_pp), ' пп', cls(x.gap_5d_pp))}
@@ -164,7 +214,7 @@
   function renderMap(d){
     const map = (d.research_map||[]).map(r=>`
       <div class="map">
-        <div class="check">${escapeHtml(r.check||'')}</div>
+        <div class="check">${escapeHtml(r.check||r.what||'')}</div>
         <div class="meta">📍 ${escapeHtml(r.where||'')}${r.watch_metric?' · следить: '+escapeHtml(r.watch_metric):''}</div>
         ${r.query?`<div class="q">${escapeHtml(r.query)}</div>`:''}
       </div>`).join('') || '<div style="color:var(--mut)">Карта пуста.</div>';
