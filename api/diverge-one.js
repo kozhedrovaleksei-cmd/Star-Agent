@@ -15,6 +15,9 @@ const ANTHROPIC   = process.env.ANTHROPIC_API_KEY;
 const MODEL_ANTHROPIC = 'claude-sonnet-4-6';
 const MODEL_OR        = 'anthropic/claude-sonnet-4.5';
 
+// браузерный UA — часть бесплатных источников режут датацентр без него
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+
 /* ---------- утиль ---------- */
 function todayISO() { return new Date().toISOString().slice(0, 10); }
 
@@ -77,7 +80,7 @@ async function fmpCloses(symbol, diag) {
   for (const u of urls) {
     const tag = u.split('?')[0].replace('https://financialmodelingprep.com', '');
     try {
-      const r = await fetch(u);
+      const r = await fetch(u, { headers: { 'User-Agent': UA, 'Accept': 'application/json' } });
       if (!r.ok) {
         let bodyHint = '';
         try { bodyHint = ' :: ' + (await r.text()).slice(0, 160); } catch (e2) {}
@@ -113,26 +116,31 @@ async function fmpCloses(symbol, diag) {
   return null;
 }
 
-/* ---------- Stooq: keyless-фолбэк дневных цен (проходит с Vercel-IP) ---------- */
+/* ---------- Stooq: keyless-фолбэк дневных цен (зеркала + UA против антибота) ---------- */
 async function stooqCloses(symbol, diag) {
   const log = (m) => { console.error(m); if (Array.isArray(diag)) diag.push(m); };
-  try {
-    const s = String(symbol).toLowerCase().replace(/[^a-z0-9.\-]/g, '');
-    if (!s) return null;
-    const u = `https://stooq.com/q/d/l/?s=${encodeURIComponent(s + '.us')}&i=d`;
-    const r = await fetch(u);
-    if (!r.ok) { log('[diverge] STOOQ ' + symbol + ' HTTP ' + r.status); return null; }
-    const txt = await r.text();
-    const lines = txt.trim().split('\n');
-    if (lines.length < 26 || !/date/i.test(lines[0])) { log('[diverge] STOOQ ' + symbol + ' нет данных :: ' + txt.slice(0, 120)); return null; }
-    const header = lines[0].split(',');
-    let idxClose = header.findIndex(h => /close/i.test(h));
-    if (idxClose < 0) idxClose = 4;
-    const closes = lines.slice(1).map(l => { const p = l.split(','); const v = parseFloat(p[idxClose]); return isFinite(v) ? v : null; }).filter(v => v !== null);
-    if (closes.length < 25) { log('[diverge] STOOQ ' + symbol + ' мало точек (' + closes.length + ')'); return null; }
-    log('[diverge] STOOQ ' + symbol + ' OK: ' + closes.length + ' точек (keyless fallback)');
-    return closes; // Stooq уже хронологический: старые -> свежие
-  } catch (e) { log('[diverge] STOOQ ' + symbol + ' err :: ' + (e && e.message)); return null; }
+  const s = String(symbol).toLowerCase().replace(/[^a-z0-9.\-]/g, '');
+  if (!s) return null;
+  const hosts = ['https://stooq.com', 'https://stooq.pl'];
+  for (const h of hosts) {
+    try {
+      const u = `${h}/q/d/l/?s=${encodeURIComponent(s + '.us')}&i=d`;
+      const r = await fetch(u, { headers: { 'User-Agent': UA, 'Accept': 'text/csv,text/plain,*/*' } });
+      if (!r.ok) { log('[diverge] STOOQ ' + symbol + ' HTTP ' + r.status + ' @ ' + h); continue; }
+      const txt = await r.text();
+      if (/<!doctype|<html|<noscript/i.test(txt)) { log('[diverge] STOOQ ' + symbol + ' антибот-заглушка @ ' + h); continue; }
+      const lines = txt.trim().split('\n');
+      if (lines.length < 26 || !/date/i.test(lines[0])) { log('[diverge] STOOQ ' + symbol + ' нет данных @ ' + h + ' :: ' + txt.slice(0, 100)); continue; }
+      const header = lines[0].split(',');
+      let idxClose = header.findIndex(x => /close/i.test(x));
+      if (idxClose < 0) idxClose = 4;
+      const closes = lines.slice(1).map(l => { const p = l.split(','); const v = parseFloat(p[idxClose]); return isFinite(v) ? v : null; }).filter(v => v !== null);
+      if (closes.length < 25) { log('[diverge] STOOQ ' + symbol + ' мало точек (' + closes.length + ') @ ' + h); continue; }
+      log('[diverge] STOOQ ' + symbol + ' OK: ' + closes.length + ' точек @ ' + h + ' (keyless fallback)');
+      return closes; // Stooq уже хронологический: старые -> свежие
+    } catch (e) { log('[diverge] STOOQ ' + symbol + ' err @ ' + h + ' :: ' + (e && e.message)); continue; }
+  }
+  return null;
 }
 
 // единая точка получения цен: FMP -> Stooq
