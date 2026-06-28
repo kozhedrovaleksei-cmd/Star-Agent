@@ -62,9 +62,11 @@ async function tavily(query) {
   } catch (e) { return []; }
 }
 
-/* ---------- FMP цены (закалённый best-effort + диагностика в логи) ---------- */
-async function fmpCloses(symbol) {
-  if (!FMP_KEY || !symbol) return null;
+/* ---------- FMP цены (закалённый best-effort + диагностика в ответ и в логи) ---------- */
+async function fmpCloses(symbol, diag) {
+  const log = (m) => { console.error(m); if (Array.isArray(diag)) diag.push(m); };
+  if (!FMP_KEY) { log('[diverge] FMP нет ключа FMP_KEY в окружении'); return null; }
+  if (!symbol) return null;
   const sym = encodeURIComponent(symbol);
   const urls = [
     `https://financialmodelingprep.com/stable/historical-price-eod/light?symbol=${sym}&apikey=${FMP_KEY}`,
@@ -76,34 +78,68 @@ async function fmpCloses(symbol) {
     const tag = u.split('?')[0].replace('https://financialmodelingprep.com', '');
     try {
       const r = await fetch(u);
-      if (!r.ok) { console.error('[diverge] FMP ' + symbol + ' HTTP ' + r.status + ' @ ' + tag); continue; }
+      if (!r.ok) {
+        let bodyHint = '';
+        try { bodyHint = ' :: ' + (await r.text()).slice(0, 160); } catch (e2) {}
+        log('[diverge] FMP ' + symbol + ' HTTP ' + r.status + ' @ ' + tag + bodyHint);
+        continue;
+      }
       const j = await r.json();
       let rows = Array.isArray(j) ? j
         : (Array.isArray(j.historical) ? j.historical
         : (Array.isArray(j.results) ? j.results
         : (Array.isArray(j.historicalStockList) && j.historicalStockList[0] ? j.historicalStockList[0].historical : [])));
       if (!Array.isArray(rows) || !rows.length) {
-        console.error('[diverge] FMP ' + symbol + ' пусто/чужой shape @ ' + tag + ' :: ' + JSON.stringify(j).slice(0, 180));
+        log('[diverge] FMP ' + symbol + ' пусто/чужой shape @ ' + tag + ' :: ' + JSON.stringify(j).slice(0, 180));
         continue;
       }
       let closes = rows.map(x => {
         const v = (x.close ?? x.adjClose ?? x.adjustedClose ?? x.price ?? x.close_price ?? x.c);
         return (typeof v === 'number' && isFinite(v)) ? v : null;
       }).filter(v => v !== null);
-      if (closes.length < 25) { console.error('[diverge] FMP ' + symbol + ' мало точек (' + closes.length + ') @ ' + tag); continue; }
+      if (closes.length < 25) { log('[diverge] FMP ' + symbol + ' мало точек (' + closes.length + ') @ ' + tag); continue; }
       // FMP отдаёт newest-first -> приводим к хронологии (старые -> свежие)
       const d0 = rows[0] && (rows[0].date || rows[0].datetime);
       const dN = rows[rows.length - 1] && (rows[rows.length - 1].date || rows[rows.length - 1].datetime);
       if (d0 && dN && String(d0) > String(dN)) closes = closes.reverse();
       else if (!d0) closes = closes.reverse();
-      console.error('[diverge] FMP ' + symbol + ' OK: ' + closes.length + ' точек @ ' + tag);
+      log('[diverge] FMP ' + symbol + ' OK: ' + closes.length + ' точек @ ' + tag);
       return closes;
     } catch (e) {
-      console.error('[diverge] FMP ' + symbol + ' fetch err @ ' + tag + ' :: ' + (e && e.message));
+      log('[diverge] FMP ' + symbol + ' fetch err @ ' + tag + ' :: ' + (e && e.message));
       continue;
     }
   }
   return null;
+}
+
+/* ---------- Stooq: keyless-фолбэк дневных цен (проходит с Vercel-IP) ---------- */
+async function stooqCloses(symbol, diag) {
+  const log = (m) => { console.error(m); if (Array.isArray(diag)) diag.push(m); };
+  try {
+    const s = String(symbol).toLowerCase().replace(/[^a-z0-9.\-]/g, '');
+    if (!s) return null;
+    const u = `https://stooq.com/q/d/l/?s=${encodeURIComponent(s + '.us')}&i=d`;
+    const r = await fetch(u);
+    if (!r.ok) { log('[diverge] STOOQ ' + symbol + ' HTTP ' + r.status); return null; }
+    const txt = await r.text();
+    const lines = txt.trim().split('\n');
+    if (lines.length < 26 || !/date/i.test(lines[0])) { log('[diverge] STOOQ ' + symbol + ' нет данных :: ' + txt.slice(0, 120)); return null; }
+    const header = lines[0].split(',');
+    let idxClose = header.findIndex(h => /close/i.test(h));
+    if (idxClose < 0) idxClose = 4;
+    const closes = lines.slice(1).map(l => { const p = l.split(','); const v = parseFloat(p[idxClose]); return isFinite(v) ? v : null; }).filter(v => v !== null);
+    if (closes.length < 25) { log('[diverge] STOOQ ' + symbol + ' мало точек (' + closes.length + ')'); return null; }
+    log('[diverge] STOOQ ' + symbol + ' OK: ' + closes.length + ' точек (keyless fallback)');
+    return closes; // Stooq уже хронологический: старые -> свежие
+  } catch (e) { log('[diverge] STOOQ ' + symbol + ' err :: ' + (e && e.message)); return null; }
+}
+
+// единая точка получения цен: FMP -> Stooq
+async function closesFor(symbol, diag) {
+  const c = await fmpCloses(symbol, diag);
+  if (c) return c;
+  return await stooqCloses(symbol, diag);
 }
 
 /* ---------- математика: доходности, корреляция, разрыв ---------- */
@@ -278,21 +314,22 @@ export default async function handler(req, res) {
     let pIdx = Number.isInteger(data.primary_index) ? data.primary_index : 0;
     if (pIdx < 0 || pIdx >= data.leaders.length) pIdx = 0;
 
-    const lagCloses = await fmpCloses(ticker);
+    const fmpDiag = [];
+    const lagCloses = await closesFor(ticker, fmpDiag);
     if (lagCloses) {
-      // ищем первого лидера, для которого FMP отдаёт цены; он и становится основной парой
+      // ищем первого лидера, для которого есть цены; он и становится основной парой
       const order = [pIdx, ...data.leaders.map((_, i) => i).filter(i => i !== pIdx)];
       for (const i of order) {
         const lsym = data.leaders[i] && data.leaders[i].symbol;
         if (!lsym) continue;
-        const leadCloses = await fmpCloses(lsym);
+        const leadCloses = await closesFor(lsym, fmpDiag);
         if (leadCloses) { metrics = buildMetrics(leadCloses, lagCloses); pIdx = i; break; }
       }
     } else {
-      console.error('[diverge] нет цен по ведомому ' + ticker + ' — metrics остаётся null');
+      fmpDiag.push('[diverge] нет цен по ведомому ' + ticker + ' ни из FMP, ни из Stooq — metrics остаётся null');
     }
 
-    return res.status(200).json({
+    const out = {
       ticker, asOf,
       leaders: data.leaders,
       primary_index: pIdx,
@@ -300,11 +337,14 @@ export default async function handler(req, res) {
       verdict_reason: data.verdict_reason || '',
       direction: data.direction || '',
       thesis: data.thesis || '',
-      metrics,                          // реальные числа (или null, если FMP не отдал)
+      metrics,                          // реальные числа (или null, если оба источника молчат)
       research_map: data.research_map || [],
       insider_watch: data.insider_watch || null,
-      sources: news.map(n => ({ title: n.title, url: n.url }))
-    });
+      sources: news.map(n => ({ title: n.title, url: n.url })),
+      price_diag: fmpDiag,              // причина «нет чисел» видна сразу в ответе
+      fmp_key_present: !!FMP_KEY
+    };
+    return res.status(200).json(out);
   } catch (e) {
     return res.status(500).json({ ticker, asOf, error: String(e && e.message || e) });
   }
