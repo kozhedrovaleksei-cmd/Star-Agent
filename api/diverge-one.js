@@ -1,5 +1,4 @@
-// api/diverge-one.js
-// STARK — анализ одного тикера: расхождение (LAG/DECOUPLED) + карта разведки.
+// api/diverge-one.js — STARK · Детектор расхождений (одна бумага)
 // Вход:  GET /api/diverge-one?ticker=FCX
 // Стек:  Tavily (грунт) -> callClaude (failover) -> код считает реальную корреляцию по FMP.
 // Числа НЕ выдумываются: corr/gap считает код по ценам FMP. Модель даёт связи, вердикт-логику и карту.
@@ -7,11 +6,11 @@
 
 export const config = { maxDuration: 180 };
 
-const TAVILY_KEY    = process.env.TAVILY_KEY;
-const FMP_KEY       = process.env.FMP_KEY;
-const CRAZYROUTER   = process.env.CRAZYROUTER_KEY;
-const OPENROUTER    = process.env.OPENROUTER_KEY;
-const ANTHROPIC     = process.env.ANTHROPIC_API_KEY;
+const TAVILY_KEY  = process.env.TAVILY_KEY;
+const FMP_KEY     = process.env.FMP_KEY;
+const CRAZYROUTER = process.env.CRAZYROUTER_KEY;
+const OPENROUTER  = process.env.OPENROUTER_KEY;
+const ANTHROPIC   = process.env.ANTHROPIC_API_KEY;
 
 const MODEL_ANTHROPIC = 'claude-sonnet-4-6';
 const MODEL_OR        = 'anthropic/claude-sonnet-4.5';
@@ -43,7 +42,7 @@ function extractJson(text) {
   return null;
 }
 
-/* ---------- Tavily ---------- */
+/* ---------- Tavily (грунт под нарратив) ---------- */
 async function tavily(query) {
   if (!TAVILY_KEY) return [];
   try {
@@ -63,31 +62,51 @@ async function tavily(query) {
   } catch (e) { return []; }
 }
 
-/* ---------- FMP цены (best-effort, c фолбэком) ---------- */
+/* ---------- FMP цены (закалённый best-effort + диагностика в логи) ---------- */
 async function fmpCloses(symbol) {
   if (!FMP_KEY || !symbol) return null;
+  const sym = encodeURIComponent(symbol);
   const urls = [
-    `https://financialmodelingprep.com/stable/historical-price-eod/light?symbol=${encodeURIComponent(symbol)}&apikey=${FMP_KEY}`,
-    `https://financialmodelingprep.com/api/v3/historical-price-full/${encodeURIComponent(symbol)}?serietype=line&apikey=${FMP_KEY}`
+    `https://financialmodelingprep.com/stable/historical-price-eod/light?symbol=${sym}&apikey=${FMP_KEY}`,
+    `https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=${sym}&apikey=${FMP_KEY}`,
+    `https://financialmodelingprep.com/api/v3/historical-price-full/${sym}?serietype=line&apikey=${FMP_KEY}`,
+    `https://financialmodelingprep.com/api/v3/historical-price-full/${sym}?apikey=${FMP_KEY}`
   ];
   for (const u of urls) {
+    const tag = u.split('?')[0].replace('https://financialmodelingprep.com', '');
     try {
       const r = await fetch(u);
-      if (!r.ok) continue;
+      if (!r.ok) { console.error('[diverge] FMP ' + symbol + ' HTTP ' + r.status + ' @ ' + tag); continue; }
       const j = await r.json();
-      let rows = Array.isArray(j) ? j : (j.historical || j.results || []);
-      if (!Array.isArray(rows) || !rows.length) continue;
-      // newest-first у FMP -> разворачиваем в хронологический порядок
-      const closes = rows
-        .map(x => (typeof x.close === 'number' ? x.close : (typeof x.price === 'number' ? x.price : null)))
-        .filter(v => v != null)
-        .reverse();
-      if (closes.length >= 25) return closes;
-    } catch (e) { /* пробуем следующий */ }
+      let rows = Array.isArray(j) ? j
+        : (Array.isArray(j.historical) ? j.historical
+        : (Array.isArray(j.results) ? j.results
+        : (Array.isArray(j.historicalStockList) && j.historicalStockList[0] ? j.historicalStockList[0].historical : [])));
+      if (!Array.isArray(rows) || !rows.length) {
+        console.error('[diverge] FMP ' + symbol + ' пусто/чужой shape @ ' + tag + ' :: ' + JSON.stringify(j).slice(0, 180));
+        continue;
+      }
+      let closes = rows.map(x => {
+        const v = (x.close ?? x.adjClose ?? x.adjustedClose ?? x.price ?? x.close_price ?? x.c);
+        return (typeof v === 'number' && isFinite(v)) ? v : null;
+      }).filter(v => v !== null);
+      if (closes.length < 25) { console.error('[diverge] FMP ' + symbol + ' мало точек (' + closes.length + ') @ ' + tag); continue; }
+      // FMP отдаёт newest-first -> приводим к хронологии (старые -> свежие)
+      const d0 = rows[0] && (rows[0].date || rows[0].datetime);
+      const dN = rows[rows.length - 1] && (rows[rows.length - 1].date || rows[rows.length - 1].datetime);
+      if (d0 && dN && String(d0) > String(dN)) closes = closes.reverse();
+      else if (!d0) closes = closes.reverse();
+      console.error('[diverge] FMP ' + symbol + ' OK: ' + closes.length + ' точек @ ' + tag);
+      return closes;
+    } catch (e) {
+      console.error('[diverge] FMP ' + symbol + ' fetch err @ ' + tag + ' :: ' + (e && e.message));
+      continue;
+    }
   }
   return null;
 }
 
+/* ---------- математика: доходности, корреляция, разрыв ---------- */
 function dailyReturns(s) {
   const r = [];
   for (let i = 1; i < s.length; i++) if (s[i - 1] > 0) r.push(s[i] / s[i - 1] - 1);
@@ -110,7 +129,30 @@ function pctOver(s, win) {
   return b / a - 1;
 }
 
-/* ---------- LLM failover ---------- */
+// реальные числа по паре лидер/ведомый (или null, если FMP не отдал)
+function buildMetrics(leadCloses, lagCloses) {
+  if (!leadCloses || !lagCloses) return null;
+  const lr = dailyReturns(leadCloses).slice(-60);
+  const gr = dailyReturns(lagCloses).slice(-60);
+  const corr60 = corr(lr, gr);
+  const leadGap5  = pctOver(leadCloses, 5),  lagGap5  = pctOver(lagCloses, 5);
+  const leadGap20 = pctOver(leadCloses, 20), lagGap20 = pctOver(lagCloses, 20);
+  const pp = (x) => (x == null) ? null : +(x * 100).toFixed(2);
+  const corrLabel = corr60 == null ? 'нет данных'
+    : (Math.abs(corr60) >= 0.5 ? 'связь живая'
+    : (Math.abs(corr60) >= 0.25 ? 'связь слабая' : 'связь почти распалась'));
+  return {
+    corr60: corr60 == null ? null : +corr60.toFixed(2),
+    corr_label: corrLabel,
+    leader_5d_pct: pp(leadGap5), laggard_5d_pct: pp(lagGap5),
+    leader_20d_pct: pp(leadGap20), laggard_20d_pct: pp(lagGap20),
+    gap_5d_pp: (leadGap5 != null && lagGap5 != null) ? +(((leadGap5 - lagGap5) * 100)).toFixed(2) : null,
+    gap_20d_pp: (leadGap20 != null && lagGap20 != null) ? +(((leadGap20 - lagGap20) * 100)).toFixed(2) : null,
+    note: 'corr60 — корреляция дневных доходностей за ~60 сессий. gap — разрыв доходностей лидера и ведомого (пп). Источник цен: FMP EOD.'
+  };
+}
+
+/* ---------- LLM failover: Crazyrouter -> OpenRouter -> Anthropic ---------- */
 async function callClaude(system, user) {
   const body = (model) => ({ model, max_tokens: 4000, system, messages: [{ role: 'user', content: user }] });
 
@@ -123,9 +165,10 @@ async function callClaude(system, user) {
         body: JSON.stringify(body(MODEL_ANTHROPIC))
       });
       if (r.ok) { const j = await r.json(); const t = (j.content || []).map(b => b.text || '').join(''); if (t) return t; }
-    } catch (e) {}
+      else console.error('[diverge] crazyrouter HTTP ' + r.status);
+    } catch (e) { console.error('[diverge] crazyrouter err :: ' + (e && e.message)); }
   }
-  // 2) OpenRouter
+  // 2) OpenRouter (OpenAI-совместимый)
   if (OPENROUTER) {
     try {
       const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -134,83 +177,119 @@ async function callClaude(system, user) {
         body: JSON.stringify({ model: MODEL_OR, max_tokens: 4000, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] })
       });
       if (r.ok) { const j = await r.json(); const t = j.choices?.[0]?.message?.content || ''; if (t) return t; }
-    } catch (e) {}
+      else console.error('[diverge] openrouter HTTP ' + r.status);
+    } catch (e) { console.error('[diverge] openrouter err :: ' + (e && e.message)); }
   }
-  // 3) Anthropic напрямую
+  // 3) Anthropic direct
   if (ANTHROPIC) {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify(body(MODEL_ANTHROPIC))
-    });
-    const j = await r.json();
-    const t = (j.content || []).map(b => b.text || '').join('');
-    if (t) return t;
+    try {
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify(body(MODEL_ANTHROPIC))
+      });
+      if (r.ok) { const j = await r.json(); const t = (j.content || []).map(b => b.text || '').join(''); if (t) return t; }
+      else console.error('[diverge] anthropic HTTP ' + r.status);
+    } catch (e) { console.error('[diverge] anthropic err :: ' + (e && e.message)); }
   }
-  throw new Error('Все провайдеры LLM недоступны');
+  return null;
 }
 
 /* ---------- промпт ---------- */
-const SYSTEM = `Ты — STARK, аналитический движок lead-lag расхождений. Отвечаешь СТРОГО валидным JSON и ничем больше: без преамбулы, без markdown-ограждений.
-Логика:
-- Для выбранного тикера найди 2-4 "лидера", с которыми он связан: сырьё, поставщик, клиент, близнец по дуополии, сектор, макро-драйвер.
-- relation одно из: "commodity" | "supplier" | "customer" | "twin" | "sector" | "macro".
-- Если лидер не торгуется как акция (сырьё/макро) — дай в поле ticker биржевой прокси-ETF (медь->"CPER", нефть->"XLE", золото->"GLD" и т.п.), чтобы можно было посчитать корреляцию.
-- primary_index — индекс самого важного лидера в массиве leaders.
-- verdict: "LAG" (связь жива, ведомый не успел -> возможный возврат), "DECOUPLED" (связь сломалась по своей причине -> ловушка, не фейдить), "NO_SIGNAL" (разрыва нет), "WATCH" (данных мало).
-- НЕ выдумывай числа цен/процентов. Числа корреляции и разрыва посчитает код отдельно. Говори словами про логику.
-- research_map: 4-7 пунктов "что проверить и где". Каждый: check (что проверяем), where (источник: OpenInsider/SEC Form 4/Finviz/Tavily/FMP/график), query (точная строка для поиска или метрика), watch_metric (конкретная цифра/уровень для слежения).
-- insider_watch ОБЯЗАТЕЛЕН (правило пользователя): где смотреть инсайдерские покупки/продажи, порог (покупка/продажа CEO/CFO от $500K — выносить наверх), на что обратить внимание.
-Язык всех текстовых полей — РУССКИЙ.
-Схема:
-{"leaders":[{"name":"","ticker":"","relation":"","why":""}],"primary_index":0,"verdict":"","verdict_reason":"","direction":"","thesis":"","research_map":[{"check":"","where":"","query":"","watch_metric":""}],"insider_watch":{"where":["",""],"threshold":"","note":""}}`;
+function buildPrompt(ticker, news) {
+  const grounding = news.length
+    ? news.map((n, i) => `[${i + 1}] ${n.title}\n${n.content}\nURL: ${n.url}`).join('\n\n')
+    : '(свежего грунта по теме не нашлось — работай по структурной логике связей)';
+
+  const system = `Ты — STARK, движок детекции расхождений (lead-lag divergence) для трейдинга по методу Алексея (Герчик: изоляция, дисциплина, никаких выдуманных чисел).
+Тебе дают ВЕДОМЫЙ тикер. Твоя задача — найти его ЛИДЕРОВ (кто двигается первым) по трём слоям связи и вынести вердикт.
+
+ТРИ СЛОЯ СВЯЗИ:
+- commodity  — сырьё/металл/энергия, на котором завязана бумага (медь→FCX);
+- supplier / customer / fab — цепочка поставок (ASML→TSMC→NVDA; Micron→LRCX);
+- twin       — co-mention близнец по дуополии (FDX↔UPS);
+- sector     — секторный прокси/ETF, если прямого лидера нет.
+
+ВЕРДИКТЫ:
+- LAG        — связь жива, ведомый отстал → кандидат на возврат корреляции (catchup);
+- DECOUPLED  — связь сломалась по СВОЕЙ причине ведомого → слабость это информация, не лаг, НЕ фейдить;
+- WATCH      — картина смешанная, нужен триггер;
+- NO_SIGNAL  — расхождения нет, движутся синхронно.
+Различай LAG и DECOUPLED по ПРИЧИНЕ из грунта: общий драйвер у пары → LAG; идиосинкразия ведомого (свой отчёт/новость/инсайдеры) → DECOUPLED.
+
+КРИТИЧНО ПРО ЧИСЛА: ты НЕ считаешь корреляции и проценты — их посчитает код по ценам FMP. Не выдумывай цифры. Давай только связи, символы-прокси (реальные тикеры на US-биржах для FMP), логику и карту разведки.
+
+ВЕРНИ СТРОГО ВАЛИДНЫЙ JSON без markdown, без текста вокруг:
+{
+  "leaders": [
+    {"type":"commodity|supplier|customer|fab|twin|sector","name":"Человекочитаемое имя (с уточнением в скобках)","symbol":"FMP-тикер прокси, напр. TSM, ASML, MU, COPX","why":"механизм связи и почему именно этот лидер ведёт"}
+  ],
+  "primary_index": 0,
+  "verdict":"LAG|DECOUPLED|WATCH|NO_SIGNAL",
+  "verdict_reason":"Почему именно этот вердикт — со ссылкой на причину из грунта",
+  "direction":"LONG_REVERSION|SHORT_REVERSION|AVOID|WATCH",
+  "thesis":"2-4 предложения: вся цепочка лидер→ведомый, что ждём и при каком условии связь рвётся",
+  "research_map":[
+    {"what":"что проверить","where":"где смотреть (источник)","query":"точная строка запроса для поиска","watch_metric":"какую цифру/уровень мониторить"}
+  ],
+  "insider_watch":{"where":"OpenInsider / SEC Form 4 / Finviz по ведомому и лидеру","threshold":"порог сигнала (CEO/CFO от $500K — наверх)","note":"что именно ищем и как трактуем"}
+}
+leaders — 3-5 штук, первый по логике = основной (primary_index указывает на него). symbol обязателен и должен быть валидным тикером FMP (US). Язык всего текста — русский.`;
+
+  const user = `ВЕДОМЫЙ ТИКЕР: ${ticker}
+Дата: ${todayISO()}
+
+СВЕЖИЙ ГРУНТ (Tavily, последние дни):
+${grounding}
+
+Найди лидеров ${ticker}, вынеси вердикт LAG/DECOUPLED/WATCH/NO_SIGNAL строго по причине из грунта, собери карту разведки. Только JSON.`;
+
+  return { system, user };
+}
 
 /* ---------- handler ---------- */
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  const ticker = String((req.query?.ticker || '')).trim().toUpperCase().replace(/[^A-Z0-9.\-]/g, '');
-  if (!ticker) return res.status(400).json({ error: 'Передай ?ticker=XXX' });
-
   const asOf = todayISO();
+  const ticker = String((req.query && req.query.ticker) || '').toUpperCase().trim();
+  if (!ticker) return res.status(400).json({ error: 'нет параметра ticker (пример: /api/diverge-one?ticker=FCX)' });
+
   try {
-    // 1) грунтуем нарратив
-    const news = await tavily(`${ticker} stock why moving correlation peers supply chain ${asOf}`);
-    const ctx = news.map((n, i) => `[${i + 1}] ${n.title}\n${n.content}`).join('\n\n').slice(0, 4000) || '(свежих новостей не найдено)';
+    // 1) грунт под нарратив
+    const waves = await Promise.all([
+      tavily(`${ticker} stock why moving today leader lagging peers supply chain`),
+      tavily(`${ticker} divergence correlation peers commodity supplier customer`)
+    ]);
+    const seen = new Set();
+    const news = [];
+    for (const w of waves) for (const n of w) { if (n.url && !seen.has(n.url)) { seen.add(n.url); news.push(n); } }
 
-    const user = `Сегодня: ${asOf}. Тикер для анализа: ${ticker}.
-Свежий контекст из поиска:
-${ctx}
+    // 2) LLM: связи + вердикт + карта (без чисел)
+    const { system, user } = buildPrompt(ticker, news);
+    const raw = await callClaude(system, user);
+    if (!raw) return res.status(502).json({ ticker, asOf, error: 'LLM не ответил (все провайдеры failover недоступны)' });
 
-Верни JSON по схеме. Помни: вердикт LAG/DECOUPLED определяется ПРИЧИНОЙ движения лидера (общая для пары -> LAG; своя у одного -> DECOUPLED).`;
-
-    const raw = await callClaude(SYSTEM, user);
     const data = extractJson(raw);
     if (!data || !Array.isArray(data.leaders)) {
-      return res.status(200).json({ ticker, asOf, error: 'Модель вернула неразборчивый ответ', raw: String(raw).slice(0, 800) });
+      return res.status(502).json({ ticker, asOf, error: 'LLM вернул не-JSON или без leaders', raw: String(raw).slice(0, 300) });
     }
 
-    // 2) считаем РЕАЛЬНУЮ корреляцию/разрыв с главным лидером
-    const pIdx = Number.isInteger(data.primary_index) ? data.primary_index : 0;
-    const primary = data.leaders[pIdx] || data.leaders[0] || null;
+    // 3) РЕАЛЬНЫЕ числа по паре — считает код, не модель
     let metrics = null;
-    if (primary && primary.ticker) {
-      const [cl, cp] = await Promise.all([fmpCloses(ticker), fmpCloses(primary.ticker)]);
-      if (cl && cp) {
-        const c60 = corr(dailyReturns(cl).slice(-60), dailyReturns(cp).slice(-60));
-        const leadGap5 = pctOver(cp, 5), lagGap5 = pctOver(cl, 5);
-        const leadGap20 = pctOver(cp, 20), lagGap20 = pctOver(cl, 20);
-        const pp = (x) => x == null ? null : +(x * 100).toFixed(2);
-        metrics = {
-          pair: `${primary.ticker} (лидер) -> ${ticker} (ведомый)`,
-          corr60: c60 == null ? null : +c60.toFixed(2),
-          corrLabel: c60 == null ? 'нет данных' : (Math.abs(c60) >= 0.5 ? 'связь живая' : (Math.abs(c60) >= 0.3 ? 'связь слабая' : 'связь почти распалась')),
-          leader_5d_pct: pp(leadGap5), laggard_5d_pct: pp(lagGap5),
-          leader_20d_pct: pp(leadGap20), laggard_20d_pct: pp(lagGap20),
-          gap_5d_pp: (leadGap5 != null && lagGap5 != null) ? +(((leadGap5 - lagGap5) * 100)).toFixed(2) : null,
-          gap_20d_pp: (leadGap20 != null && lagGap20 != null) ? +(((leadGap20 - lagGap20) * 100)).toFixed(2) : null,
-          note: 'corr60 — корреляция дневных доходностей за ~60 сессий. gap — разрыв доходностей лидера и ведомого (пп). Источник цен: FMP EOD.'
-        };
+    let pIdx = Number.isInteger(data.primary_index) ? data.primary_index : 0;
+    if (pIdx < 0 || pIdx >= data.leaders.length) pIdx = 0;
+
+    const lagCloses = await fmpCloses(ticker);
+    if (lagCloses) {
+      // ищем первого лидера, для которого FMP отдаёт цены; он и становится основной парой
+      const order = [pIdx, ...data.leaders.map((_, i) => i).filter(i => i !== pIdx)];
+      for (const i of order) {
+        const lsym = data.leaders[i] && data.leaders[i].symbol;
+        if (!lsym) continue;
+        const leadCloses = await fmpCloses(lsym);
+        if (leadCloses) { metrics = buildMetrics(leadCloses, lagCloses); pIdx = i; break; }
       }
+    } else {
+      console.error('[diverge] нет цен по ведомому ' + ticker + ' — metrics остаётся null');
     }
 
     return res.status(200).json({
@@ -227,6 +306,6 @@ ${ctx}
       sources: news.map(n => ({ title: n.title, url: n.url }))
     });
   } catch (e) {
-    return res.status(500).json({ ticker, asOf, error: String(e.message || e) });
+    return res.status(500).json({ ticker, asOf, error: String(e && e.message || e) });
   }
 }
